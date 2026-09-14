@@ -1,0 +1,98 @@
+// Formatting helpers for UNI·MATE — consistent across the app.
+
+export const fmtDuration = (minutes) => {
+  if (!minutes || minutes <= 0) return "0m";
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+};
+
+export const fmtGrade = (g) => {
+  if (g === null || g === undefined || Number.isNaN(g)) return "—";
+  return `${Number(g).toFixed(2)}`;
+};
+
+export const fmtPct = (n, total) => {
+  if (!total) return "0%";
+  return `${Math.round((n / total) * 100)}%`;
+};
+
+export const toLocalISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+export const todayISO = (d = new Date()) => toLocalISO(d);
+
+export const isSameDay = (a, b) => a && b && a.slice(0, 10) === b.slice(0, 10);
+
+export const daysUntil = (dateStr) => {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d = new Date(dateStr + "T00:00:00"); d.setHours(0, 0, 0, 0);
+  return Math.round((d.getTime() - today.getTime()) / 86400000);
+};
+
+export const relativeDeadline = (dateStr) => {
+  const n = daysUntil(dateStr);
+  if (n === null) return "";
+  if (n < 0) return `Overdue ${Math.abs(n)}d`;
+  if (n === 0) return "Due today";
+  if (n === 1) return "Due tomorrow";
+  if (n <= 7) return `Due in ${n}d`;
+  return `Due ${new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+};
+
+export const relativeExam = (dateStr) => {
+  const n = daysUntil(dateStr);
+  if (n === null) return "";
+  if (n < 0) return "Past";
+  if (n === 0) return "Today";
+  if (n === 1) return "Tomorrow";
+  return `In ${n}d`;
+};
+
+export const greeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 19) return "Good afternoon";
+  return "Good evening";
+};
+
+export const longDate = () =>
+  new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+
+export const fmtTime = (t) => {
+  if (!t) return "";
+  const [h, m] = t.split(":");
+  const hh = parseInt(h, 10);
+  const ampm = hh >= 12 ? "PM" : "AM";
+  const h12 = hh % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
+};
+
+export const fmtTimeShort = (t) => {
+  if (!t) return "";
+  const [h, m] = t.split(":");
+  const hh = parseInt(h, 10);
+  const ampm = hh >= 12 ? "p" : "a";
+  const h12 = hh % 12 || 12;
+  return `${h12}:${m}${ampm}`;
+};
+
+export const COURSE_COLORS = {
+  amber: { dot: "bg-amber-500", text: "text-amber-400", ring: "ring-amber-500/30", soft: "bg-amber-500/10", hex: "#f59e0b" },
+  cyan: { dot: "bg-cyan-500", text: "text-cyan-400", ring: "ring-cyan-500/30", soft: "bg-cyan-500/10", hex: "#06b6d4" },
+  purple: { dot: "bg-violet-500", text: "text-violet-400", ring: "ring-violet-500/30", soft: "bg-violet-500/10", hex: "#8b5cf6" },
+  green: { dot: "bg-emerald-500", text: "text-emerald-400", ring: "ring-emerald-500/30", soft: "bg-emerald-500/10", hex: "#10b981" },
+  rose: { dot: "bg-rose-500", text: "text-rose-400", ring: "ring-rose-500/30", soft: "bg-rose-500/10", hex: "#f43f5e" },
+  blue: { dot: "bg-blue-500", text: "text-blue-400", ring: "ring-blue-500/30", soft: "bg-blue-500/10", hex: "#3b82f6" },
+};
+
+export const courseColor = (key) => COURSE_COLORS[key] || COURSE_COLORS.amber;
+
+export const PRIORITY_META = {
+  urgent: { label: "Urgent", cls: "text-rose-400 bg-rose-500/10 border-rose-500/30" },
+  high: { label: "High", cls: "text-amber-400 bg-amber-500/10 border-amber-500/30" },
+  medium: { label: "Medium", cls: "text-cyan-400 bg-cyan-500/10 border-cyan-500/30" },
+  low: { label: "Low", cls: "text-muted-foreground bg-muted border-border" },
+};

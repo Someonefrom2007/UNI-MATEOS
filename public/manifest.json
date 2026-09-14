@@ -1,0 +1,26 @@
+{
+  "name": "UNI·MATE — Academic OS",
+  "short_name": "UNI·MATE",
+  "description": "Your university, organized around you. The personal academic operating system — installable, offline-first, dark by design.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07080D",
+  "theme_color": "#07080D",
+  "lang": "en",
+  "orientation": "any",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

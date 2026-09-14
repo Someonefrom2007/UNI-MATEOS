@@ -1,0 +1,39 @@
+import { Link } from "react-router-dom";
+import { Sparkles, ArrowRight } from "lucide-react";
+import { Card } from "@/components/ui/card";
+
+const CAT_STYLE = {
+  Risk: "text-rose-400 bg-rose-500/10",
+  Productivity: "text-violet-400 bg-violet-500/10",
+  Planning: "text-cyan-400 bg-cyan-500/10",
+  Academic: "text-emerald-400 bg-emerald-500/10",
+};
+
+// Discovering something about yourself — observations surface progressively.
+export default function InsightsCard({ insights }) {
+  return (
+    <Card className="p-5 h-full">
+      <div className="flex items-center gap-2 mb-4">
+        <Sparkles className="w-4 h-4 text-cyan-400" />
+        <h2 className="um-label">Insights</h2>
+      </div>
+      {insights.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-4">Not enough data yet — as you complete tasks, focus, and grade, patterns will appear here.</p>
+      ) : (
+        <div className="space-y-3">
+          {insights.slice(0, 3).map((ins, i) => (
+            <div key={ins.id} className="flex items-start gap-3">
+              <span className={`shrink-0 mt-0.5 text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${CAT_STYLE[ins.category] || CAT_STYLE.Productivity}`}>
+                {ins.category}
+              </span>
+              <p className="text-sm leading-relaxed">{ins.text}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      <Link to="/insights" className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors mt-4">
+        All insights <ArrowRight className="w-3 h-3 ml-1" />
+      </Link>
+    </Card>
+  );
+}

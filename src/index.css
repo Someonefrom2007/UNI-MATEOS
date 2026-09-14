@@ -1,0 +1,173 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* UNI·MATE — deep-space academic command center */
+    --background: 226 57% 5%;
+    --foreground: 220 25% 96%;
+    --card: 226 44% 9%;
+    --card-foreground: 220 25% 96%;
+    --popover: 226 44% 8%;
+    --popover-foreground: 220 25% 96%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 228 24% 14%;
+    --secondary-foreground: 220 25% 96%;
+    --muted: 228 24% 14%;
+    --muted-foreground: 224 12% 62%;
+    --accent: 190 100% 50%;
+    --accent-foreground: 226 57% 5%;
+    --destructive: 0 72% 56%;
+    --destructive-foreground: 220 25% 98%;
+    --border: 228 22% 17%;
+    --input: 228 22% 17%;
+    --ring: 239 84% 67%;
+    --chart-1: 190 100% 50%;
+    --chart-2: 282 85% 60%;
+    --chart-3: 239 84% 67%;
+    --chart-4: 155 62% 42%;
+    --chart-5: 0 72% 58%;
+    --radius: 0.75rem;
+    --font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --sidebar-background: 226 48% 6%;
+    --sidebar-foreground: 224 12% 60%;
+    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 228 24% 13%;
+    --sidebar-accent-foreground: 220 25% 96%;
+    --sidebar-border: 228 22% 14%;
+    --sidebar-ring: 239 84% 67%;
+  }
+
+  .light {
+    --background: 240 30% 98%;
+    --foreground: 230 25% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 230 25% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 25% 10%;
+    --primary: 243 75% 59%;
+    --secondary: 240 20% 94%;
+    --secondary-foreground: 230 25% 10%;
+    --muted: 240 20% 94%;
+    --muted-foreground: 228 10% 42%;
+    --accent: 190 80% 42%;
+    --accent-foreground: 240 30% 98%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 240 30% 98%;
+    --border: 228 20% 88%;
+    --input: 228 20% 88%;
+    --ring: 243 75% 59%;
+    --sidebar-background: 240 30% 97%;
+    --sidebar-foreground: 228 10% 42%;
+    --sidebar-accent: 240 20% 92%;
+    --sidebar-accent-foreground: 230 25% 10%;
+    --sidebar-border: 228 20% 86%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    background:
+      radial-gradient(1100px 700px at 78% -12%, hsl(190 100% 50% / 0.07), transparent 55%),
+      radial-gradient(1000px 700px at -12% 108%, hsl(282 85% 60% / 0.09), transparent 55%),
+      hsl(var(--background));
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); background-clip: padding-box; }
+}
+
+@layer components {
+  .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .surface-card {
+    @apply rounded-xl border border-border bg-card;
+  }
+  .um-label {
+    @apply font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground;
+  }
+  .font-sticky {
+    font-family: "Caveat", cursive;
+  }
+  /* Deep-space canvas — navy base with indigo and cyan aurora glows. */
+  .space-bg {
+    background:
+      radial-gradient(1100px 700px at 75% -12%, hsl(239 84% 67% / 0.13), transparent 55%),
+      radial-gradient(900px 650px at -10% 110%, hsl(187 75% 55% / 0.07), transparent 55%),
+      linear-gradient(170deg, hsl(var(--background)) 30%, hsl(var(--card)) 130%);
+  }
+
+  /* Cyber-Canvas HUD: scanlines, gridlines, glows and micro-badges. */
+  .cyber-scanlines::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: repeating-linear-gradient(to bottom, hsl(0 0% 100% / 0.022) 0 1px, transparent 1px 3px);
+  }
+  .cyber-grid {
+    background-image:
+      linear-gradient(hsl(226 100% 92% / 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(226 100% 92% / 0.045) 1px, transparent 1px);
+    background-size: 34px 34px;
+    background-position: center;
+  }
+  .glow-cyan {
+    box-shadow: 0 0 24px hsl(190 100% 50% / 0.18), 0 0 2px hsl(190 100% 50% / 0.25);
+  }
+  .cyber-tag {
+    @apply inline-flex items-center gap-1.5 rounded-md border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.2em] text-accent;
+  }
+
+  /* HUD primitives shared across every view */
+  .hud-mono {
+    @apply font-mono text-[10px] uppercase tracking-[0.22em];
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider;
+  }
+  .glow-hover {
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  }
+  .glow-hover:hover {
+    box-shadow: 0 0 22px hsl(190 100% 50% / 0.14);
+    border-color: hsl(190 100% 50% / 0.35);
+  }
+  .glow-hover-violet:hover {
+    box-shadow: 0 0 22px hsl(282 85% 62% / 0.18);
+    border-color: hsl(282 85% 62% / 0.4);
+  }
+  .glow-active {
+    box-shadow: 0 0 18px hsl(190 100% 50% / 0.18), inset 0 0 12px hsl(190 100% 50% / 0.06);
+    border-color: hsl(190 100% 50% / 0.45);
+  }
+  .meter-glow {
+    box-shadow: 0 0 12px hsl(190 100% 50% / 0.4);
+  }
+  /* high-contrast time-grid lines for the schedule HUD */
+  .timeline-grid-44 {
+    background-image: linear-gradient(hsl(190 100% 88% / 0.06) 1px, transparent 1px);
+    background-size: 100% 44px;
+  }
+  .timeline-grid-56 {
+    background-image: linear-gradient(hsl(190 100% 88% / 0.06) 1px, transparent 1px);
+    background-size: 100% 56px;
+  }
+}
