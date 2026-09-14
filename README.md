@@ -30,6 +30,15 @@ npm run dev        # Vite dev server (frontend against your hosted Supabase proj
 
 Open `http://localhost:5173`. Auth, database, and Edge Functions are served by your Supabase project directly.
 
+## Local workspace (no backend)
+
+The app is local-first: the data adapter is chosen by environment at startup.
+
+- **Supabase env vars present** → hosted backend, exactly as before (auth + realtime).
+- **Supabase env vars absent** → the app runs as a fully local workspace: no login, all data persisted on-device under the `unimate:v1:` storage namespace. Accounts, password reset, Google Calendar sync, and the server-side AI assistant are unavailable in this mode and say so honestly.
+
+The repository layer lives in `src/lib/repo/` (`storage.js`, `localRepo.js`, `select.js`); `useUserData` is the stable surface the UI talks to and branches internally. Local rows carry `id` / `user_id` / `created_at` / `updated_at` so they can later be pushed to Supabase by a matching adapter (Mission 2).
+
 ## Database & Edge Functions
 
 - **Schema**: `supabase/schema.sql` is the source of truth (tables, RLS policies, triggers). Apply it in the Supabase dashboard (SQL editor) or via the Supabase CLI.

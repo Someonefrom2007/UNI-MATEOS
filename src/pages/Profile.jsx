@@ -11,15 +11,29 @@ import { useToast } from "@/components/ui/use-toast";
 import { Save } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
+import { isLocalWorkspace, loadLocalProfile, saveLocalProfile } from "@/lib/repo/select";
 
 export default function Profile() {
   const { user } = useAuth();
   const { t } = useI18n();
   const { toast } = useToast();
+  const local = isLocalWorkspace();
   const [form, setForm] = useState({ university: "", degree: "", year: "", target_gpa: 8, preferred_focus: 25, language: "en" });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (local) {
+      const p = loadLocalProfile() || {};
+      setForm({
+        university: p.university || "",
+        degree: p.degree || "",
+        year: p.year || "1",
+        target_gpa: p.target_gpa ?? 8,
+        preferred_focus: p.preferred_focus ?? 25,
+        language: p.language || "en",
+      });
+      return;
+    }
     supabase.auth.getUser().then(({ data }) => {
       const u = data.user?.user_metadata || {};
       setForm({
@@ -31,11 +45,16 @@ export default function Profile() {
         language: u.language || "en",
       });
     }).catch(() => {});
-  }, []);
+  }, [local]);
 
   const save = async () => {
     setSaving(true);
     try {
+      if (local) {
+        saveLocalProfile(form);
+        toast({ title: "Profile saved on this device" });
+        return;
+      }
       const { error } = await supabase.auth.updateUser({ data: form });
       if (error) throw error;
       toast({ title: "Profile saved" });
@@ -60,6 +79,11 @@ export default function Profile() {
               <div className="text-sm text-muted-foreground">{user?.email}</div>
             </div>
           </div>
+          {local && (
+            <p className="text-xs text-muted-foreground mb-4">
+              Local workspace — your profile is stored on this device only, so it opens even when you're offline.
+            </p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5"><Label className="text-xs">University</Label><Input value={form.university} onChange={(e) => setForm({ ...form, university: e.target.value })} placeholder="Universitat de Barcelona" /></div>
             <div className="space-y-1.5"><Label className="text-xs">Degree</Label><Input value={form.degree} onChange={(e) => setForm({ ...form, degree: e.target.value })} placeholder="Computer Science" /></div>

@@ -4,11 +4,13 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, Loader2, AlertTriangle } from "lucide-react";
+import { Lock, Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function ResetPassword() {
+  const { localWorkspace } = useAuth();
   const [searchParams] = useSearchParams();
 
   const [newPassword, setNewPassword] = useState("");
@@ -40,6 +42,26 @@ export default function ResetPassword() {
       cancelled = true;
     };
   }, [searchParams]);
+
+  // Local workspace has no accounts or passwords to reset.
+  if (localWorkspace) {
+    return (
+      <AuthLayout
+        icon={ShieldCheck}
+        title="No account to reset"
+        subtitle="You're in a local workspace — your data lives on this device"
+        footer={
+          <Link to="/dashboard" className="text-primary font-medium hover:underline">
+            Back to dashboard
+          </Link>
+        }
+      >
+        <p className="text-sm text-foreground text-center">
+          Password resets only apply to online accounts. In local workspace mode everything is stored on this device.
+        </p>
+      </AuthLayout>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

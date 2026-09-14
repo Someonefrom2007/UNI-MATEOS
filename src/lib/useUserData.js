@@ -1,13 +1,19 @@
 /// <reference types="vite/client" />
 
-// Central data hook — loads all UNI·MATE tables once and keeps them in sync
-// via Supabase postgres_changes. The exported API surface is unchanged:
+// Central data hook — loads all UNI·MATE tables once and keeps them in sync.
+// The exported API surface is unchanged:
 //   data.<EntityKey>  -> array of rows (snake_case columns)
 //   refresh           -> reload everything
 //   mutate(entity, op, ...args) with op in create | update | delete
+//
+// Adapter is chosen by environment: with Supabase env vars present rows come
+// from the hosted backend with realtime (today's behavior); without them the
+// local repo serves everything (see src/lib/repo). Call sites never branch.
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { TABLE, getTable } from "@/lib/tables";
+import { createLocalRepo } from "@/lib/repo/localRepo";
+import { isLocalWorkspace } from "@/lib/repo/select";
 
 const FETCH_ENTITIES = [
   "Course", "ScheduleEvent", "Task", "Exam", "Grade", "Note", "Resource",
@@ -33,6 +39,9 @@ const toSnakeCase = (obj) => {
   return out;
 };
 
+const LOCAL = isLocalWorkspace();
+const repo = LOCAL ? createLocalRepo() : null;
+
 export const useUserData = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +49,12 @@ export const useUserData = () => {
 
   const fetchAll = async () => {
     const results = {};
+    if (repo) {
+      FETCH_ENTITIES.forEach((key) => {
+        results[key] = repo.list(getTable(key));
+      });
+      return results;
+    }
     await Promise.all(
       FETCH_ENTITIES.map(async (key) => {
         try {
@@ -53,6 +68,16 @@ export const useUserData = () => {
     return results;
   };
 
+  const fetchOne = async (key) => {
+    if (repo) return repo.list(getTable(key));
+    try {
+      const { data: rows, error: err } = await supabase.from(getTable(key)).select("*");
+      return err ? null : rows || [];
+    } catch {
+      return null;
+    }
+  };
+
   const load = useCallback(async (attempt = 0) => {
     setLoading(true);
     try {
@@ -61,12 +86,7 @@ export const useUserData = () => {
       if (failed.length && attempt < 2) {
         await new Promise((r) => setTimeout(r, 600));
         for (const key of failed) {
-          try {
-            const { data: rows, error: err } = await supabase.from(getTable(key)).select("*");
-            results[key] = err ? null : rows || [];
-          } catch {
-            results[key] = null;
-          }
+          results[key] = await fetchOne(key);
         }
         failed = FETCH_ENTITIES.filter((k) => results[k] === null);
         if (failed.length) return load(attempt + 1);
@@ -88,7 +108,8 @@ export const useUserData = () => {
     load();
   }, [load]);
 
-  // Realtime: subscribe to the live tables and refresh on any change.
+  // Realtime is a hosted-backend feature: local mode owns its storage and has
+  // nothing to subscribe to, so the channel is only built when using Supabase.
   // IMPORTANT: Supabase's channel API requires every .on('postgres_changes', ...)
   // handler to be attached BEFORE .subscribe() — handlers registered after
   // subscribe are ignored (some SDK builds even throw). All listeners are
@@ -97,7 +118,7 @@ export const useUserData = () => {
   const hasData = data !== null;
 
   useEffect(() => {
-    if (!hasData) return;
+    if (!hasData || repo) return;
     // Unique name per lifecycle: StrictMode/HMR double-invoke must never reuse
     // a channel that is still subscribed.
     const channel = supabase.channel(realtimeChannelName());
@@ -120,7 +141,12 @@ export const useUserData = () => {
     const [id, payload] = args;
     let result = null;
     try {
-      if (op === "create") {
+      if (repo) {
+        if (op === "create") result = repo.create(table, toSnakeCase(payload || {}));
+        else if (op === "update") result = repo.update(table, id, toSnakeCase(payload || {}));
+        else if (op === "delete") result = repo.delete(table, id);
+        else throw new Error(`Unknown op: ${op}`);
+      } else if (op === "create") {
         const { data: rows, error } = await supabase.from(table).insert(toSnakeCase(payload || {})).select();
         if (error) throw error;
         result = rows?.[0] ?? null;

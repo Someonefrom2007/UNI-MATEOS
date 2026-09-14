@@ -4,11 +4,13 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, ArrowLeft, Loader2 } from "lucide-react";
+import { Mail, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function ForgotPassword() {
+  const { localWorkspace } = useAuth();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -27,6 +29,26 @@ export default function ForgotPassword() {
       setSent(true);
     }
   };
+
+  // Local workspace has no accounts or passwords to reset.
+  if (localWorkspace) {
+    return (
+      <AuthLayout
+        icon={ShieldCheck}
+        title="No account to recover"
+        subtitle="You're in a local workspace — your data lives on this device"
+        footer={
+          <Link to="/dashboard" className="text-primary font-medium hover:underline">
+            <ArrowLeft className="w-3 h-3 inline mr-1" />Back to dashboard
+          </Link>
+        }
+      >
+        <p className="text-sm text-foreground text-center">
+          There are no accounts or passwords in local workspace mode. Everything you create stays on this device — open UNI·MATE here at any time to keep going.
+        </p>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout

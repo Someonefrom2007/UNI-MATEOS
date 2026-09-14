@@ -10,10 +10,13 @@ import Logo from "@/components/Logo";
 import { useToast } from "@/components/ui/use-toast";
 import { loadDemoData } from "@/lib/demoData";
 import { supabase } from "@/lib/supabase";
+import { isLocalWorkspace } from "@/lib/repo/select";
+import { createLocalRepo } from "@/lib/repo/localRepo";
 
 const STEPS = ["Welcome", "About you", "Semester", "Goals", "Courses", "Done"];
 
 export default function Onboarding() {
+  const local = isLocalWorkspace();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [step, setStep] = useState(0);
@@ -36,13 +39,35 @@ export default function Onboarding() {
   };
 
   const finish = async () => {
-    try {
-      await supabase.auth.updateUser({
-        data: { university: form.university, degree: form.degree, year: form.year, interests: form.goals },
-      });
-    } catch {}
+    if (!local) {
+      try {
+        await supabase.auth.updateUser({
+          data: { university: form.university, degree: form.degree, year: form.year, interests: form.goals },
+        });
+      } catch {}
+    }
     toast({ title: "You're all set." });
     navigate("/dashboard");
+  };
+
+  const addFirstCourse = async () => {
+    if (form.courseName) {
+      const payload = {
+        name: form.courseName,
+        code: form.courseCode || "",
+        ects: Number(form.courseEcts) || 0,
+        semester: form.semester,
+        academic_year: form.academic_year,
+        target_grade: 7,
+        color: "amber",
+        archived: false,
+      };
+      try {
+        if (local) createLocalRepo().create("courses", payload);
+        else await supabase.from("courses").insert(payload);
+      } catch { /* onboarding never blocks on a single optional course */ }
+    }
+    setStep(5);
   };
 
   return (
@@ -119,7 +144,7 @@ export default function Onboarding() {
             <div className="space-y-1.5"><Label>Code</Label><Input value={form.courseCode || ""} onChange={(e) => set("courseCode", e.target.value)} placeholder="CS201" /></div>
             <div className="space-y-1.5"><Label>ECTS</Label><Input type="number" value={form.courseEcts || ""} onChange={(e) => set("courseEcts", e.target.value)} placeholder="6" /></div>
           </div>
-          <div className="flex justify-between"><Button variant="ghost" onClick={() => setStep(3)}><ArrowLeft className="w-4 h-4 mr-2" />Back</Button><Button onClick={async () => { if (form.courseName) { try { await supabase.from("courses").insert({ name: form.courseName, code: form.courseCode || "", ects: Number(form.courseEcts) || 0, semester: form.semester, academic_year: form.academic_year, target_grade: 7, color: "amber", archived: false }); } catch {} } setStep(5); }}>Continue <ArrowRight className="w-4 h-4 ml-2" /></Button></div>
+          <div className="flex justify-between"><Button variant="ghost" onClick={() => setStep(3)}><ArrowLeft className="w-4 h-4 mr-2" />Back</Button><Button onClick={addFirstCourse}>Continue <ArrowRight className="w-4 h-4 ml-2" /></Button></div>
         </div>
       )}
 

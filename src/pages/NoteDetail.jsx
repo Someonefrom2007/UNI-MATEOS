@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useUserData } from "@/lib/useUserData";
 import { supabase } from "@/lib/supabase";
+import { isLocalWorkspace } from "@/lib/repo/select";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ReactQuill from "react-quill-new";
@@ -41,7 +42,12 @@ export default function NoteDetail() {
     saveTimer.current = setTimeout(async () => {
       setSaving(true);
       try {
-        await supabase.from("notes").update({ title, content, course_id: courseId === "none" ? null : courseId, pinned }).eq("id", id);
+        const patch = { title, content, course_id: courseId === "none" ? null : courseId, pinned };
+        if (isLocalWorkspace()) {
+          await mutate("Note", "update", id, patch);
+        } else {
+          await supabase.from("notes").update(patch).eq("id", id);
+        }
         setStatus("Saved");
       } catch {
         setStatus("Save failed");

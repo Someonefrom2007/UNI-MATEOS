@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,10 @@ import GoogleIcon from "@/components/GoogleIcon";
 import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Register() {
+  const { isAuthenticated, localWorkspace } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -80,6 +82,9 @@ export default function Register() {
       setError(err.message || "Failed to sign up with Google");
     }
   };
+
+  // Local workspace has no accounts — the app authenticates automatically.
+  if (localWorkspace && isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   if (registered) {
     return (

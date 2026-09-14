@@ -10,6 +10,22 @@ import { CheckSquare, BookOpen, GraduationCap, CalendarDays, FileText, Target, R
 
 import { todayISO } from "@/lib/format";
 import { useToast } from "@/components/ui/use-toast";
+import { isLocalWorkspace } from "@/lib/repo/select";
+import { createLocalRepo } from "@/lib/repo/localRepo";
+
+const LOCAL = isLocalWorkspace();
+const localRepo = LOCAL ? createLocalRepo() : null;
+
+// Adapter-aware insert: local workspace persists on-device, Supabase mode keeps
+// the exact same call and now surfaces real DB errors instead of swallowing them.
+const insert = async (table, payload) => {
+  if (LOCAL) {
+    localRepo.create(table, payload);
+    return;
+  }
+  const { error } = await supabase.from(table).insert(payload);
+  if (error) throw error;
+};
 
 const OPTIONS = [
   { key: "task", label: "Task", icon: CheckSquare, color: "text-cyan-400" },
@@ -31,10 +47,14 @@ export default function QuickAdd({ open, onClose, preset = null }) {
 
   useEffect(() => {
     if (open) {
-      (async () => {
-        const { data, error } = await supabase.from("courses").select("*").order("name");
-        if (!error) setCourses(data || []);
-      })();
+      if (LOCAL) {
+        setCourses(localRepo.list("courses").slice().sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))));
+      } else {
+        (async () => {
+          const { data, error } = await supabase.from("courses").select("*").order("name");
+          if (!error) setCourses(data || []);
+        })();
+      }
       if (preset) {
         const opt = OPTIONS.find((o) => o.key === preset.typeKey);
         if (opt) setType(opt);
@@ -103,7 +123,7 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
     setSaving(true);
     try {
       if (type.key === "task") {
-        await supabase.from("tasks").insert({
+        await insert("tasks", {
           title: form.title,
           course_id: form.course_id || null,
           due_date: form.due_date || null,
@@ -113,7 +133,7 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
         });
         onDone("Task created", "/tasks");
       } else if (type.key === "course") {
-        await supabase.from("courses").insert({
+        await insert("courses", {
           name: form.name,
           code: form.code || "",
           professor: form.professor || "",
@@ -126,7 +146,7 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
         });
         onDone("Course added", "/courses");
       } else if (type.key === "exam") {
-        await supabase.from("exams").insert({
+        await insert("exams", {
           name: form.name,
           course_id: form.course_id,
           date: form.date,
@@ -137,7 +157,7 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
         });
         onDone("Exam added", "/exams");
       } else if (type.key === "event") {
-        await supabase.from("schedule_events").insert({
+        await insert("schedule_events", {
           title: form.title,
           type: form.eventType || "personal",
           date: form.date || todayISO(),
@@ -148,7 +168,7 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
         });
         onDone("Event added", "/schedule");
       } else if (type.key === "note") {
-        await supabase.from("notes").insert({
+        await insert("notes", {
           title: form.title,
           content: "",
           course_id: form.course_id || null,
@@ -157,7 +177,7 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
         });
         onDone("Note created", "/notes");
       } else if (type.key === "goal") {
-        await supabase.from("goals").insert({
+        await insert("goals", {
           name: form.name,
           category: form.category || "academic",
           target: Number(form.target) || 0,
@@ -167,7 +187,7 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
         });
         onDone("Goal created", "/goals");
       } else if (type.key === "habit") {
-        await supabase.from("habits").insert({
+        await insert("habits", {
           name: form.name,
           frequency: "daily",
           target_per_week: 7,
@@ -175,7 +195,7 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
         });
         onDone("Habit created", "/habits");
       } else if (type.key === "grade") {
-        await supabase.from("grades").insert({
+        await insert("grades", {
           name: form.name,
           course_id: form.course_id,
           grade: Number(form.grade),
@@ -185,7 +205,7 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
         });
         onDone("Grade added", "/grades");
       } else if (type.key === "resource") {
-        await supabase.from("resources").insert({
+        await insert("resources", {
           name: form.name,
           type: form.type || "link",
           url: form.url || "",

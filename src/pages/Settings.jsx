@@ -12,7 +12,9 @@ import { applyTheme, applyAccent, ACCENT_PRESETS } from "@/lib/theme";
 import { loadDemoData } from "@/lib/demoData";
 import { supabase } from "@/lib/supabase";
 import { TABLE } from "@/lib/tables";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, getLang } from "@/lib/i18n";
+import { isLocalWorkspace } from "@/lib/repo/select";
+import { createLocalRepo } from "@/lib/repo/localRepo";
 
 const EXPORT_ENTITIES = [
   "Course", "ScheduleEvent", "Task", "Exam", "Grade", "Note", "Resource",
@@ -24,6 +26,8 @@ export default function Settings() {
   const { t } = useI18n();
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const local = isLocalWorkspace();
+  const localRepo = local ? createLocalRepo() : null;
   const [theme, setTheme] = useState("dark");
   const [accent, setAccent] = useState(() => localStorage.getItem("um-accent") || "amber");
   const [lang, setLang] = useState("en");
@@ -31,11 +35,15 @@ export default function Settings() {
   const [demoLoading, setDemoLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setLang(data.user?.user_metadata?.language || "en")).catch(() => {});
+    if (!local) {
+      supabase.auth.getUser().then(({ data }) => setLang(data.user?.user_metadata?.language || "en")).catch(() => {});
+    } else {
+      setLang(getLang());
+    }
     const saved = localStorage.getItem("um-theme") || "dark";
     setTheme(saved);
     applyTheme(saved);
-  }, []);
+  }, [local]);
 
   const chooseTheme = (t) => {
     setTheme(t);
@@ -46,7 +54,11 @@ export default function Settings() {
 
   const saveLang = async (l) => {
     setLang(l);
-    try { await supabase.auth.updateUser({ data: { language: l } }); } catch {}
+    if (!local) {
+      try { await supabase.auth.updateUser({ data: { language: l } }); } catch {}
+    } else {
+      localStorage.setItem("unimate-lang", l);
+    }
     toast({ title: "Language preference saved" });
   };
 
@@ -54,10 +66,16 @@ export default function Settings() {
     setExporting(true);
     try {
       const out = {};
-      await Promise.all(EXPORT_ENTITIES.map(async (name) => {
-        const { data, error } = await supabase.from(TABLE[name]).select("*");
-        out[name] = error ? [] : data || [];
-      }));
+      if (local) {
+        EXPORT_ENTITIES.forEach((name) => {
+          out[name] = localRepo.list(TABLE[name]) || [];
+        });
+      } else {
+        await Promise.all(EXPORT_ENTITIES.map(async (name) => {
+          const { data, error } = await supabase.from(TABLE[name]).select("*");
+          out[name] = error ? [] : data || [];
+        }));
+      }
       const blob = new Blob(
         [JSON.stringify({ exported_at: new Date().toISOString(), data: out }, null, 2)],
         { type: "application/json" }
@@ -139,6 +157,11 @@ export default function Settings() {
             {exporting ? "Preparing export…" : "Export your data (JSON)"}
           </Button>
           <p className="text-xs text-muted-foreground mt-2">Downloads every course, task, exam, grade, note, and session you've created.</p>
+          {local && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Local workspace — everything is stored on this device. Export any time to keep a backup.
+            </p>
+          )}
           <Button variant="outline" className="w-full justify-start mt-3" onClick={loadDemo} disabled={demoLoading}>
             {demoLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2 text-primary" />}
             {demoLoading ? "Loading demo data…" : "Load demo data"}
@@ -146,10 +169,12 @@ export default function Settings() {
           <p className="text-xs text-muted-foreground mt-2">Fills your workspace with a sample semester — courses, classes, tasks, exams, grades, and sticky notes.</p>
         </Card>
 
-        <Card className="p-5">
-          <div className="flex items-center gap-2 mb-4"><LogOut className="w-4 h-4 text-muted-foreground" /><h2 className="um-label">Account</h2></div>
-          <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive" onClick={handleLogout}>Log out</Button>
-        </Card>
+        {!local && (
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-4"><LogOut className="w-4 h-4 text-muted-foreground" /><h2 className="um-label">Account</h2></div>
+            <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive" onClick={handleLogout}>Log out</Button>
+          </Card>
+        )}
       </div>
     </>
   );

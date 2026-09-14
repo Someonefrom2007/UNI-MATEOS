@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { CalendarDays, RefreshCw, Unplug } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { isLocalWorkspace } from "@/lib/repo/select";
+
+const LOCAL = isLocalWorkspace();
 
 export default function CalendarSync({ onSynced }) {
   const { toast } = useToast();
@@ -13,6 +16,10 @@ export default function CalendarSync({ onSynced }) {
 
   // Connection status = whether the backend can reach the user's Google Calendar.
   const check = async () => {
+    if (LOCAL) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await supabase.functions.invoke("google-calendar-sync", {
         body: { action: "check" },
@@ -26,6 +33,10 @@ export default function CalendarSync({ onSynced }) {
   };
 
   useEffect(() => {
+    if (LOCAL) {
+      setLoading(false);
+      return;
+    }
     check();
   }, []);
 
@@ -94,7 +105,9 @@ export default function CalendarSync({ onSynced }) {
         </div>
       </div>
       <div className="flex items-center gap-2 sm:shrink-0">
-        {connected ? (
+        {LOCAL ? (
+          <span className="text-xs text-muted-foreground text-right sm:text-left">Available when connected to an account</span>
+        ) : connected ? (
           <>
             <Button size="sm" onClick={handleSync} disabled={syncing}>
               <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />

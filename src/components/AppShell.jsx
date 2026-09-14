@@ -104,7 +104,7 @@ function LangSwitcher({ lang, setLang }) {
 }
 
 export default function AppShell() {
-  const { user, logout } = useAuth();
+  const { user, logout, localWorkspace } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
@@ -151,10 +151,17 @@ export default function AppShell() {
 
         {/* HUD telemetry strip */}
         <div className="flex items-center justify-between px-5 pt-3 pb-1">
-          <span className="hud-mono text-muted-foreground flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
-            {t("shell.sysOnline")}
-          </span>
+          {localWorkspace ? (
+            <span className="hud-mono text-muted-foreground flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              Local workspace
+            </span>
+          ) : (
+            <span className="hud-mono text-muted-foreground flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
+              {t("shell.sysOnline")}
+            </span>
+          )}
           <span className="hud-mono text-muted-foreground/80">v1 · {new Date().getFullYear()}</span>
         </div>
 
@@ -171,10 +178,12 @@ export default function AppShell() {
 <div className="text-sm font-medium truncate">{user?.full_name || t("shell.student")}</div>
             <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
           </div>
-          <button onClick={handleLogout} className="text-muted-foreground hover:text-foreground" title={t("shell.logout")}>
+          {!localWorkspace && (
+            <button onClick={handleLogout} className="text-muted-foreground hover:text-foreground" title={t("shell.logout")}>
               <LogOut className="w-4 h-4" />
             </button>
-          </Link>
+          )}
+        </Link>
         </div>
       </aside>
 
@@ -212,9 +221,11 @@ export default function AppShell() {
             <div className="mb-4">
               <LangSwitcher lang={lang} setLang={setLang} />
             </div>
-            <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground">
-              <LogOut className="w-4 h-4" /> {t("shell.logout")}
-            </button>
+            {!localWorkspace && (
+  <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground">
+    <LogOut className="w-4 h-4" /> {t("shell.logout")}
+  </button>
+)}
           </div>
         </div>
       )}

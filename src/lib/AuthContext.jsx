@@ -1,8 +1,13 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
 import { supabase } from '@/lib/supabase';
+import { isLocalWorkspace, LOCAL_WORKSPACE_USER, loadLocalProfile } from '@/lib/repo/select';
 
 const AuthContext = createContext(null);
+
+// Local workspace is an environment property (no Supabase env vars), so the
+// auth mode never flips at runtime.
+const LOCAL_WORKSPACE = isLocalWorkspace();
 
 // Flatten the Supabase auth user (id/email live on the user, app-level profile
 // fields live in user_metadata) into the shape the app already consumes.
@@ -25,6 +30,16 @@ export const AuthProvider = ({ children }) => {
   const [authChecked, setAuthChecked] = useState(false);
 
   const syncSession = useCallback(async () => {
+    if (LOCAL_WORKSPACE) {
+      // No accounts in local mode: authenticate a synthetic workspace user and
+      // overlay any profile persisted on this device.
+      setUser({ ...LOCAL_WORKSPACE_USER, ...(loadLocalProfile() || {}) });
+      setIsAuthenticated(true);
+      setAuthError(null);
+      setIsLoadingAuth(false);
+      setAuthChecked(true);
+      return;
+    }
     try {
       setAuthError(null);
       const { data: { session } } = await supabase.auth.getSession();
@@ -58,6 +73,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     syncSession();
+
+    if (LOCAL_WORKSPACE) return;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
@@ -101,6 +118,7 @@ export const AuthProvider = ({ children }) => {
         isLoadingAuth,
         authError,
         authChecked,
+        localWorkspace: LOCAL_WORKSPACE,
         logout,
         navigateToLogin,
         checkUserAuth,

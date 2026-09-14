@@ -1,6 +1,11 @@
 // Demo semester — a believable starter workspace, seeded relative to today.
 
 import { supabase } from "@/lib/supabase";
+import { isLocalWorkspace } from "@/lib/repo/select";
+import { createLocalRepo } from "@/lib/repo/localRepo";
+
+const LOCAL = isLocalWorkspace();
+const localRepo = LOCAL ? createLocalRepo() : null;
 
 const pad = (n) => String(n).padStart(2, "0");
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -12,7 +17,9 @@ const inDays = (n) => {
 
 // Insert helper: every write is awaited, surfaced, and thrown on failure so a
 // partial seed can never look "successful". No silent catch-and-continue.
+// Local workspace writes straight to on-device storage through the repo.
 const insert = async (table, rows) => {
+  if (LOCAL) return rows.map((row) => localRepo.create(table, row));
   const { data, error } = await supabase.from(table).insert(rows).select();
   if (error) throw new Error(`Seeding "${table}" failed: ${error.message}`);
   return data || [];

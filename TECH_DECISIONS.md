@@ -17,6 +17,7 @@ Focused change over rewrite. Never claim done without verification (typecheck/te
 - IDs: `crypto.randomUUID()` with fallback (deterministic injection for tests). No auto-increment leaks, no doc IDs usable across backends.
 - Real/fake boundary: a local row is always local; a synced row is only ever called synced when a real adapter confirms it. Never fabricate sync states.
 - Migration path: local → (optional) push existing rows to Supabase via an adapter; RLS per user; never service-role creds in client code.
+- **Adapter selection (Mission 1, realized 2026-09):** environment-based at startup — `hasSupabaseEnv()` true → hosted backend unchanged; false → local workspace. No runtime flip-flop (`isLocalWorkspace()` is module-constant). Local storage: browser `localStorage` under `unimate:v1:` prefix via an injectable KV (`src/lib/repo/storage.js`); memory fallback keeps the contract testable in node (vitest). `getDefaultStorage()` is a memoized singleton so all repo consumers share one backend even if localStorage is blocked. Local profile persisted under the same namespace (`src/lib/repo/select.js`).
 
 ## 4. Grading rules (§15)
 Grades are 0.00–10.00 floats. Bands: <5.0 Fail (Suspenso), 5.0–6.9 Pass (Aprobado), 7.0–8.9 Notable, 9.0–9.9 Outstanding (Sobresaliente), 10.0/custom distinction = Matrícula de Honor. Aggregate = `sum(grade × ects)/sum(ects)` (ECTS weighted). All calculations stay in `gradeEngine.js`/`gradesim.js` and are test-verified; UI bands render constants from the engine.

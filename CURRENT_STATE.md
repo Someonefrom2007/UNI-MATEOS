@@ -7,9 +7,9 @@ Evidence-based snapshot from repository inspection + green-gate baseline (2026-0
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 14 files / 173 tests pass |
+| Tests | `npm test` (vitest run) | ✅ 15 files / 189 tests pass |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — PWA sw.js generated, 51 precache entries (1274.66 KiB). Pre-existing >500 kB chunk warning only |
+| Build | `npm run build` | ✅ PASS — PWA sw.js generated, 52 precache entries (1281.62 KiB). Pre-existing >500 kB chunk warning only |
 
 Runtime/browser verification is NOT available in this environment — evidence is compile + test + build.
 
@@ -25,9 +25,12 @@ Runtime/browser verification is NOT available in this environment — evidence i
 
 ### UI → Application logic → Persistence (current)
 - **Persistence: Supabase** (`@supabase/supabase-js` 2.x). All app data in hosted tables; schema source of truth `supabase/schema.sql` (674 lines; every table `user_id uuid DEFAULT auth.uid()`, per-user RLS, `set_updated_at` triggers, soft-delete flags where noted).
-- **Data layer:** `src/lib/useUserData.js` — single hook loading 14 entities (`Course, ScheduleEvent, Task, Exam, Grade, Note, Resource, FocusSession, Goal, Habit, HabitLog, Project, Attendance, StickyNote`); supabase `select("*")`; per-entity failure isolation + 1 retry pass; realtime via `postgres_changes` on 6 tables (whitelist: tasks, courses, focus_sessions, exams, habit_logs, sticky_notes) → full reload. API surface: `data.<Entity>`, `refresh`, `mutate(entity, op, ...args)`.
-- **Entity→table map:** `src/lib/tables.js` (`TABLE`, `getTable`).
-- **Auth:** `src/lib/AuthContext.jsx` (Supabase auth — email+password, Google, OTP, reset; `onAuthStateChange`; app-user shape flattens `user_metadata`). `ProtectedRoute`/`UserNotRegisteredError` for the not-registered case. `authReturnTo.js` (`authReturnTo`) guards post-login redirect (same-origin).
+- Every data surface is now adapter-aware (Mission 1): `useUserData`, `QuickAdd`, `NoteDetail` autosave, `Schedule` (feed refresh + `mutate` study blocks), `Onboarding`, `Community` (posts/replies/likes via local repo when local), `Settings` (export from local repo, account card hidden), `Profile` (on-device profile), `demoData` (seeds locally), `CalendarSync`/`ICSFeedDialog` (local-aware: ICS imports work; Google connector notes it needs an account), `AIAssistant` (honest notice in local mode).
+- **Data layer:** `src/lib/useUserData.js` — single hook loading 14 entities; adapter chosen by environment (`src/lib/repo/select.js`):
+  - **Supabase (env vars present):** `select("*")` on each table + realtime `postgres_changes` on 6 tables. Behavior identical to baseline. (See prior CURRENT_STATE entry for retry/realtime details.)
+  - **Local workspace (env vars absent):** `src/lib/repo/localRepo.js` over an injectable KV backend (`src/lib/repo/storage.js`, browser `localStorage` with `unimate:v1:` prefix, falling back to an in-memory store for tests). Rows are snake_case arrays with `id` / `user_id` / `created_at` / `updated_at` injected on create. Local adapter skips realtime; UI never branches (`data.<Entity>`, `refresh`, `mutate` unchanged).
+- **Entity→table map:** `src/lib/tables.js` (`TABLE`, `getTable`). Both adapters consume this.
+- **Auth:** `src/lib/AuthContext.jsx`. Supabase mode unchanged. Local workspace auto-authenticates a synthetic `LOCAL_WORKSPACE_USER` identity (`is_local_workspace: true`), skips `onAuthStateChange`, and exposes `localWorkspace` on the context. Login/Register redirect to `/dashboard`; ForgotPassword/ResetPassword render an honest notice; AppShell shows an amber "Local workspace" indicator and hides logout. Local user profile is persisted separately (`src/lib/repo/select.js` → `localStorage`).
 - **Computation engines (pinned, do not modify):** `gradeEngine.js`, `scheduleEngine.js`, `workloadEngine.js`, `insightsEngine.js`, `burnout.js`, `calendarSync.js` (+ existing `.test.js` files).
 - **New tested pure modules (added for the test suite):** `triage.js`, `planner.js`, `paletteSearch.js`, `syllabusImporter.js`, `gradesim.js`.
 - **Theme/i18n:** CSS-variable theme + accent presets (`theme.js`, `initTheme`, `um-` vars), `i18n.js` en|ca|es (CustomEvent store), `useDeskMode` (desk chaos/tidy), `useSoundscape`.
@@ -57,8 +60,8 @@ Runtime/browser verification is NOT available in this environment — evidence i
 
 ## Gaps vs the 2.0 directive (evidence-based)
 
-1. **Local-first (directive §6/§7): NOT met.** All persistence is hosted-Supabase. Without `VITE_SUPABASE_*`, `supabase.js` falls back to a placeholder client → queries fail → `useUserData` returns empty arrays → the app silently renders an empty UI. No data survives offline; no local storage layer. (Silent-stub trap, flagged in PRE_LAUNCH_AUDIT.)
-2. **Repository/service interface (§6/§5): not present.** UI talks to `useUserData` → tables directly; no repository abstraction a future backend could slot under.
+1. **Local-first (directive §6/§7): MET (Mission 1, 2026-09).** App runs with zero backend and data survives refresh/restart: repository interface + local adapter (`src/lib/repo/`), env-based adapter selection, local workspace mode (auto-auth, no accounts), 16 new tests (189 total green). Remaining: Supabase adapter under the same interface (Mission 2), local→cloud push UX.
+2. **Repository/service interface (§6/§5): present for persistence.** UI → `useUserData` stable surface → `src/lib/repo/*`. Direct `supabase` calls outside the data hook remain in some components (guarded per-mode); consolidating them under the interface is Mission 2 scope.
 3. **Brand variants (§8): partial.** Only primary Logo + one icon.svg.
 4. **Landing (§23): sparse** (3-section linear, mock numbers).
 5. **Community (§22): basic single-feed**; no Discover/groups/events/announcements/moderation/saved; origins not multi-user-ready.
@@ -70,7 +73,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 ## Do NOT touch (verified working / pinned)
 
 - `src/lib/*Engine.js` + their `.test.js` (AGENTS.md pin).
-- `useUserData` fetch+retry+realtime mechanics (guards rate limits).
+- `useUserData` public surface (`data./refresh/mutate`); the Supabase-mode fetch+retry+realtime behavior is preserved exactly (guards rate limits). Local branch added by adapter.
 - `ProtectedRoute` / `UserNotRegisteredError` / `authReturnTo` flows.
 - Auth pages + OTP + Google sign-in + reset-password token flow.
 - Theme/accent system, `useDeskMode`, `useSoundscape`.

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,10 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Login() {
+  const { isAuthenticated, localWorkspace } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -45,6 +47,9 @@ export default function Login() {
       setError(err.message || "Failed to sign in with Google");
     }
   };
+
+  // Local workspace has no accounts — the app authenticates automatically.
+  if (localWorkspace && isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   return (
     <AuthLayout

@@ -9,11 +9,12 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 
 ## Phase A — Foundations
 
-### Mission 1 — Local-first data layer (repository + local adapter)
-- **Objective (§5/§6/§7):** App runs with zero backend (no Supabase env) and survives refresh/restart. Introduce repository interface + local persistence adapter with a Supabase-shaped contract; UI (`useUserData` surface) unchanged.
-- **Scope:** new `src/lib/repo/` (interface, local adapter over injectable storage, id/timestamp/ownership helpers, migrations/versioning); `useUserData.surface` stays; `supabase.js` keeps working when env present (adapter selection by env availability).
-- **Files:** `src/lib/repo/*`, `src/lib/useUserData.js` (assembly only), tests `src/__tests__/repo*.test.js`, `README`/`.env.example` notes.
-- **Acceptance:** `npm run dev` with NO env renders + CRUDs fully locally; data survives reload (tests assert storage round-trip + deterministic ids + timestamps); existing 173 tests still green; UI identical.
+### Mission 1 — Local-first data layer (repository + local adapter) — DONE
+- **Objective (§5/§6/§7):** App runs with zero backend (no Supabase env) and survives refresh/restart. Repository interface + local persistence adapter with a Supabase-shaped contract; UI (`useUserData` surface) unchanged.
+- **Scope:** new `src/lib/repo/` (interface, local adapter over injectable storage, id/timestamp/ownership helpers); `useUserData` surface stays; `supabase.js` keeps working when env present (adapter selection by env availability).
+- **Files:** `src/lib/repo/{storage,localRepo,select}.js`, `src/lib/useUserData.js` (assembly only), `AuthContext.jsx` (local workspace), local-mode guards on auth pages/AppShell/Profile/Settings/QuickAdd/NoteDetail/Schedule/Onboarding/Community/AIAssistant/CalendarSync/ICSFeedDialog, `demoData.js`, tests `src/__tests__/localRepo.test.js`, README/CURRENT_STATE/TECH_DECISIONS updated.
+- **Evidence:** typecheck 0 · lint 0 · tests 15 files / 189 pass (16 new: storage namespacing/round-trip, localRepo CRUD contract, uuid/timestamp/ownership injection, adapter selection via env stubs, on-device profile round-trip, demoData local seeding with FK integrity) · build ✅ (52 precache entries, 1281.62 KiB). Acceptance for browser: `npm run dev` with NO env renders + CRUDs locally and survives reload (asserted by tests; live-browser check still pending in this environment).
+- **Decision noted:** adapter chosen by env at startup — Supabase env present → hosted path (today's behavior, hosted data preserved); env absent → local workspace.
 
 ### Mission 2 — Supabase-ready repository adapter (not wired, tested interface)
 - **Objective (§6):** Prove a future backend can sit under the same interface without UI rewrites.

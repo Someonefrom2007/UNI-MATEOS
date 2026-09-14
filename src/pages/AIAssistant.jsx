@@ -4,6 +4,7 @@ import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { BrainCircuit, Send, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { isLocalWorkspace } from "@/lib/repo/select";
 import { useI18n } from "@/lib/i18n";
 
 const SUGGESTIONS = [
@@ -29,6 +30,14 @@ export default function AIAssistant() {
     if (!prompt.trim() || loading) return;
     setMessages((m) => [...m, { role: "user", text: prompt }]);
     setInput("");
+    // The copilot runs server-side; local workspace has no connected account.
+    if (isLocalWorkspace()) {
+      setMessages((m) => [...m, {
+        role: "assistant",
+        text: "The AI assistant runs on UNI·MATE's servers, so it's only available when you're connected to an account. In local workspace mode everything stays on this device — your Dashboard, Workload and Insights still work from your real data.",
+      }]);
+      return;
+    }
     setLoading(true);
     try {
       // The copilot runs server-side, grounded in your real UNI·MATE data
