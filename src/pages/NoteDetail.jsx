@@ -10,12 +10,14 @@ import "react-quill-new/dist/quill.snow.css";
 import { ArrowLeft, Pin, Trash2 } from "lucide-react";
 
 import { useToast } from "@/components/ui/use-toast";
+import ErrorState from "@/components/ErrorState";
 
 export default function NoteDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data, mutate } = useUserData();
+  const { data, error, mutate, refresh } = useUserData();
   const { toast } = useToast();
+
   const note = data?.Note.find((n) => n.id === id);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -57,6 +59,8 @@ export default function NoteDetail() {
     }, 900);
     return () => clearTimeout(saveTimer.current);
   }, [title, content, courseId, pinned, note, id]);
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (!data) return <div className="h-64 bg-muted rounded-xl animate-pulse" />;
   if (!note) return <div className="text-center py-20"><p className="text-muted-foreground">Note not found.</p><Link to="/notes" className="text-primary text-sm">Back to notes</Link></div>;

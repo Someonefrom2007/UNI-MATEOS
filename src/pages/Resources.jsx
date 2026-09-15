@@ -7,15 +7,18 @@ import { Card } from "@/components/ui/card";
 import { FolderOpen, Plus, ExternalLink, FileText, Link as LinkIcon, Video, Image as ImageIcon } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 const TYPE_ICON = { pdf: FileText, doc: FileText, link: LinkIcon, video: Video, image: ImageIcon, presentation: FileText, file: FileText };
 
 export default function Resources() {
-  const { data } = useUserData();
+  const { data, error, refresh } = useUserData();
   const { t } = useI18n();
   const [qaOpen, setQaOpen] = useState(false);
 
   const resources = useMemo(() => data?.Resource || [], [data]);
   const courses = data?.Course || [];
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (resources.length === 0 && data) {
     return (

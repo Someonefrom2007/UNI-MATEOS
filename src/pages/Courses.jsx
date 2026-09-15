@@ -13,9 +13,10 @@ import { BookOpen, Plus, ArrowRight, Clock, Upload, FileSpreadsheet, AlertTriang
 import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
 import QuickAdd from "@/components/QuickAdd";
+import ErrorState from "@/components/ErrorState";
 
 export default function Courses() {
-  const { data, loading, mutate } = useUserData();
+const { data, loading, error, mutate, refresh } = useUserData();
   const { chaos } = useDeskMode();
   const { t } = useI18n();
   const { toast } = useToast();
@@ -76,6 +77,8 @@ export default function Courses() {
       setImporting(false);
     }
   };
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (!loading && courses.length === 0) {
     return (

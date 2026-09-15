@@ -6,6 +6,7 @@ import { BrainCircuit, Send, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { isLocalWorkspace } from "@/lib/repo/select";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 
 const SUGGESTIONS = [
   "What should I do today?",
@@ -17,7 +18,7 @@ const SUGGESTIONS = [
 ];
 
 export default function AIAssistant() {
-  const { data } = useUserData();
+  const { data, error, refresh } = useUserData();
   const { t } = useI18n();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -25,6 +26,8 @@ export default function AIAssistant() {
   const endRef = useRef(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   const ask = async (prompt) => {
     if (!prompt.trim() || loading) return;

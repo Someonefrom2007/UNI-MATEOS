@@ -12,14 +12,16 @@ import { Slider } from "@/components/ui/slider";
 import { FileText, Plus, Calculator, Gauge } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 
 export default function Grades() {
-  const { data, loading } = useUserData();
+  const { data, loading, error, refresh } = useUserData();
   const { t } = useI18n();
   const [qaOpen, setQaOpen] = useState(false);
   const [simCourse, setSimCourse] = useState("");
   const [simTarget, setSimTarget] = useState(8);
   const [simHypo, setSimHypo] = useState(7);
+
   const [targets, setTargets] = useState({});
 
   const courses = data?.Course.filter((c) => !c.archived) || [];
@@ -48,6 +50,8 @@ export default function Grades() {
       projected: projectedGrade(c.assessments, simHypo),
     };
   }, [simCourse, simTarget, simHypo, courseGrades]);
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (!loading && data && data.Grade.length === 0 && courses.length === 0) {
     return (

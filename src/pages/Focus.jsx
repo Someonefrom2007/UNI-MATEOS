@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Play, Pause, Square, Headphones } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 
 const MODES = {
   "25_5": { focus: 25, break: 5, label: "25 / 5" },
@@ -18,7 +19,7 @@ const MODES = {
 };
 
 export default function Focus() {
-  const { data, mutate } = useUserData();
+  const { data, error, mutate, refresh } = useUserData();
   const { toast } = useToast();
   const { t } = useI18n();
   const location = useLocation();
@@ -118,6 +119,8 @@ export default function Focus() {
   const todayFocus = (data?.FocusSession || [])
     .filter((s) => s.date === new Date().toISOString().slice(0, 10))
     .reduce((sum, s) => sum + s.duration, 0);
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   return (
     <>

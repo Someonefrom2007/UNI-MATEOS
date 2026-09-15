@@ -8,11 +8,12 @@ import QuickAdd from "@/components/QuickAdd";
 
 import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 
 const DAY_MS = 86400000;
 
 export default function Habits() {
-  const { data, loading, mutate } = useUserData();
+  const { data, loading, error, mutate, refresh } = useUserData();
   const [qaOpen, setQaOpen] = useState(false);
   const { toast } = useToast();
   const { t } = useI18n();
@@ -59,6 +60,8 @@ export default function Habits() {
     await mutate("Habit", "delete", habit.id);
     toast({ title: "Habit deleted" });
   };
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (loading && !data) {
     return (

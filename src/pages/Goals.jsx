@@ -9,11 +9,12 @@ import QuickAdd from "@/components/QuickAdd";
 
 import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 
 const CATS = ["academic", "productivity", "study", "personal"];
 
 export default function Goals() {
-  const { data, loading, mutate } = useUserData();
+  const { data, loading, error, mutate, refresh } = useUserData();
   const [qaOpen, setQaOpen] = useState(false);
   const { toast } = useToast();
   const { t } = useI18n();
@@ -32,6 +33,8 @@ export default function Goals() {
     await mutate("Goal", "delete", g.id);
     toast({ title: "Goal deleted" });
   };
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (loading && !data) {
     return (

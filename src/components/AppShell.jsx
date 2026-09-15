@@ -11,6 +11,7 @@ import {
 import QuickAdd from "@/components/QuickAdd";
 import CommandPalette from "@/components/CommandPalette";
 import Logo from "@/components/Logo";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const NAV = [
   { sectionKey: "nav.overview", items: [{ labelKey: "nav.dashboard", to: "/dashboard", icon: LayoutDashboard }] },
@@ -256,7 +257,9 @@ export default function AppShell() {
           transition={{ duration: 0.4, ease: [0.21, 0.47, 0.32, 0.98] }}
           className="px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-10 max-w-[1400px] mx-auto"
         >
-          <Outlet />
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </motion.main>
       </div>
 

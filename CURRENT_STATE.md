@@ -1,15 +1,15 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-15, cd `61b52cb`). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-15, as of Mission 7 `HEAD`). Do not treat this file as a spec — it records what actually exists.
 
 ## Baseline verification (all green)
 
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 17 files / 221 tests pass |
+| Tests | `npm test` (vitest run) | ✅ 19 files / 256 tests pass |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — PWA sw.js generated, 58 precache entries (1411.86 KiB) |
+| Build | `npm run build` | ✅ PASS — PWA sw.js generated, 58 precache entries (1442.97 KiB) |
 
 Runtime/browser verification is NOT available in this environment — evidence is compile + test + build.
 
@@ -74,7 +74,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 4. **Landing (§23): DONE (Mission 4).** Full cinematic narrative in the required order; product interface as the hero; honest "Illustrative preview" markers on all decorative mocks; initials-only community mock; narrative + copy under test.
 5. **Community (§22): PARTIALLY MET (Mission 5).** Discover-centric feeds, six content types, save/report, moderation states, initials-only identity, and academic-data isolation are done and tested (256 total green). Remaining: university/course *communities* and *study groups* as first-class entities (subsequent increment), and applying the additive `community_*` schema migration to the hosted project to activate discovery reads there.
 6. **Grades (§15): MET (Mission 6).** Matrícula de Honor 10.0 is its own band (amber "Honors" label on the GPA card + per-course `MH` chip), layered in `src/lib/gradesim.js` on top of the pinned engine (which still owns 9.x–"Outstanding" and below); 0–10 clamping and ECTS weighted average verified by tests (236 total green).
-7. **Empty/loading/error states (§27–29):** spotty across modules (only Dashboard skeleton + Community empty state verified).
+7. **Empty/loading/error states (§27–29): MET (Mission 7, 2026-09).** New `ErrorState` (what happened / what's preserved / what to do + Retry → `refresh()`), `PageSkeleton`, and `ErrorBoundary` primitives; boundary wired at app root and inside AppShell around the route outlet (keyed by pathname so a caught render error clears on navigation). All 17 `useUserData` pages now render an error gate with retry after their hooks and before their loading/empty branches; per-module explainer empty states + skeletons were previously in place.
 8. **Cleanup (§31):** `export-report.json` (stale Base44 export diagnostic) and `coverage/` were gitignored in this checkpoint; `src/api/` no longer exists. Runtime verification screenshots of demo/verification data not possible here.
 9. **Plans (§30):** static pricing, PRO/ULTRA "Join Waitlist" disabled buttons (honest, but dead end). Stripe packages installed but unused.
 

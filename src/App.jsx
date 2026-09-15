@@ -9,6 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Splash from './components/Brand/Splash';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppShell from '@/components/AppShell';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Auth pages — eagerly loaded (small, part of core auth flow)
 import Login from '@/pages/Login';
@@ -99,7 +100,9 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <ScrollToTop />
-          <AuthenticatedApp />
+          <ErrorBoundary>
+            <AuthenticatedApp />
+          </ErrorBoundary>
         </Router>
         <Toaster />
       </QueryClientProvider>

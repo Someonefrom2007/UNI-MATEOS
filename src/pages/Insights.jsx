@@ -6,6 +6,7 @@ import { generateInsights } from "@/lib/insightsEngine";
 import { Card } from "@/components/ui/card";
 import { Sparkles, TrendingUp, AlertTriangle, Clock, Target } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 
 const CAT_ICON = {
   Academic: TrendingUp,
@@ -15,7 +16,7 @@ const CAT_ICON = {
 };
 
 export default function Insights() {
-  const { data, loading } = useUserData();
+  const { data, loading, error, refresh } = useUserData();
   const { t } = useI18n();
 
   const insights = useMemo(() => {
@@ -36,6 +37,8 @@ export default function Insights() {
     insights.forEach((i) => { (m[i.category] = m[i.category] || []).push(i); });
     return m;
   }, [insights]);
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (!loading && insights.length === 0) {
     return (

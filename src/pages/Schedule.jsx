@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { toLocalISO } from "@/lib/format";
 import QuickAdd from "@/components/QuickAdd";
+import ErrorState from "@/components/ErrorState";
 import CalendarSync from "@/components/schedule/CalendarSync";
 import WeekView from "@/components/schedule/WeekView";
 import DayView from "@/components/schedule/DayView";
@@ -25,7 +26,7 @@ const LOCAL = isLocalWorkspace();
 const localRepo = LOCAL ? createLocalRepo() : null;
 
 export default function Schedule() {
-  const { data, loading, refresh, mutate } = useUserData();
+  const { data, loading, error, refresh, mutate } = useUserData();
   const { toast } = useToast();
   const { t } = useI18n();
   const [view, setView] = useState(() => localStorage.getItem("um-schedule-view") || "week");
@@ -145,6 +146,8 @@ export default function Schedule() {
     const sameMonth = ws.getMonth() === end.getMonth();
     return `${ws.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${end.toLocaleDateString(undefined, { month: sameMonth ? undefined : "short", day: "numeric" })}`;
   };
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   return (
     <>

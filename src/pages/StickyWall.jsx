@@ -5,9 +5,10 @@ import StickyNoteCard from "@/components/stickies/StickyNoteCard";
 import { COLOR_KEYS, STICKY_DOT, randomRotation } from "@/components/stickies/stickyColors";
 import { Plus, StickyNote as StickyNoteIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 
 export default function StickyWall() {
-  const { data, loading, mutate } = useUserData();
+  const { data, loading, error, mutate, refresh } = useUserData();
   const { t } = useI18n();
   const [draft, setDraft] = useState("");
   const [color, setColor] = useState("amber");
@@ -29,6 +30,8 @@ export default function StickyWall() {
       setSaving(false);
     }
   };
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   return (
     <>

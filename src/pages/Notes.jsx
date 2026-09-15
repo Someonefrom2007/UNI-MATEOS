@@ -9,9 +9,10 @@ import { Card } from "@/components/ui/card";
 import { FileText, Plus, Pin, Search } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 
 export default function Notes() {
-  const { data, loading } = useUserData();
+  const { data, loading, error, refresh } = useUserData();
   const { chaos } = useDeskMode();
   const { t } = useI18n();
   const [qaOpen, setQaOpen] = useState(false);
@@ -28,6 +29,8 @@ export default function Notes() {
   }, [data, q]);
 
   const courses = data?.Course || [];
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (!loading && data && data.Note.length === 0) {
     return (

@@ -59,8 +59,10 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 - **Files:** `src/lib/gradesim.js` (new `MATRICULA_DE_HONOR` band + `gradeBandExtended` delegating <10 to the pinned `gradeBand`; pinned `gradeEngine.js` untouched), `src/pages/Grades.jsx` (GPA card band label via extended lookup; amber 10.0 + `MH` chip on course "Current" cells), `src/__tests__/gpaSimulator.test.js` (8 new tests).
 - **Evidence:** typecheck 0 · lint 0 · tests 18 files / 236 pass (8 new: 10.0→Matrícula de Honor, 9.x stays Outstanding, engine band delegation 0–9.999, null/NaN null, clamped 11.7→MH, full 0–10 five-band coverage, ECTS weighted average = Σ(g·e)/Σ(e), clamped average within 0–10) · build pending final commit.
 
-### Mission 7 — Empty / loading / error states (§27–29)
+### Mission 7 — Empty / loading / error states (§27–29) — DONE
 - Every module: explainer empty state + CTA; polished skeletons; user-facing error copy (what happened / what preserved / what to do). Audit each page.
+- **Files:** `src/components/{ErrorBoundary,ErrorState,PageSkeleton}.jsx` (new primitives), `src/App.jsx` (root-level `ErrorBoundary` around `AuthenticatedApp`), `src/components/AppShell.jsx` (outlet-level `ErrorBoundary` keyed by pathname so a caught render error clears on navigation), and the 17 `useUserData` pages — `AIAssistant`, `CourseDetail`, `Courses`, `Dashboard`, `Exams`, `Focus`, `Goals`, `Grades`, `Habits`, `Insights`, `NoteDetail`, `Notes`, `Resources`, `Schedule`, `StickyWall`, `Tasks`, `Workload` — each gained `if (error) return <ErrorState onRetry={refresh} />` placed after all hooks and before their loading/empty branches. Existing per-module explainer empties + loading skeletons were already present and kept.
+- **Evidence:** typecheck 0 · lint 0 · tests 19 files / 256 pass · build ✅ 58 precache entries / 1442.97 KiB. Error copy follows the directive shape (what happened / what's preserved / what to do) with a working Retry wired to `refresh()`; unexpected render errors are caught at root + outlet level so one broken screen can't take down the app.
 
 ### Mission 8 — Accessibility & responsive (§24–§25)
 - Semantic + keyboard + visible focus + labels + contrast + reduced-motion + touch targets; tablet/mobile recomposition; no horizontal overflow. Hand-audit + targeted tests.

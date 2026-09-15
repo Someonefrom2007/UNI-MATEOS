@@ -7,11 +7,12 @@ import { weekWorkload } from "@/lib/workloadEngine";
 import { Card } from "@/components/ui/card";
 import { Gauge, AlertTriangle } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function Workload() {
-  const { data, loading } = useUserData();
+  const { data, loading, error, refresh } = useUserData();
   const { t } = useI18n();
 
   const weekStart = useMemo(() => {
@@ -38,6 +39,8 @@ export default function Workload() {
 
   const maxDay = Math.max(...byDay, 1);
   const heavy = wl.total > 600; // >10h
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (!loading && data && data.Task.length === 0) {
     return (

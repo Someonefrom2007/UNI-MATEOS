@@ -10,10 +10,11 @@ import { GraduationCap, Plus, ArrowLeft, Check } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 
 export default function Exams() {
   const { id } = useParams();
-  const { data, loading, mutate } = useUserData();
+  const { data, loading, error, mutate, refresh } = useUserData();
   const [qaOpen, setQaOpen] = useState(false);
   const { toast } = useToast();
   const { t } = useI18n();
@@ -24,6 +25,8 @@ export default function Exams() {
   }, [data]);
 
   const courses = data?.Course || [];
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (id) return <ExamDetail id={id} />;
 

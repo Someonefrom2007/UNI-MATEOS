@@ -9,11 +9,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowLeft, GraduationCap, Timer, CheckSquare, FileText, BookOpen } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import EmptyState from "@/components/EmptyState";
+import ErrorState from "@/components/ErrorState";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function CourseDetail() {
   const { id } = useParams();
-  const { data, loading, mutate } = useUserData();
+  const { data, loading, error, mutate, refresh } = useUserData();
   const [tab, setTab] = useState("overview");
   const [qaOpen, setQaOpen] = useState(false);
   const [qaPreset, setQaPreset] = useState(null);
@@ -40,6 +41,8 @@ export default function CourseDetail() {
     const completedTasks = tasks.filter((t) => t.status === "completed").length;
     return { grades, exams, tasks, notes, resources, focus, grade, req, focusTotal, completedTasks };
   }, [data, c, id]);
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (loading) return <div className="h-64 bg-muted rounded-xl animate-pulse" />;
   if (!c) return <EmptyState title="Course not found" description="It may have been removed." actionLabel="Back to courses" actionTo="/courses" />;

@@ -10,6 +10,7 @@ import QuickAdd from "@/components/QuickAdd";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
+import ErrorState from "@/components/ErrorState";
 
 const VIEWS = ["today", "upcoming", "overdue", "all", "completed"];
 const PRIORITY_GLOW = {
@@ -20,7 +21,7 @@ const PRIORITY_GLOW = {
 };
 
 export default function Tasks() {
-  const { data, loading, mutate } = useUserData();
+  const { data, loading, error, mutate, refresh } = useUserData();
   const [view, setView] = useState("today");
   const [panic, setPanic] = useState(false);
   const [qaOpen, setQaOpen] = useState(false);
@@ -71,6 +72,8 @@ export default function Tasks() {
     await mutate("Task", "update", task.id, { status: done ? "completed" : "todo", completed_date: done ? todayStr : null });
     if (done) toast({ title: "Task completed" });
   };
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (!loading && data && data.Task.length === 0) {
     return (

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, Sparkles, PanelsTopLeft } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { loadDemoData } from "@/lib/demoData";
+import ErrorState from "@/components/ErrorState";
 import { Reveal } from "@/components/motion/Reveal";
 import { STICKY_BG } from "@/components/stickies/stickyColors";
 import HeroGreeting from "@/components/dashboard/HeroGreeting";
@@ -44,7 +45,7 @@ const BENTO_ROT = {
 };
 
 export default function Dashboard() {
-  const { data, loading, refresh } = useUserData();
+  const { data, loading, error, refresh } = useUserData();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -118,6 +119,8 @@ export default function Dashboard() {
 
     return { courses, tasks, exams, grades, courseGrades, semesterGPA, totalEcts, nc, timeline, wl, velocity, insights, rec, urgent, goals, habits, habitLogs, sticky, todayStr };
   }, [data]);
+
+  if (error) return <ErrorState onRetry={refresh} />;
 
   if (loading || !d) return <DashboardSkeleton />;
 
