@@ -17,6 +17,8 @@ export const TABLE = {
   CommunityPost: "community_posts",
   CommunityReply: "community_replies",
   CommunityLike: "community_likes",
+  CommunitySave: "community_saves",
+  CommunityReport: "community_reports",
   User: "user_profiles",
 };
 

@@ -1,45 +1,31 @@
 import { useState } from "react";
-import { Heart, MessageCircle, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Bookmark, Flag } from "lucide-react";
 import ReplyThread from "@/components/community/ReplyThread";
+import { contentType, moderationMeta, reportReasons, timeAgo } from "@/lib/communityData";
 
-const TYPE_META = {
-  question: { label: "Question", cls: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" },
-  tip: { label: "Tip", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  win: { label: "Win", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  resource: { label: "Resource", cls: "bg-violet-500/10 text-violet-400 border-violet-500/20" },
-};
-
-const authorName = (email) => {
-  const local = (email || "student").split("@")[0];
-  return local.charAt(0).toUpperCase() + local.slice(1).replace(/[._-]+/g, " ");
-};
-
-const timeAgo = (iso) => {
-  const s = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
-};
-
-export default function PostCard({ post, replies, likes, userId, courseName, onToggleLike, onReply, onDelete }) {
+export default function PostCard({ post, replies, likes, userId, courseName, onToggleLike, onReply, onDelete, onToggleSave, onReport, reportOpen }) {
   const [showReplies, setShowReplies] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const type = TYPE_META[post.type] || TYPE_META.question;
-  const liked = likes.some((l) => l.created_by_id === userId);
-  const mine = post.created_by_id === userId;
+  const type = contentType(post.type);
+  const status = moderationMeta(post.status);
+  const liked = post.liked;
+  const saved = post.saved;
+  const mine = post.mine;
 
   return (
     <article className="surface-card p-4 sm:p-5">
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-xs font-semibold text-white shrink-0">
-          {(post.created_by || "s").charAt(0).toUpperCase()}
+        <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${post.authorGradient} flex items-center justify-center text-xs font-semibold text-white shrink-0`}>
+          {post.authorInitials}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium">{authorName(post.created_by)}</span>
-            <span className="text-[10px] text-muted-foreground">{timeAgo(post.created_date)}</span>
+            <span className="text-sm font-medium">{post.authorName}</span>
+            <span className="text-[10px] text-muted-foreground">{timeAgo(post.created_date || post.created_at)}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full border ${type.cls}`}>{type.label}</span>
+            {post.status && post.status !== "active" && (
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${status.cls}`}>{status.label}</span>
+            )}
             {courseName && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{courseName}</span>
             )}
@@ -52,14 +38,30 @@ export default function PostCard({ post, replies, likes, userId, courseName, onT
               className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors hover:bg-muted ${liked ? "text-rose-400" : "text-muted-foreground"}`}
             >
               <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
-              {likes.length > 0 && likes.length}
+              {post.like_count > 0 && post.like_count}
             </button>
             <button
               onClick={() => setShowReplies((v) => !v)}
               className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs text-muted-foreground transition-colors hover:bg-muted"
             >
               <MessageCircle className="w-4 h-4" />
-              {replies.length > 0 ? replies.length : "Reply"}
+              {post.reply_count > 0 ? post.reply_count : "Reply"}
+            </button>
+            <button
+              onClick={() => onToggleSave(post)}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors hover:bg-muted ${saved ? "text-cyan-400" : "text-muted-foreground"}`}
+              title={saved ? "Remove from saved" : "Save for later"}
+            >
+              <Bookmark className={`w-4 h-4 ${saved ? "fill-current" : ""}`} />
+              {saved ? "Saved" : "Save"}
+            </button>
+            <button
+              onClick={() => onReport(post)}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors hover:bg-muted ${reportOpen ? "text-amber-400" : "text-muted-foreground"}`}
+              title="Report to moderators"
+            >
+              <Flag className="w-4 h-4" />
+              Report
             </button>
             {mine && (
               <button
@@ -72,6 +74,20 @@ export default function PostCard({ post, replies, likes, userId, courseName, onT
               </button>
             )}
           </div>
+          {reportOpen && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="text-muted-foreground">Why is this a problem?</span>
+              {reportReasons.map((r) => (
+                <button
+                  key={r}
+                  onClick={() => onReport(post, r)}
+                  className="px-2.5 py-1 rounded-lg border border-border/70 text-muted-foreground hover:border-amber-500/40 hover:text-amber-300 transition-colors capitalize"
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          )}
           {showReplies && <ReplyThread replies={replies} onSubmit={(content) => onReply(post.id, content)} />}
         </div>
       </div>

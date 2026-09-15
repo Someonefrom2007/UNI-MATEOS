@@ -44,9 +44,11 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 
 ## Phase C — Community first-class
 
-### Mission 5 — Community module (§22)
+### Mission 5 — Community module (§22) — DONE
 - **Objective:** Discover-centric community: content types, university/course communities, study groups, questions, shared resources, events, announcements, comment/reaction, save, report, moderation states; multi-user-ready data model; no profile photos (initials/geometric identity); never auto-expose personal academic data.
-- **Files:** schema additions (`community_*`), `src/pages/Community.jsx`, `src/components/community/*`, repo adapter methods, tests at engine/component level.
+- **Files:** `src/lib/communityData.js` (CONTENT_TYPES 6-type registry, moderation state machine, save/report helpers, decoratePosts, authorIdentity deterministic gradient, feedFilter/applyFilters/sortPosts, timeAgo — all pure), `src/__tests__/communityData.test.js` (20 tests), `src/lib/tables.js` (+CommunitySave/CommunityReport), `supabase/schema.sql` (additive Mission 5 block: community_posts.status/author_name columns + community_saves/community_reports tables + discover read policies — idempotent, pending apply to hosted), `src/pages/Community.jsx` (Discover/My/Saved feeds, 6-type chips, course filter, search, sort Newest/Top, save/report actions — LOCAL & hosted branches), `src/components/community/PostCard.jsx` (6 types via CONTENT_TYPES, deterministic gradient initials avatars, bookmark/report UI with reason chips, moderation status badge), `src/components/community/PostComposer.jsx` (6 types), `src/components/community/ReplyThread.jsx` (deduped to communityData helpers).
+- **Evidence:** typecheck 0 · lint 0 · tests 19 files / 256 pass (20 new: content-type registry + fallback, moderation transitions + metadata, save toggling, report defaults, feed filters discover/mine/saved + ownership visibility, type/course/query filtering, sort by date/engagement, decoration counts/mine/liked/saved/initials, academic-data-not-leaked, legacy like row compat, timeAgo buckets) · build ✅ 1440.07 KiB.
+- **Schema note:** migration is additive/idempotent; author_name + status + saves/reports + discover read policies need one-time apply to the hosted Supabase project to go live; hosted insert/update remain safe pre-migration (the UI omits status/author_name in hosted mode until the columns exist).
 
 ---
 

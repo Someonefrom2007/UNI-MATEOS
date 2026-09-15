@@ -5,13 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageSquarePlus } from "lucide-react";
-
-const TYPES = [
-  { value: "question", label: "Question" },
-  { value: "tip", label: "Tip" },
-  { value: "win", label: "Win" },
-  { value: "resource", label: "Resource" },
-];
+import { CONTENT_TYPES } from "@/lib/communityData";
 
 export default function PostComposer({ courses, onPost }) {
   const [open, setOpen] = useState(false);
@@ -45,7 +39,7 @@ export default function PostComposer({ courses, onPost }) {
         className="w-full flex items-center gap-3 surface-card p-4 text-left text-muted-foreground hover:border-primary/40 transition-colors"
       >
         <MessageSquarePlus className="w-5 h-5 text-primary" />
-        <span className="text-sm">Share a question, tip, win or resource…</span>
+        <span className="text-sm">Share a question, tip, win, resource or event…</span>
       </button>
     );
   }
@@ -58,7 +52,7 @@ export default function PostComposer({ courses, onPost }) {
           <Select value={type} onValueChange={setType}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              {CONTENT_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

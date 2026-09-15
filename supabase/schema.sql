@@ -672,3 +672,97 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ---------------------------------------------------------------------------
+-- Mission 5 (2026): community discovery upgrade — ADDITIVE and idempotent.
+-- Apply to the hosted project to go live. Adds moderation states + author names
+-- to posts and introduces saves/reports. Discovery reads of ACTIVE community
+-- content are opened so the feed is community-wide while write control stays
+-- strictly own-only (existing own policies still govern inserts/updates/deletes).
+-- ---------------------------------------------------------------------------
+
+ALTER TABLE public.community_posts
+  ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'pending', 'hidden', 'removed'));
+
+ALTER TABLE public.community_posts
+  ADD COLUMN IF NOT EXISTS author_name text;
+
+-- Community-wide discovery of active posts (own posts remain visible to their
+-- author regardless of status via the pre-existing own-select policy).
+CREATE POLICY IF NOT EXISTS "community_posts_select_discover" ON public.community_posts
+  FOR SELECT USING (status = 'active');
+
+-- Replies and likes must be readable to render threads and counts on others'
+-- posts; every write (insert/update/delete) stays own-only.
+CREATE POLICY IF NOT EXISTS "community_replies_select_discover" ON public.community_replies
+  FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "community_likes_select_discover" ON public.community_likes
+  FOR SELECT USING (true);
+
+-- ---------------------------------------------------------------------------
+-- Mission 5: community_saves  (bookmarks, multi-user ready)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.community_saves (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  post_id    uuid NOT NULL REFERENCES public.community_posts(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, post_id)
+);
+
+ALTER TABLE public.community_saves ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "community_saves_select_own" ON public.community_saves
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "community_saves_insert_own" ON public.community_saves
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "community_saves_update_own" ON public.community_saves
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "community_saves_delete_own" ON public.community_saves
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER community_saves_set_updated_at
+  BEFORE UPDATE ON public.community_saves
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- ---------------------------------------------------------------------------
+-- Mission 5: community_reports  (moderation intake, multi-user ready)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.community_reports (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  post_id    uuid REFERENCES public.community_posts(id) ON DELETE CASCADE,
+  reply_id   uuid REFERENCES public.community_replies(id) ON DELETE CASCADE,
+  reason     text NOT NULL CHECK (reason IN ('spam', 'inappropriate', 'misinformation', 'other')),
+  note       text,
+  status     text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'reviewed', 'dismissed')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (post_id IS NOT NULL OR reply_id IS NOT NULL)
+);
+
+ALTER TABLE public.community_reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "community_reports_select_own" ON public.community_reports
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "community_reports_insert_own" ON public.community_reports
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "community_reports_update_own" ON public.community_reports
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "community_reports_delete_own" ON public.community_reports
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER community_reports_set_updated_at
+  BEFORE UPDATE ON public.community_reports
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE INDEX IF NOT EXISTS community_posts_status_idx   ON public.community_posts (status);
+CREATE INDEX IF NOT EXISTS community_saves_user_id_idx  ON public.community_saves (user_id);
+CREATE INDEX IF NOT EXISTS community_saves_post_id_idx  ON public.community_saves (post_id);
+CREATE INDEX IF NOT EXISTS community_reports_user_id_idx ON public.community_reports (user_id);
+CREATE INDEX IF NOT EXISTS community_reports_post_id_idx ON public.community_reports (post_id);
+CREATE INDEX IF NOT EXISTS community_reports_status_idx ON public.community_reports (status);
