@@ -1,6 +1,6 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-15, as of Mission 9 `HEAD`). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-15, as of Mission 10 `HEAD`). Do not treat this file as a spec — it records what actually exists.
 
 ## Baseline verification (all green)
 
@@ -9,14 +9,14 @@ Evidence-based snapshot from repository inspection + green-gate baseline (2026-0
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
 | Tests | `npm test` (vitest run) | ✅ 19 files / 256 tests pass |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — PWA sw.js generated, 58 precache entries (1419.09 KiB) |
+| Build | `npm run build` | ✅ PASS — no >500 kB chunks; entry 182 kB (was 584 kB); PWA 61 precache entries (1421.51 KiB) |
 
 Runtime/browser verification is NOT available in this environment — evidence is compile + test + build.
 
 ## Stack (verified in package.json / configs)
 
 - React 18 + Vite 8 (rolldown) + Tailwind CSS 3 + shadcn/ui (New-York `.jsx`, `tsx:false`)
-- `react-router-dom` 6 (BrowserRouter, route-level `React.lazy` splitting in `src/App.jsx`)
+- `react-router-dom` 6 (BrowserRouter, route-level `React.lazy` splitting in `src/App.jsx`) — vendor chunks split via Rolldown `manualChunks` (Mission 10): `vendor-react`, `vendor-data`, `vendor-anim`
 - `@tanstack/react-query` (QueryClient, no queries used yet — infra only) + `framer-motion` (motion primitives + AppShell page transitions)
 - `lucide-react`, `react-quill-new` (notes). App no longer ships `three`/`jspdf`/`html2canvas`/`moment`/`recharts`/Stripe — all unused deps + 35 unused ui primitives removed in Mission 9 (see ROADMAP).
 - Package manager: npm. `package-lock.json` present.

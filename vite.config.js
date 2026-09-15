@@ -71,4 +71,19 @@ export default defineConfig({
       '@': import.meta.dirname + '/src',
     },
   },
+  build: {
+    // Split stable vendors into cacheable groups so the entry chunk stays lean
+    // and framework updates don't invalidate app-only caches (offline optimize).
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/react-router")) return "vendor-react";
+          if (id.includes("/@supabase/") || id.includes("/@tanstack/")) return "vendor-data";
+          if (id.includes("/framer-motion/")) return "vendor-anim";
+          return undefined;
+        },
+      },
+    },
+  },
 });
