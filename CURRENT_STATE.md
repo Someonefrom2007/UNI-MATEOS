@@ -1,13 +1,13 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-15, as of Mission 10 `HEAD`). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-15, as of Mission 2 `HEAD` in the 2.0 roadmap). Do not treat this file as a spec — it records what actually exists.
 
 ## Baseline verification (all green)
 
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 19 files / 256 tests pass |
+| Tests | `npm test` (vitest run) | ✅ 20 files / 273 tests pass |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
 | Build | `npm run build` | ✅ PASS — no >500 kB chunks; entry 182 kB (was 584 kB); PWA 61 precache entries (1421.51 KiB) |
 
@@ -29,6 +29,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 - **Data layer:** `src/lib/useUserData.js` — single hook loading 14 entities; adapter chosen by environment (`src/lib/repo/select.js`):
   - **Supabase (env vars present):** `select("*")` on each table + realtime `postgres_changes` on 6 tables. Behavior identical to baseline. (See prior CURRENT_STATE entry for retry/realtime details.)
   - **Local workspace (env vars absent):** `src/lib/repo/localRepo.js` over an injectable KV backend (`src/lib/repo/storage.js`, browser `localStorage` with `unimate:v1:` prefix, falling back to an in-memory store for tests). Rows are snake_case arrays with `id` / `user_id` / `created_at` / `updated_at` injected on create. Local adapter skips realtime; UI never branches (`data.<Entity>`, `refresh`, `mutate` unchanged).
+- **Supabase-ready repo adapter (Mission 2, tested but NOT wired):** `src/lib/repo/supabaseRepo.js` implements the same interface (`list/create/update/delete/deleteWhere`, `clear()` refused) against a Supabase client; proven by the shared contract suite `src/__tests__/repoContract.test.js` that runs the same assertions against both the local and the supabase adapter (mock client). The UI still talks to Supabase directly today; this is the drop-in path for moving the data layer to the repository. Contract notes: `deleteWhere` is predicate → `id IN (...)`; rows assumed uniquely id'd; update returns null on missing row.
 - **Entity→table map:** `src/lib/tables.js` (`TABLE`, `getTable`). Both adapters consume this.
 - **Auth:** `src/lib/AuthContext.jsx`. Supabase mode unchanged. Local workspace auto-authenticates a synthetic `LOCAL_WORKSPACE_USER` identity (`is_local_workspace: true`), skips `onAuthStateChange`, and exposes `localWorkspace` on the context. Login/Register redirect to `/dashboard`; ForgotPassword/ResetPassword render an honest notice; AppShell shows an amber "Local workspace" indicator and hides logout. Local user profile is persisted separately (`src/lib/repo/select.js` → `localStorage`).
 - **Computation engines (pinned, do not modify):** `gradeEngine.js`, `scheduleEngine.js`, `workloadEngine.js`, `insightsEngine.js`, `burnout.js`, `calendarSync.js` (+ existing `.test.js` files).
@@ -68,8 +69,8 @@ Runtime/browser verification is NOT available in this environment — evidence i
 
 ## Gaps vs the 2.0 directive (evidence-based)
 
-1. **Local-first (directive §6/§7): MET (Mission 1, 2026-09).** App runs with zero backend and data survives refresh/restart: repository interface + local adapter (`src/lib/repo/`), env-based adapter selection, local workspace mode (auto-auth, no accounts), 16 new tests (189 total green). Remaining: Supabase adapter under the same interface (Mission 2), local→cloud push UX.
-2. **Repository/service interface (§6/§5): present for persistence.** UI → `useUserData` stable surface → `src/lib/repo/*`. Direct `supabase` calls outside the data hook remain in some components (guarded per-mode); consolidating them under the interface is Mission 2 scope.
+1. **Local-first (directive §6/§7): MET (Mission 1, 2026-09).** App runs with zero backend and data survives refresh/restart: repository interface + local adapter (`src/lib/repo/`), env-based adapter selection, local workspace mode (auto-auth, no accounts), 16 new tests (189 total green). Remaining: local→cloud push UX.
+2. **Repository/service interface (§6/§5): MET-candidate (Mission 2, 2026-09).** UI → `useUserData` stable surface → `src/lib/repo/*`. Both adapters (local + Supabase) now pass the same contract suite, but the UI still calls Supabase directly outside the repository in hosted mode (per-component `supabase.from` calls); moving those under the interface is the follow-up.
 3. **Brand variants (§8): DONE (Mission 3).** Centralized `src/components/Brand/*`; six symbol/wordmark variants; favicon, PNG app icons, apple-touch, OG image, PWA icons, branded splash all wired (see Brand assets). Brand consistency test suite added (6 tests).
 4. **Landing (§23): DONE (Mission 4).** Full cinematic narrative in the required order; product interface as the hero; honest "Illustrative preview" markers on all decorative mocks; initials-only community mock; narrative + copy under test.
 5. **Community (§22): PARTIALLY MET (Mission 5).** Discover-centric feeds, six content types, save/report, moderation states, initials-only identity, and academic-data isolation are done and tested (256 total green). Remaining: university/course *communities* and *study groups* as first-class entities (subsequent increment), and applying the additive `community_*` schema migration to the hosted project to activate discovery reads there.

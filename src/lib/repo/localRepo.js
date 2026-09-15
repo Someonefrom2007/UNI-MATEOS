@@ -11,7 +11,7 @@ export const newId = () =>
 
 const snakeCaseKey = (key) => key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 
-const toSnakeCase = (obj) => {
+export const toSnakeCase = (obj) => {
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) return obj;
   const out = {};
   Object.keys(obj).forEach((k) => {

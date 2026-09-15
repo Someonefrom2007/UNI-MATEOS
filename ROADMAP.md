@@ -21,10 +21,11 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 - **Files:** `src/lib/dataCompressor.js` (LZ string layer, gzip wrappers with fallback, schema minify/expand), `src/lib/repo/storage.js` (default adapter now wraps compression), `src/__tests__/dataCompressor.test.js`. Handoff fixes: `String()` coercion for the decompressor dictionary lookup (checkJs `string|number`), test aligned to `localRepo.delete`.
 - **Evidence:** typecheck 0 · lint 0 · tests 16 files / 215 pass · build ✅ (cd `61b52cb`). Pre-existing (inherited): repo typecheck/test were red on arrival; documented and fixed in this mission.
 
-### Mission 2 — Supabase-ready repository adapter (not wired, tested interface)
+### Mission 2 — Supabase-ready repository adapter (not wired, tested interface) — DONE
 - **Objective (§6):** Prove a future backend can sit under the same interface without UI rewrites.
 - **Scope:** `createSupabaseRepo()` implementing the interface against current tables when env present; feature/branch toggle, NOT default yet; adapter contract tests with mocked supabase client.
-- **Acceptance:** both adapters pass the same contract suite; no UI changes.
+- **Files:** `src/lib/repo/supabaseRepo.js` (new adapter — same surface as `localRepo`: `list/create/update/delete/deleteWhere`; async against a Supabase client, snake_cases incoming keys and injects id/user_id/created_at/updated_at identically to LocalRepo; `update` returns null on a missing row; `clear()` throws to prevent accidental full-table deletes), `src/__tests__/repoContract.test.js` (new shared contract suite with a chainable in-memory mock of supabase-js v2; the SAME assertions run against both the storage-backed local repo and the supabase adapter), `src/lib/repo/localRepo.js` (exported `toSnakeCase` for parity).
+- **Evidence:** typecheck 0 · lint 0 · build ✅ 61 precache entries (1421.51 KiB) · tests 20 files / 273 pass (17 new contract tests: list/create/update/delete/deleteWhere identical behavior on both backends, update-missing → null, delete boolean, batch counts, supabase store persistence via the mock client, clear() refusal, deleteWhere no-op). Contract notes: `deleteWhere` translates the predicate to an `id IN (...)` delete after a fetch, so it assumes unique row ids (the local repo filters in place); `clear()` is intentionally unsupported on hosted — scoped removals via `deleteWhere`. No UI changes, adapter not the default.
 
 ---
 
