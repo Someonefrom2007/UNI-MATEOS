@@ -1,6 +1,6 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-15, as of Mission 8 `HEAD`). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-15, as of Mission 9 `HEAD`). Do not treat this file as a spec — it records what actually exists.
 
 ## Baseline verification (all green)
 
@@ -9,7 +9,7 @@ Evidence-based snapshot from repository inspection + green-gate baseline (2026-0
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
 | Tests | `npm test` (vitest run) | ✅ 19 files / 256 tests pass |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — PWA sw.js generated, 58 precache entries (1445.85 KiB) |
+| Build | `npm run build` | ✅ PASS — PWA sw.js generated, 58 precache entries (1419.09 KiB) |
 
 Runtime/browser verification is NOT available in this environment — evidence is compile + test + build.
 
@@ -18,7 +18,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 - React 18 + Vite 8 (rolldown) + Tailwind CSS 3 + shadcn/ui (New-York `.jsx`, `tsx:false`)
 - `react-router-dom` 6 (BrowserRouter, route-level `React.lazy` splitting in `src/App.jsx`)
 - `@tanstack/react-query` (QueryClient, no queries used yet — infra only) + `framer-motion` (motion primitives + AppShell page transitions)
-- `lucide-react`, `cmdk`, `vaul`, `canvas-confetti`, `react-quill-new` (notes), `recharts`, `@hello-pangea/dnd`, `three`, `jspdf`/`html2canvas` (installed)
+- `lucide-react`, `react-quill-new` (notes). App no longer ships `three`/`jspdf`/`html2canvas`/`moment`/`recharts`/Stripe — all unused deps + 35 unused ui primitives removed in Mission 9 (see ROADMAP).
 - Package manager: npm. `package-lock.json` present.
 
 ## Architecture
@@ -77,7 +77,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 7. **Empty/loading/error states (§27–29): MET (Mission 7, 2026-09).** New `ErrorState` (what happened / what's preserved / what to do + Retry → `refresh()`), `PageSkeleton`, and `ErrorBoundary` primitives; boundary wired at app root and inside AppShell around the route outlet (keyed by pathname so a caught render error clears on navigation). All 17 `useUserData` pages now render an error gate with retry after their hooks and before their loading/empty branches; per-module explainer empty states + skeletons were previously in place.
 8. **Accessibility (§24) / responsive (§25): MET-pass for audit items (Mission 8, 2026-09).** Icon-only buttons across the app now carry `aria-label`s (NoteDetail, Goals, Habits, Schedule nav, Courses import, Tasks/Exams/CourseDetail toggles, PostCard like, ICSFeedDialog close, AIAssistant send, AppShell mobile controls + FAB); nav has `aria-current="page"`; StickyNoteCard edit is keyboard-operable (`tabIndex` + Enter/Space); unbound labels wired in Focus, Grades sim selects, Settings Language, Profile, Onboarding, QuickAdd (`Field` injects accessible names onto inputs and Radix `SelectTrigger`s), Notes/Community search, StickyWall, CommandPalette, NoteDetail, Courses import/sort, Exams mastery; `aria-live="polite"` on AI "Thinking…", CommandPalette no-results, Courses import warnings, WeekView/DayView conflict banners; reduced motion honored app-wide via `<MotionConfig reducedMotion="user">` + a `prefers-reduced-motion` CSS guard. Layout is already responsive (bottom nav, stacked grids, drawer) with no horizontal overflow observed at the source level. Full keyboard/focus-visual pass remains a manual browser step.
 9. **Cleanup (§31):** `export-report.json` (stale Base44 export diagnostic) and `coverage/` were gitignored in this checkpoint; `src/api/` no longer exists. Runtime verification screenshots of demo/verification data not possible here.
-10. **Plans (§30):** static pricing, PRO/ULTRA "Join Waitlist" disabled buttons (honest, but dead end). Stripe packages installed but unused.
+10. **Plans (§30):** static pricing, PRO/ULTRA "Join Waitlist" disabled buttons (honest, but dead end). Stripe packages were unused and removed in Mission 9.
 
 ## Do NOT touch (verified working / pinned)
 

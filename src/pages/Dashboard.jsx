@@ -59,10 +59,9 @@ export default function Dashboard() {
     if (!confirm("This adds a full sample semester (courses, classes, tasks, exams, grades, sticky notes) to your workspace. Continue?")) return;
     setDemoLoading(true);
     try {
-      const counts = await loadDemoData();
+      await loadDemoData();
       await refresh();
       toast({ title: "Demo semester loaded — take a look around!" });
-      if (counts) console.debug("Demo seed →", counts);
     } catch (e) {
       console.error("Demo seeding failed:", e);
       toast({ title: "Demo data couldn't be loaded", description: "Check the terminal/console for the failing table." });
