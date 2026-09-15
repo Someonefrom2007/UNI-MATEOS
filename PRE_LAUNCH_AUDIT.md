@@ -1,5 +1,11 @@
 # UNI·MATE — Pre-Launch Audit
 
+> ⚠️ **SUPERSEDED (2026-09).** This audit describes the earlier **Base44**-era
+> architecture (PAX stubs, `base44/`, `src/api/base44Client.js`) which no longer
+> exists. The repository has since migrated to **Supabase + local-first**
+> (`src/lib/repo/*`, env-based adapter selection) under the 2.0 missions. Treat
+> `CURRENT_STATE.md` as the source of truth; this file is kept only as history.
+
 Read-only audit of the repository at the 2026 pre-launch state. No code was modified during this audit. Generated 2026-09-14.
 
 **Status update (same day): P0 issues resolved after the audit.** Lint 21→0 errors, typecheck 486→0 errors, engine test suite added (44 passing), build clean. CI gates are now green.
