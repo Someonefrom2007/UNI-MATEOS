@@ -139,14 +139,14 @@ export default function ICSFeedDialog({ open, onClose, data, onImported }) {
             <h2 className="font-display text-lg font-semibold">ICS · Calendar feed</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Pull live external events (Google · Apple · LMS) straight onto the HUD timeline.</p>
           </div>
-          <button onClick={close} className="p-1.5 rounded-lg hover:bg-muted"><X className="w-4 h-4" /></button>
+          <button onClick={close} aria-label="Close" className="p-1.5 rounded-lg hover:bg-muted"><X className="w-4 h-4" /></button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-2">
-            <label className="text-xs text-muted-foreground">Feed URL</label>
+            <label className="text-xs text-muted-foreground" htmlFor="feed-url">Feed URL</label>
             <div className="flex gap-2">
-              <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://calendar.google.com/.../basic.ics" className="h-9 text-sm" />
+              <Input id="feed-url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://calendar.google.com/.../basic.ics" className="h-9 text-sm" />
               <Button size="sm" onClick={handleFetchUrl} disabled={fetching || !url.trim()}>
                 <RefreshCw className={`w-3.5 h-3.5 ${fetching ? "animate-spin" : ""}`} /> <Link2 className="w-3.5 h-3.5 ml-1 hidden" /> Fetch
               </Button>

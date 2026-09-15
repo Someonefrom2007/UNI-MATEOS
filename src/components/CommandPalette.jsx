@@ -187,6 +187,7 @@ export default function CommandPalette() {
               onChange={(e) => setCaptureVal(e.target.value)}
               onKeyDown={captureKey}
               placeholder={capture.action === "task" ? "What needs doing?" : capture.action === "note" ? "Title the note…" : ""}
+              aria-label={capture.action === "task" ? "New task" : capture.action === "note" ? "Note title" : "Capture input"}
               className="h-12 text-base"
             />
             {capture.action === "focus" && (
@@ -212,12 +213,13 @@ export default function CommandPalette() {
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={onKey}
                 placeholder={loading ? "Loading your data…" : "Search courses, tasks, notes… or type a command"}
+                aria-label="Search courses, tasks and notes"
                 className="border-0 focus-visible:ring-0 h-14 text-base"
               />
               <span className="hud-mono text-muted-foreground/70 hidden sm:inline-flex">⌘K</span>
             </div>
             <div className="max-h-80 overflow-y-auto p-2">
-              {all.length === 0 && <div className="px-3 py-8 text-center text-sm text-muted-foreground">No results for "{q}"</div>}
+              {all.length === 0 && <div aria-live="polite" className="px-3 py-8 text-center text-sm text-muted-foreground">No results for "{q}"</div>}
               {all.map((item, i) => {
                 const showHeader = item.group !== lastGroup;
                 lastGroup = item.group;

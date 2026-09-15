@@ -46,6 +46,7 @@ export default function ReplyThread({ replies, onSubmit }) {
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Write a reply…"
+          aria-label="Write a reply"
           className="bg-background"
         />
         <Button size="sm" onClick={send} disabled={busy || !value.trim()}>

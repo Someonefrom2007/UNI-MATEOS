@@ -72,6 +72,7 @@ function NavItem({ item, active, onClick, t }) {
     <Link
       to={item.to}
       onClick={onClick}
+      aria-current={active ? "page" : undefined}
       className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
         active
           ? "bg-sidebar-accent/30 text-cyan-300 font-medium glow-active"
@@ -194,20 +195,20 @@ export default function AppShell() {
           <Logo size={26} subtext={false} />
         </Link>
         <div className="flex items-center gap-1">
-          <button onClick={togglePalette} className="p-2 rounded-lg hover:bg-muted"><Search className="w-5 h-5" /></button>
-          <button onClick={() => setQuickAddOpen(true)} className="p-2 rounded-lg hover:bg-muted"><Plus className="w-5 h-5" /></button>
-          <button onClick={() => setMobileMenu(true)} className="p-2 rounded-lg hover:bg-muted"><Menu className="w-5 h-5" /></button>
+          <button onClick={togglePalette} aria-label="Search" className="p-2 rounded-lg hover:bg-muted"><Search className="w-5 h-5" /></button>
+          <button onClick={() => setQuickAddOpen(true)} aria-label="Quick add" className="p-2 rounded-lg hover:bg-muted"><Plus className="w-5 h-5" /></button>
+          <button onClick={() => setMobileMenu(true)} aria-label="Open menu" className="p-2 rounded-lg hover:bg-muted"><Menu className="w-5 h-5" /></button>
         </div>
       </header>
 
       {/* Mobile drawer */}
       {mobileMenu && (
         <div className="lg:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileMenu(false)} />
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileMenu(false)} aria-hidden="true" />
           <div className="absolute inset-y-0 right-0 w-72 bg-sidebar border-l border-sidebar-border overflow-y-auto p-4">
             <div className="flex items-center justify-between mb-4">
               <span className="font-display font-semibold">{t("shell.menu")}</span>
-              <button onClick={() => setMobileMenu(false)}><X className="w-5 h-5" /></button>
+              <button onClick={() => setMobileMenu(false)} aria-label="Close menu"><X className="w-5 h-5" /></button>
             </div>
             {NAV.map((group) => (
               <div key={group.sectionKey} className="mb-4">
@@ -269,7 +270,7 @@ export default function AppShell() {
           const Icon = item.icon;
           const active = isActive(item.to);
           return (
-            <Link key={item.to} to={item.to} className={`flex flex-col items-center gap-0.5 px-3 py-1.5 ${active ? "text-primary" : "text-muted-foreground"}`}>
+            <Link key={item.to} to={item.to} aria-current={active ? "page" : undefined} className={`flex flex-col items-center gap-0.5 px-3 py-1.5 ${active ? "text-primary" : "text-muted-foreground"}`}>
               <Icon className="w-5 h-5" />
               <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
             </Link>
@@ -280,6 +281,7 @@ export default function AppShell() {
       {/* Mobile quick add FAB */}
       <button
         onClick={() => setQuickAddOpen(true)}
+        aria-label="Quick add"
         className="lg:hidden fixed bottom-20 right-4 z-30 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center"
       >
         <Plus className="w-6 h-6" />

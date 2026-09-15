@@ -78,7 +78,7 @@ export default function Goals() {
                   <h3 className="font-medium mt-1">{g.name}</h3>
                   {g.description && <p className="text-xs text-muted-foreground mt-1">{g.description}</p>}
                 </div>
-                <button onClick={() => remove(g)} className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-muted text-destructive transition-opacity"><Trash2 className="w-3.5 h-3.5" /></button>
+                <button onClick={() => remove(g)} aria-label={`Delete goal ${g.name}`} className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-muted text-destructive transition-opacity"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
               <div className="mt-4">
                 <div className="flex items-center justify-between text-xs mb-1.5">

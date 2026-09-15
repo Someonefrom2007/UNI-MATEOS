@@ -52,7 +52,7 @@ export default function Notes() {
 
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search notes…" className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-sm focus:outline-none focus:border-primary/40" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search notes" placeholder="Search notes…" className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-sm focus:outline-none focus:border-primary/40" />
       </div>
 
       {loading ? (

@@ -80,12 +80,12 @@ export default function NoteDetail() {
         <Link to="/notes" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4 mr-1.5" />Notes</Link>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">{status}</span>
-          <button onClick={() => setPinned(!pinned)} className={`p-2 rounded-lg hover:bg-muted ${pinned ? "text-primary" : "text-muted-foreground"}`}><Pin className="w-4 h-4" /></button>
-          <button onClick={del} className="p-2 rounded-lg hover:bg-muted text-destructive"><Trash2 className="w-4 h-4" /></button>
+          <button onClick={() => setPinned(!pinned)} aria-label={pinned ? "Unpin note" : "Pin note"} className={`p-2 rounded-lg hover:bg-muted ${pinned ? "text-primary" : "text-muted-foreground"}`}><Pin className="w-4 h-4" /></button>
+          <button onClick={del} aria-label="Delete note" className="p-2 rounded-lg hover:bg-muted text-destructive"><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
 
-      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Untitled" className="text-2xl font-display font-semibold border-0 px-0 focus-visible:ring-0 h-auto bg-transparent" />
+      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Untitled" aria-label="Note title" className="text-2xl font-display font-semibold border-0 px-0 focus-visible:ring-0 h-auto bg-transparent" />
 
       <div className="w-48">
         <Select value={courseId} onValueChange={setCourseId}>

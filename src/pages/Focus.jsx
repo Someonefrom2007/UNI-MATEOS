@@ -187,15 +187,16 @@ export default function Focus() {
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Task</label>
+                <label className="text-xs text-muted-foreground" htmlFor="focus-task">Task</label>
                 <Select value={taskId} onValueChange={setTaskId} disabled={phase !== "idle" && phase !== "done"}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger id="focus-task" className="mt-1"><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent><SelectItem value="none">—</SelectItem>{tasks.map((t) => <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Label</label>
+                <label className="text-xs text-muted-foreground" htmlFor="focus-label">Label</label>
                 <input
+                  id="focus-label"
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                   placeholder="What are you working on?"

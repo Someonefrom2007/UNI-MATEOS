@@ -97,10 +97,10 @@ export default function Onboarding() {
       {step === 1 && (
         <div className="space-y-4">
           <h2 className="font-display text-xl font-semibold">About you</h2>
-          <div className="space-y-1.5"><Label>University</Label><Input value={form.university} onChange={(e) => set("university", e.target.value)} placeholder="Universitat de Barcelona" /></div>
-          <div className="space-y-1.5"><Label>Degree</Label><Input value={form.degree} onChange={(e) => set("degree", e.target.value)} placeholder="Computer Science" /></div>
+          <div className="space-y-1.5"><Label>University</Label><Input value={form.university} onChange={(e) => set("university", e.target.value)} aria-label="University" placeholder="Universitat de Barcelona" /></div>
+          <div className="space-y-1.5"><Label>Degree</Label><Input value={form.degree} onChange={(e) => set("degree", e.target.value)} aria-label="Degree" placeholder="Computer Science" /></div>
           <div className="space-y-1.5"><Label>Year</Label>
-            <Select value={form.year} onValueChange={(v) => set("year", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["1", "2", "3", "4", "5+"].map((y) => <SelectItem key={y} value={y}>Year {y}</SelectItem>)}</SelectContent></Select>
+            <Select value={form.year} onValueChange={(v) => set("year", v)}><SelectTrigger aria-label="Year"><SelectValue /></SelectTrigger><SelectContent>{["1", "2", "3", "4", "5+"].map((y) => <SelectItem key={y} value={y}>Year {y}</SelectItem>)}</SelectContent></Select>
           </div>
           <div className="flex justify-end"><Button onClick={() => setStep(2)}>Continue <ArrowRight className="w-4 h-4 ml-2" /></Button></div>
         </div>
@@ -110,9 +110,9 @@ export default function Onboarding() {
         <div className="space-y-4">
           <h2 className="font-display text-xl font-semibold">Your semester</h2>
           <div className="space-y-1.5"><Label>Semester</Label>
-            <Select value={form.semester} onValueChange={(v) => set("semester", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1">First semester</SelectItem><SelectItem value="2">Second semester</SelectItem><SelectItem value="full_year">Full year</SelectItem><SelectItem value="custom">Custom</SelectItem></SelectContent></Select>
+            <Select value={form.semester} onValueChange={(v) => set("semester", v)}><SelectTrigger aria-label="Semester"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1">First semester</SelectItem><SelectItem value="2">Second semester</SelectItem><SelectItem value="full_year">Full year</SelectItem><SelectItem value="custom">Custom</SelectItem></SelectContent></Select>
           </div>
-          <div className="space-y-1.5"><Label>Academic year</Label><Input value={form.academic_year} onChange={(e) => set("academic_year", e.target.value)} placeholder="2025/26" /></div>
+          <div className="space-y-1.5"><Label>Academic year</Label><Input value={form.academic_year} onChange={(e) => set("academic_year", e.target.value)} aria-label="Academic year" placeholder="2025/26" /></div>
           <div className="flex justify-between"><Button variant="ghost" onClick={() => setStep(1)}><ArrowLeft className="w-4 h-4 mr-2" />Back</Button><Button onClick={() => setStep(3)}>Continue <ArrowRight className="w-4 h-4 ml-2" /></Button></div>
         </div>
       )}
@@ -139,10 +139,10 @@ export default function Onboarding() {
         <div className="space-y-4">
           <h2 className="font-display text-xl font-semibold">Add your first course</h2>
           <p className="text-sm text-muted-foreground">Optional — you can add more later from the Courses page.</p>
-          <div className="space-y-1.5"><Label>Course name</Label><Input value={form.courseName || ""} onChange={(e) => set("courseName", e.target.value)} placeholder="Algorithms & Data Structures" /></div>
+          <div className="space-y-1.5"><Label>Course name</Label><Input value={form.courseName || ""} onChange={(e) => set("courseName", e.target.value)} aria-label="Course name" placeholder="Algorithms & Data Structures" /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Code</Label><Input value={form.courseCode || ""} onChange={(e) => set("courseCode", e.target.value)} placeholder="CS201" /></div>
-            <div className="space-y-1.5"><Label>ECTS</Label><Input type="number" value={form.courseEcts || ""} onChange={(e) => set("courseEcts", e.target.value)} placeholder="6" /></div>
+            <div className="space-y-1.5"><Label>Code</Label><Input value={form.courseCode || ""} onChange={(e) => set("courseCode", e.target.value)} aria-label="Code" placeholder="CS201" /></div>
+            <div className="space-y-1.5"><Label>ECTS</Label><Input type="number" value={form.courseEcts || ""} onChange={(e) => set("courseEcts", e.target.value)} aria-label="ECTS" placeholder="6" /></div>
           </div>
           <div className="flex justify-between"><Button variant="ghost" onClick={() => setStep(3)}><ArrowLeft className="w-4 h-4 mr-2" />Back</Button><Button onClick={addFirstCourse}>Continue <ArrowRight className="w-4 h-4 ml-2" /></Button></div>
         </div>

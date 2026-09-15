@@ -32,7 +32,7 @@ export default function WeekView({ anchor, events, courses, todayStr }) {
   return (
     <>
       {conflicts.length > 0 && (
-        <Card className="p-4 mb-4 border-amber-500/30 bg-amber-500/5">
+        <Card aria-live="polite" className="p-4 mb-4 border-amber-500/30 bg-amber-500/5">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
             <span className="um-label">Schedule conflict</span>

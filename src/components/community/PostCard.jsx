@@ -35,6 +35,7 @@ export default function PostCard({ post, replies, likes, userId, courseName, onT
           <div className="flex items-center gap-1 mt-3 -ml-1.5">
             <button
               onClick={() => onToggleLike(post)}
+              aria-label={liked ? "Remove like" : "Like post"}
               className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors hover:bg-muted ${liked ? "text-rose-400" : "text-muted-foreground"}`}
             >
               <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />

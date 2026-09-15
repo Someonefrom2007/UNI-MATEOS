@@ -93,7 +93,7 @@ export default function AIAssistant() {
               </div>
             ))}
             {loading && (
-              <div className="flex justify-start">
+              <div aria-live="polite" className="flex justify-start">
                 <div className="bg-card border border-border px-4 py-3 rounded-2xl flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="w-4 h-4 animate-spin" /> Thinking…
                 </div>
@@ -104,8 +104,8 @@ export default function AIAssistant() {
         )}
 
         <form onSubmit={(e) => { e.preventDefault(); ask(input); }} className="flex gap-2 sticky bottom-4">
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask anything about your semester…" className="flex-1 px-4 py-3 rounded-xl bg-card border border-border text-sm focus:outline-none focus:border-primary/40" />
-          <Button type="submit" disabled={loading || !input.trim()} className="rounded-xl px-4"><Send className="w-4 h-4" /></Button>
+          <input value={input} onChange={(e) => setInput(e.target.value)} aria-label="Ask anything about your semester" placeholder="Ask anything about your semester…" className="flex-1 px-4 py-3 rounded-xl bg-card border border-border text-sm focus:outline-none focus:border-primary/40" />
+          <Button type="submit" aria-label="Send question" disabled={loading || !input.trim()} className="rounded-xl px-4"><Send className="w-4 h-4" /></Button>
         </form>
       </div>
     </>

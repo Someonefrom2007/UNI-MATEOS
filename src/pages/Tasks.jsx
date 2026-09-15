@@ -170,7 +170,7 @@ export default function Tasks() {
                 const overdue = t.due_date && t.due_date < todayStr && t.status !== "completed";
                 return (
                   <Card key={t.id} className="p-3 flex items-center gap-3 group glow-hover">
-                    <button onClick={() => toggle(t)} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${t.status === "completed" ? "bg-emerald-500 border-emerald-500" : "border-border hover:border-primary"}`}>
+<button onClick={() => toggle(t)} aria-label={t.status === "completed" ? `Mark ${t.title} as not done` : `Mark ${t.title} as done`} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${t.status === "completed" ? "bg-emerald-500 border-emerald-500" : "border-border hover:border-primary"}`}>
                       {t.status === "completed" && <span className="text-[10px] text-white">✓</span>}
                     </button>
                     <div className="flex-1 min-w-0">

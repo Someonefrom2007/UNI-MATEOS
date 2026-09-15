@@ -164,9 +164,9 @@ export default function Schedule() {
               </button>
             ))}
           </div>
-          <button onClick={() => shift(-1)} className="p-1.5 rounded-lg hover:bg-muted"><ChevronLeft className="w-4 h-4" /></button>
+          <button onClick={() => shift(-1)} aria-label="Previous period" className="p-1.5 rounded-lg hover:bg-muted"><ChevronLeft className="w-4 h-4" /></button>
           <span className="text-sm font-medium w-40 text-center truncate">{label()}</span>
-          <button onClick={() => shift(1)} className="p-1.5 rounded-lg hover:bg-muted"><ChevronRight className="w-4 h-4" /></button>
+          <button onClick={() => shift(1)} aria-label="Next period" className="p-1.5 rounded-lg hover:bg-muted"><ChevronRight className="w-4 h-4" /></button>
           <Button size="sm" variant="outline" onClick={() => setAnchor(new Date())}>Today</Button>
         </div>
         <div className="flex items-center gap-2">

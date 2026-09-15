@@ -238,6 +238,7 @@ export default function Community() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search the community…"
+            aria-label="Search the community"
             className="flex-1 h-10 px-3 rounded-lg border border-border bg-background text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent/50"
           />
           <select

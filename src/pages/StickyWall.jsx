@@ -48,6 +48,7 @@ export default function StickyWall() {
             onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") addNote(); }}
             rows={2}
             placeholder="What's on your mind? (click a note to edit it later)"
+            aria-label="New sticky note"
             className="w-full bg-transparent resize-none outline-none font-sticky text-2xl placeholder:opacity-40"
           />
           <div className="flex items-center justify-between mt-2">

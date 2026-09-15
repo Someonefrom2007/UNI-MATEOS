@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Children, cloneElement, isValidElement } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -107,7 +107,20 @@ function Field({ label, children }) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs">{label}</Label>
-      {children}
+      {Children.map(children, (child) => {
+        if (!isValidElement(child)) return child;
+        // Radix Select Root doesn't forward DOM props; label its Trigger instead.
+        if (child.type === Select) {
+          return cloneElement(child, {
+            children: Children.map(child.props.children, (k) =>
+              isValidElement(k) && k.type === SelectTrigger
+                ? cloneElement(k, { "aria-label": label })
+                : k
+            ),
+          });
+        }
+        return cloneElement(child, { "aria-label": label });
+      })}
     </div>
   );
 }

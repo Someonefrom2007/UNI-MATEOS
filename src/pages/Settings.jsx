@@ -145,7 +145,7 @@ export default function Settings() {
         <Card className="p-5">
           <div className="flex items-center gap-2 mb-4"><Globe className="w-4 h-4 text-cyan-400" /><h2 className="um-label">Language</h2></div>
           <Select value={lang} onValueChange={saveLang}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full" aria-label="Language"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="en">English</SelectItem><SelectItem value="es">Español</SelectItem><SelectItem value="ca">Català</SelectItem></SelectContent>
           </Select>
         </Card>

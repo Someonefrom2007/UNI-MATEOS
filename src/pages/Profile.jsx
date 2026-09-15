@@ -85,24 +85,24 @@ export default function Profile() {
             </p>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5"><Label className="text-xs">University</Label><Input value={form.university} onChange={(e) => setForm({ ...form, university: e.target.value })} placeholder="Universitat de Barcelona" /></div>
-            <div className="space-y-1.5"><Label className="text-xs">Degree</Label><Input value={form.degree} onChange={(e) => setForm({ ...form, degree: e.target.value })} placeholder="Computer Science" /></div>
+            <div className="space-y-1.5"><Label className="text-xs">University</Label><Input value={form.university} onChange={(e) => setForm({ ...form, university: e.target.value })} aria-label="University" placeholder="Universitat de Barcelona" /></div>
+            <div className="space-y-1.5"><Label className="text-xs">Degree</Label><Input value={form.degree} onChange={(e) => setForm({ ...form, degree: e.target.value })} aria-label="Degree" placeholder="Computer Science" /></div>
             <div className="space-y-1.5"><Label className="text-xs">Year</Label>
               <Select value={form.year} onValueChange={(v) => setForm({ ...form, year: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Year"><SelectValue /></SelectTrigger>
                 <SelectContent>{["1", "2", "3", "4", "5+"].map((y) => <SelectItem key={y} value={y}>Year {y}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5"><Label className="text-xs">Target average</Label><Input type="number" step="0.1" max="10" value={form.target_gpa} onChange={(e) => setForm({ ...form, target_gpa: Number(e.target.value) })} /></div>
+            <div className="space-y-1.5"><Label className="text-xs">Target average</Label><Input type="number" step="0.1" max="10" value={form.target_gpa} onChange={(e) => setForm({ ...form, target_gpa: Number(e.target.value) })} aria-label="Target average" /></div>
             <div className="space-y-1.5"><Label className="text-xs">Preferred focus (min)</Label>
               <Select value={String(form.preferred_focus)} onValueChange={(v) => setForm({ ...form, preferred_focus: Number(v) })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Preferred focus minutes"><SelectValue /></SelectTrigger>
                 <SelectContent>{[25, 50, 90].map((m) => <SelectItem key={m} value={String(m)}>{m} min</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5"><Label className="text-xs">Language</Label>
               <Select value={form.language} onValueChange={(v) => setForm({ ...form, language: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Language"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="en">English</SelectItem><SelectItem value="es">Español</SelectItem><SelectItem value="ca">Català</SelectItem></SelectContent>
               </Select>
             </div>

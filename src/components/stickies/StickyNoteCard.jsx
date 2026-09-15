@@ -41,6 +41,7 @@ export default function StickyNoteCard({ note, onSave, onColor, onTogglePin, onD
       {editing ? (
         <textarea
           autoFocus
+          aria-label="Edit note"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onBlur={commit}
@@ -52,7 +53,16 @@ export default function StickyNoteCard({ note, onSave, onColor, onTogglePin, onD
           className="w-full bg-transparent resize-none outline-none font-sticky text-xl leading-snug"
         />
       ) : (
-        <p onClick={() => setEditing(true)} title="Click to edit" className="font-sticky text-xl leading-snug whitespace-pre-wrap cursor-pointer">
+        <p
+          role="button"
+          tabIndex={0}
+          onClick={() => setEditing(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setEditing(true); }
+          }}
+          title="Click to edit"
+          className="font-sticky text-xl leading-snug whitespace-pre-wrap cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 rounded"
+        >
           {note.content}
         </p>
       )}

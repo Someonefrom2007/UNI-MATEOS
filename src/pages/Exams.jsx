@@ -178,7 +178,7 @@ function ExamDetail({ id }) {
           <div className="space-y-3">
             {topics.map((t, i) => (
               <div key={i} className="flex items-center gap-3">
-                <button onClick={() => toggleTopic(i)} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${t.reviewed ? "bg-emerald-500 border-emerald-500" : "border-border"}`}>
+                <button onClick={() => toggleTopic(i)} aria-label={t.reviewed ? `Mark ${t.name} as not reviewed` : `Mark ${t.name} as reviewed`} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${t.reviewed ? "bg-emerald-500 border-emerald-500" : "border-border"}`}>
                   {t.reviewed && <Check className="w-3 h-3 text-white" />}
                 </button>
                 <div className="flex-1">
@@ -187,7 +187,7 @@ function ExamDetail({ id }) {
                     <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${t.mastery || 0}%` }} />
                   </div>
                 </div>
-                <input type="range" min="0" max="100" value={t.mastery || 0} onChange={(e) => setMastery(i, Number(e.target.value))} className="w-24 accent-cyan-500" />
+                <input type="range" min="0" max="100" value={t.mastery || 0} onChange={(e) => setMastery(i, Number(e.target.value))} aria-label={`${t.name} mastery`} className="w-24 accent-cyan-500" />
                 <span className="text-xs text-muted-foreground w-8 text-right">{t.mastery || 0}%</span>
               </div>
             ))}

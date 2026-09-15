@@ -61,7 +61,7 @@ export default function DayView({ date, events, courses, tasks, exams, todayStr 
       {/* Side panels */}
       <div className="space-y-4">
         {conflicts.length > 0 && (
-          <Card className="p-4 border-amber-500/30 bg-amber-500/5">
+          <Card aria-live="polite" className="p-4 border-amber-500/30 bg-amber-500/5">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="w-4 h-4 text-amber-400" />
               <span className="um-label">Conflict on this day</span>

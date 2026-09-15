@@ -159,21 +159,21 @@ export default function Grades() {
           <div className="space-y-1.5">
             <Label className="text-xs">Course</Label>
             <Select value={simCourse} onValueChange={setSimCourse}>
-              <SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger>
+              <SelectTrigger aria-label="Course"><SelectValue placeholder="Select course" /></SelectTrigger>
               <SelectContent>{courses.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Target grade</Label>
             <Select value={String(simTarget)} onValueChange={(v) => setSimTarget(Number(v))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Target grade"><SelectValue /></SelectTrigger>
               <SelectContent>{[5, 7, 8, 9, 10].map((n) => <SelectItem key={n} value={String(n)}>{fmtGrade(n)}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">What if I get…</Label>
             <Select value={String(simHypo)} onValueChange={(v) => setSimHypo(Number(v))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="What if I get"><SelectValue /></SelectTrigger>
               <SelectContent>{[5, 6, 7, 7.5, 8, 8.5, 9, 10].map((n) => <SelectItem key={n} value={String(n)}>{fmtGrade(n)}</SelectItem>)}</SelectContent>
             </Select>
           </div>

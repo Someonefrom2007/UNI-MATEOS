@@ -116,12 +116,12 @@ export default function Habits() {
                     const done = logs.some((l) => l.habit_id === h.id && l.date === d && l.completed);
                     const isToday = d === todayStr;
                     return (
-                      <button key={d} onClick={() => toggle(h, d)} className={`w-8 h-8 rounded-lg border flex items-center justify-center text-xs transition-colors ${done ? "bg-emerald-500 border-emerald-500 text-white" : "border-border hover:border-primary"} ${isToday ? "ring-2 ring-primary/30" : ""}`} title={d}>
+                      <button key={d} onClick={() => toggle(h, d)} aria-label={done ? `Mark ${h.name} not done on ${d}` : `Mark ${h.name} done on ${d}`} className={`w-8 h-8 rounded-lg border flex items-center justify-center text-xs transition-colors ${done ? "bg-emerald-500 border-emerald-500 text-white" : "border-border hover:border-primary"} ${isToday ? "ring-2 ring-primary/30" : ""}`} title={d}>
                         {done && <Check className="w-4 h-4" />}
                       </button>
                     );
                   })}
-                  <button onClick={() => remove(h)} className="opacity-0 group-hover:opacity-100 p-2 rounded hover:bg-muted text-destructive transition-opacity ml-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => remove(h)} aria-label={`Delete habit ${h.name}`} className="opacity-0 group-hover:opacity-100 p-2 rounded hover:bg-muted text-destructive transition-opacity ml-1"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
               </div>
             </Card>

@@ -105,7 +105,7 @@ const { data, loading, error, mutate, refresh } = useUserData();
         <button onClick={() => setQaOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90">
           <Plus className="w-4 h-4" /> Add Course
         </button>
-        <select value={sort} onChange={(e) => setSort(e.target.value)} className="bg-card border border-border rounded-lg px-2 py-1.5 text-sm">
+        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort courses" className="bg-card border border-border rounded-lg px-2 py-1.5 text-sm">
           <option value="name">Name</option>
           <option value="grade">Grade</option>
           <option value="ects">ECTS</option>
@@ -183,11 +183,11 @@ function SyllabusImportModal({ importText, setImportText, importResult, onPrevie
             <FileSpreadsheet className="w-5 h-5 text-cyan-400" />
             <h2 className="font-display text-lg font-semibold">Import Syllabus Data</h2>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">✕</button>
+          <button onClick={onClose} aria-label="Close import dialog" className="text-muted-foreground hover:text-foreground">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <p className="text-sm text-muted-foreground">Paste CSV or JSON with columns: <span className="font-mono text-xs text-cyan-300">type, name, course, code, professor, ects, date, weight, priority, duration</span>. Types: <span className="font-mono text-xs">course | task | exam</span>.</p>
-          <textarea value={importText} onChange={(e) => setImportText(e.target.value)} placeholder={"type,name,course,code,date,priority,duration\nexam,Final Exam,Linear Algebra,MATH101,2026-06-20,high,180\nhomework,Problem Set 3,MATH101,MATH101,2026-03-15,medium,60"} rows={8} className="w-full font-mono text-xs p-3 rounded-lg border border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-1 focus:ring-accent/50" />
+          <textarea value={importText} onChange={(e) => setImportText(e.target.value)} aria-label="Syllabus data to import" placeholder={"type,name,course,code,date,priority,duration\nexam,Final Exam,Linear Algebra,MATH101,2026-06-20,high,180\nhomework,Problem Set 3,MATH101,MATH101,2026-03-15,medium,60"} rows={8} className="w-full font-mono text-xs p-3 rounded-lg border border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-1 focus:ring-accent/50" />
           {!importResult && (
             <button onClick={onPreview} disabled={!importText.trim()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-accent/40 text-cyan-300 text-sm font-medium disabled:opacity-50 hover:bg-accent/10 transition-colors">
               <FileSpreadsheet className="w-4 h-4" /> Preview
@@ -196,7 +196,7 @@ function SyllabusImportModal({ importText, setImportText, importResult, onPrevie
           {importResult && (
             <>
               {importResult.errors.length > 0 && (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                <div aria-live="polite" className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
                   <div className="flex items-center gap-1.5 text-xs font-medium text-amber-400 mb-1"><AlertTriangle className="w-3.5 h-3.5" /> Warnings</div>
                   {importResult.errors.map((e, i) => <p key={i} className="text-[11px] text-muted-foreground">{e}</p>)}
                 </div>

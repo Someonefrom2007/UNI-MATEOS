@@ -134,7 +134,7 @@ export default function CourseDetail() {
                 const pm = PRIORITY_META[t.priority];
                 return (
                   <Card key={t.id} className="p-3 flex items-center gap-3">
-                    <button onClick={() => toggleTask(t)} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${t.status === "completed" ? "bg-emerald-500 border-emerald-500" : "border-border"}`}>
+                    <button onClick={() => toggleTask(t)} aria-label={t.status === "completed" ? `Mark ${t.title} as not done` : `Mark ${t.title} as done`} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${t.status === "completed" ? "bg-emerald-500 border-emerald-500" : "border-border"}`}>
                       {t.status === "completed" && <span className="text-[10px] text-white">✓</span>}
                     </button>
                     <div className="flex-1 min-w-0">
