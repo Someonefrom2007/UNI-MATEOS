@@ -35,9 +35,10 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 - **Files:** `src/components/Brand/{brand.js,BrandLogo.jsx,Splash.jsx}` (new), `src/components/Logo.jsx` (delegates to BrandLogo, API unchanged), `public/icon.svg` (rebuilt to the diamond mark), `public/icons/{pwa-192x192,pwa-512x512,apple-touch-icon,og-image}.png` (sips-rasterized, pixel-verified), `public/manifest.json`, `index.html`, `vite.config.js` (PWA precache icons; og-image glob-excluded), `src/App.jsx` (Splash for route fallback + auth loading), `src/__tests__/brand.test.js`.
 - **Evidence:** typecheck 0 · lint 0 · tests 17 files / 221 pass (6 new brand tests) · build ✅ 58 precache entries / 1411.86 KiB · preview-server smoke: all meta assets 200, manifest icons correct. Pixels verified programmatically (three layer colors present; OG text rendered).
 
-### Mission 4 — Landing rebuild (§23)
-- **Objective:** Cinematic sequence: Hero → Problem → UNI·MATE → Product → Academic intelligence → Study planning → Focus → Community → Privacy → Future → CTA; real dashboards/product visuals as the hero; no invented numbers (illustrative mockups clearly marked or removed).
-- **Files:** `src/pages/Landing.jsx`, `src/components/landing/*`, `index.html` OG/meta.
+### Mission 4 — Landing rebuild (§23) — DONE
+- **Objective:** Cinematic sequence: Hero → Problem → UNI·MATE → Product → Academic intelligence → Study planning → Focus → Community → Privacy → Future → CTA; product interface as the hero; no invented numbers presented as real (every decorative mock is labeled "Illustrative preview").
+- **Files:** `src/pages/Landing.jsx` (assembly + nav header/footer), `src/components/landing/{sections.js,Hero,Problem,Manifesto,Product,Intelligence,Planning,FocusLanding,CommunityLanding,Privacy,Future,ClosingCTA,Section}.jsx`, `src/__tests__/landingSections.test.js`. OG/twitter meta already wired in Mission 3.
+- **Evidence:** typecheck 0 · lint 0 · tests 18 files / 228 pass (7 new: narrative order, unique anchors, tagline, non-empty/no-placeholder copy, illustrative marker, MH band, initials-not-photos) · build ✅ 59 precache / 1431.34 KiB · preview smoke: root 200, bundle contains all 11 section ids + marker + tagline.
 
 ---
 

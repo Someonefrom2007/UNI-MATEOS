@@ -53,8 +53,9 @@ Runtime/browser verification is NOT available in this environment — evidence i
 - No Discover/tabs, no university/course communities, no study groups, no events/announcements, no saved content, no reporting/moderation states. NOT multi-user ready in schema (verify RLS scope of `community_*` in schema.sql).
 
 ### Landing (current)
-- `Landing.jsx` = sticky header + `Hero` + `Features` + `ClosingCTA` (linear, one feature section). Below the 2.0 narrative (Hero→Problem→UNI·MATE→Product→Academic intelligence→Study planning→Focus→Community→Privacy→Future→CTA).
-- Landing preview/mock widgets in Hero/Features are decorative static numbers (real-data claims not backed).
+- `Landing.jsx` = sticky header (nav from `navSections()`) + full 11-beat narrative: Hero (UNI·MATE display synth tagline) → Problem → Manifesto → Product → Intelligence → Planning → Focus → Community → Privacy → Future → CTA. Built from pure data in `src/components/landing/sections.js` (tested).
+- Every decorative product mock (hero command center, product surfaces, focus ring, community thread) is labeled "Illustrative preview" — no invented live numbers (§6/§30). Community mock uses initials-only avatars, never photos (§8).
+- Motion via existing `Reveal`/framer-motion primitives honoring `prefers-reduced-motion`; shared `SectionFrame`/`SectionHeading`/`PreviewChip` in `src/components/landing/Section.jsx`.
 
 ## What actually works (best-effort, static evidence)
 
@@ -69,7 +70,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 1. **Local-first (directive §6/§7): MET (Mission 1, 2026-09).** App runs with zero backend and data survives refresh/restart: repository interface + local adapter (`src/lib/repo/`), env-based adapter selection, local workspace mode (auto-auth, no accounts), 16 new tests (189 total green). Remaining: Supabase adapter under the same interface (Mission 2), local→cloud push UX.
 2. **Repository/service interface (§6/§5): present for persistence.** UI → `useUserData` stable surface → `src/lib/repo/*`. Direct `supabase` calls outside the data hook remain in some components (guarded per-mode); consolidating them under the interface is Mission 2 scope.
 3. **Brand variants (§8): DONE (Mission 3).** Centralized `src/components/Brand/*`; six symbol/wordmark variants; favicon, PNG app icons, apple-touch, OG image, PWA icons, branded splash all wired (see Brand assets). Brand consistency test suite added (6 tests).
-4. **Landing (§23): sparse** (3-section linear, mock numbers).
+4. **Landing (§23): DONE (Mission 4).** Full cinematic narrative in the required order; product interface as the hero; honest "Illustrative preview" markers on all decorative mocks; initials-only community mock; narrative + copy under test.
 5. **Community (§22): basic single-feed**; no Discover/groups/events/announcements/moderation/saved; origins not multi-user-ready.
 6. **Grades (§15):** bands stop at "Sobresaliente" (Outstanding) — no "Matrícula de Honor" / custom-distinction band; 10.0 max only.
 7. **Empty/loading/error states (§27–29):** spotty across modules (only Dashboard skeleton + Community empty state verified).
