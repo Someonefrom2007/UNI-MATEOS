@@ -766,3 +766,73 @@ CREATE INDEX IF NOT EXISTS community_saves_post_id_idx  ON public.community_save
 CREATE INDEX IF NOT EXISTS community_reports_user_id_idx ON public.community_reports (user_id);
 CREATE INDEX IF NOT EXISTS community_reports_post_id_idx ON public.community_reports (post_id);
 CREATE INDEX IF NOT EXISTS community_reports_status_idx ON public.community_reports (status);
+-- ---------------------------------------------------------------------------
+-- Mission 5 follow-up (2026-09): first-class communities & study groups —
+-- ADDITIVE and idempotent. Pending one-time apply to the hosted project.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.communities (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  kind           text NOT NULL DEFAULT 'course' CHECK (kind IN ('university', 'course')),
+  name           text,
+  university_name text,
+  course_id      uuid REFERENCES public.courses(id) ON DELETE CASCADE,
+  course_name    text,
+  description    text,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now(),
+  CHECK (name IS NOT NULL OR course_name IS NOT NULL OR university_name IS NOT NULL)
+);
+
+ALTER TABLE public.communities ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "communities_select_own" ON public.communities
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "communities_insert_own" ON public.communities
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "communities_update_own" ON public.communities
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "communities_delete_own" ON public.communities
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER communities_set_updated_at
+  BEFORE UPDATE ON public.communities
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TABLE IF NOT EXISTS public.study_groups (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  community_id uuid REFERENCES public.communities(id) ON DELETE CASCADE,
+  course_id    uuid REFERENCES public.courses(id) ON DELETE CASCADE,
+  name         text NOT NULL,
+  description  text,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.study_groups ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "study_groups_select_own" ON public.study_groups
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "study_groups_insert_own" ON public.study_groups
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "study_groups_update_own" ON public.study_groups
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "study_groups_delete_own" ON public.study_groups
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER study_groups_set_updated_at
+  BEFORE UPDATE ON public.study_groups
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- Scope columns on posts (nullable — posts stay valid without a scope).
+ALTER TABLE public.community_posts ADD COLUMN IF NOT EXISTS community_id uuid REFERENCES public.communities(id) ON DELETE SET NULL;
+ALTER TABLE public.community_posts ADD COLUMN IF NOT EXISTS group_id uuid REFERENCES public.study_groups(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS communities_kind_idx           ON public.communities (kind);
+CREATE INDEX IF NOT EXISTS communities_course_id_idx      ON public.communities (course_id);
+CREATE INDEX IF NOT EXISTS study_groups_community_id_idx  ON public.study_groups (community_id);
+CREATE INDEX IF NOT EXISTS study_groups_course_id_idx     ON public.study_groups (course_id);
+CREATE INDEX IF NOT EXISTS community_posts_community_id_idx ON public.community_posts (community_id);
+CREATE INDEX IF NOT EXISTS community_posts_group_id_idx    ON public.community_posts (group_id);

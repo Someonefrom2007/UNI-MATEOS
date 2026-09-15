@@ -6,7 +6,7 @@ import PostCard from "@/components/community/PostCard";
 import { supabase } from "@/lib/supabase";
 import { isLocalWorkspace } from "@/lib/repo/select";
 import { createLocalRepo } from "@/lib/repo/localRepo";
-import { CONTENT_TYPES, feedFilter, applyFilters, sortPosts, decoratePosts, reportReasons } from "@/lib/communityData";
+import { CONTENT_TYPES, feedFilter, applyFilters, sortPosts, decoratePosts, reportReasons, scopeFeed, scopesFromPosts } from "@/lib/communityData";
 import { Users, MessagesSquare, Bookmark } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
@@ -44,11 +44,15 @@ export default function Community() {
   const [likes, setLikes] = useState([]);
   const [saves, setSaves] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [communities, setCommunities] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [reportingId, setReportingId] = useState(null);
 
   const [feed, setFeed] = useState("discover");
   const [type, setType] = useState("all");
   const [courseId, setCourseId] = useState("all");
+  const [communityId, setCommunityId] = useState("");
+  const [groupId, setGroupId] = useState("");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("new");
 
@@ -63,6 +67,8 @@ export default function Community() {
         setLikes(localRepo.list("community_likes"));
         setSaves(localRepo.list("community_saves"));
         setCourses(localRepo.list("courses"));
+        setCommunities(localRepo.list("communities"));
+        setGroups(localRepo.list("study_groups"));
         return;
       }
       const [p, r, l, s, c] = await Promise.all([
@@ -77,6 +83,18 @@ export default function Community() {
       setLikes((l.data || []).map((row) => enrich(row, authorName)));
       setSaves((s.data || []).map((row) => enrich(row, authorName)));
       setCourses(c.data || []);
+      try {
+        const [cm, g] = await Promise.all([
+          supabase.from("communities").select("*"),
+          supabase.from("study_groups").select("*"),
+        ]);
+        setCommunities(cm.data || []);
+        setGroups(g.data || []);
+      } catch {
+        // Hosted project predates the communities migration — scope stays off.
+        setCommunities([]);
+        setGroups([]);
+      }
     } catch {
       setPosts([]);
     }
@@ -175,12 +193,18 @@ export default function Community() {
 
   const savedIds = useMemo(() => new Set((saves || []).map((s) => s.post_id)), [saves]);
 
+  const scopeOptions = useMemo(
+    () => scopesFromPosts(posts || [], { communities, groups }),
+    [posts, communities, groups]
+  );
+
   const visible = useMemo(() => {
     const base = feedFilter(posts || [], { feed, userId, savedIds });
-    const filtered = applyFilters(base, { type, courseId, query });
-    const decorated = decoratePosts(filtered, { likes, replies, courses, userId, savedIds });
+    const scoped = scopeFeed(base, { communityId, groupId });
+    const filtered = applyFilters(scoped, { type, courseId, query });
+    const decorated = decoratePosts(filtered, { likes, replies, courses, communities, groups, userId, savedIds });
     return sortPosts(decorated, sort);
-  }, [posts, feed, userId, savedIds, type, courseId, query, sort, likes, replies, courses]);
+  }, [posts, feed, userId, savedIds, type, courseId, query, sort, likes, replies, courses, communities, groups, communityId, groupId]);
 
   return (
     <>
@@ -233,6 +257,56 @@ export default function Community() {
           ))}
         </div>
 
+        {scopeOptions.communities.length > 0 || scopeOptions.groups.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${!communityId && !groupId ? "border-primary/50 text-cyan-300 bg-primary/10" : "border-border/70 text-muted-foreground hover:border-accent/40 cursor-pointer"}`}
+              onClick={() => {
+                setCommunityId("");
+                setGroupId("");
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setCommunityId("");
+                  setGroupId("");
+                }
+              }}
+            >
+              All scopes
+            </span>
+            {scopeOptions.communities.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => {
+                  setCommunityId(communityId === c.id ? "" : c.id);
+                  setGroupId("");
+                }}
+                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${communityId === c.id ? "border-primary/50 text-cyan-300 bg-primary/10" : "border-border/70 text-muted-foreground hover:border-accent/40"}`}
+                title={c.kind === "course" ? "Course community" : "University community"}
+              >
+                {c.name}{c.kind === "course" ? " · course" : ""}
+              </button>
+            ))}
+            {scopeOptions.groups.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => {
+                  setGroupId(groupId === g.id ? "" : g.id);
+                  setCommunityId("");
+                }}
+                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${groupId === g.id ? "border-primary/50 text-cyan-300 bg-primary/10" : "border-border/70 text-muted-foreground hover:border-accent/40"}`}
+                title="Study group"
+              >
+                <Users className="w-3 h-3 inline-block mr-1 -mt-0.5" />
+                {g.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         <div className="flex flex-col sm:flex-row gap-2">
           <input
             value={query}
@@ -254,7 +328,7 @@ export default function Community() {
           </select>
         </div>
 
-        <PostComposer courses={courses} onPost={addPost} />
+        <PostComposer courses={courses} groups={LOCAL ? groups : []} onPost={addPost} />
 
         {posts === null && [0, 1, 2].map((i) => <div key={i} className="h-28 bg-muted rounded-xl animate-pulse" />)}
 

@@ -90,6 +90,104 @@ export const isVisible = (post, userId) => {
   return mine || effectiveStatus(post) === MODERATION.ACTIVE;
 };
 
+// ── Communities & study groups (§22 follow-up) ─────────────────────────────
+// First-class grouping entities: a community scopes posts to a university or a
+// course, and a study group is a smaller circle inside a community. Both are
+// pure row factories + lookups + feed scoping — no academic data travels with
+// the display name (the decorate layer attaches NAME only).
+
+export const COMMUNITY_KINDS = Object.freeze([
+  { value: "university", label: "University" },
+  { value: "course", label: "Course" },
+]);
+
+export const communityKind = (value) =>
+  COMMUNITY_KINDS.find((k) => k.value === value) ||
+  COMMUNITY_KINDS.find((k) => k.value === "course") ||
+  COMMUNITY_KINDS[0];
+
+export const createCommunity = ({
+  id = "",
+  kind = "course",
+  name = "",
+  universityName = "",
+  courseId = "",
+  courseName = "",
+  description = "",
+  createdBy = "",
+  idFactory = null,
+  now = () => new Date().toISOString(),
+} = {}) => ({
+  id: id || (idFactory ? idFactory() : "community:new"),
+  kind: communityKind(kind).value,
+  name,
+  university_name: universityName,
+  course_id: courseId,
+  course_name: courseName,
+  description,
+  created_by: createdBy,
+  created_at: now(),
+  updated_at: now(),
+});
+
+export const createStudyGroup = ({
+  id = "",
+  communityId = "",
+  courseId = "",
+  name = "",
+  description = "",
+  createdBy = "",
+  idFactory = null,
+  now = () => new Date().toISOString(),
+} = {}) => ({
+  id: id || (idFactory ? idFactory() : "group:new"),
+  community_id: communityId,
+  course_id: courseId,
+  name,
+  description,
+  created_by: createdBy,
+  created_at: now(),
+  updated_at: now(),
+});
+
+export const communityOf = (communities = [], id) =>
+  communities.find((c) => c && String(c.id) === String(id)) || null;
+
+export const groupOf = (groups = [], id) =>
+  groups.find((g) => g && String(g.id) === String(id)) || null;
+
+export const scopeFeed = (posts = [], { communityId = "", groupId = "" } = {}) =>
+  posts.filter((p) => {
+    if (communityId && String(p.community_id) !== String(communityId)) return false;
+    if (groupId && String(p.group_id) !== String(groupId)) return false;
+    return true;
+  });
+
+// Derive the scope chip options a feed should offer from what posts actually
+// reference (stable order, names only). Empty lists mean "no scoping".
+export const scopesFromPosts = (posts = [], { communities = [], groups = [] } = {}) => {
+  const cids = new Set((posts || []).map((p) => (p.community_id ? String(p.community_id) : "")).filter(Boolean));
+  const gids = new Set((posts || []).map((p) => (p.group_id ? String(p.group_id) : "")).filter(Boolean));
+
+  const communityOptions = [...cids]
+    .map((id) => communityOf(communities, id))
+    .filter(Boolean)
+    .map((c) => ({
+      id: String(c.id),
+      name: c.name || c.course_name || c.university_name,
+      kind: c.kind,
+    }))
+    .filter((c) => c.name);
+
+  const groupOptions = [...gids]
+    .map((id) => groupOf(groups, id))
+    .filter(Boolean)
+    .map((g) => ({ id: String(g.id), name: g.name }))
+    .filter((g) => g.name);
+
+  return { communities: communityOptions, groups: groupOptions };
+};
+
 const matches = (post, userId) => post && post.user_id === userId;
 
 export const feedFilter = (posts = [], { feed = "discover", userId = "", savedIds = new Set() } = {}) => {
@@ -149,13 +247,16 @@ export const authorIdentity = (email = "", fullName = "") => {
   return { name: display, initials, gradient: identityGradient(display) };
 };
 
-// Decoration turns raw rows into what the feed renders. Courses contribute a
-// NAME only — academic data never leaks into the community (§22).
-export const decoratePosts = (posts = [], { likes = [], replies = [], courses = [], userId = "", savedIds = new Set() } = {}) =>
+// Decoration turns raw rows into what the feed renders. Courses, communities
+// and groups contribute a NAME only — academic data never leaks into the
+// community (§22).
+export const decoratePosts = (posts = [], { likes = [], replies = [], courses = [], communities = [], groups = [], userId = "", savedIds = new Set() } = {}) =>
   posts.map((post) => {
     const postLikes = likes.filter((l) => l.post_id === post.id);
     const postReplies = replies.filter((r) => r.post_id === post.id);
     const course = courses.find((c) => c.id === post.course_id);
+    const community = communityOf(communities, post.community_id);
+    const group = groupOf(groups, post.group_id);
     const identity = authorIdentity(post.created_by || post.author_email, post.author_name);
     return {
       ...post,
@@ -169,6 +270,10 @@ export const decoratePosts = (posts = [], { likes = [], replies = [], courses = 
       authorInitials: identity.initials,
       authorGradient: identity.gradient,
       courseName: course ? course.name : null,
+      communityName: community ? community.name || community.course_name || community.university_name : null,
+      communityKind: community ? community.kind : null,
+      groupName: group ? group.name : null,
+      groupGradient: group ? identityGradient(group.name) : null,
     };
   });
 

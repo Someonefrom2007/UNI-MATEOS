@@ -19,6 +19,8 @@ export const TABLE = {
   CommunityLike: "community_likes",
   CommunitySave: "community_saves",
   CommunityReport: "community_reports",
+  Community: "communities",
+  StudyGroup: "study_groups",
   User: "user_profiles",
 };
 

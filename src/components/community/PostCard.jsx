@@ -29,6 +29,12 @@ export default function PostCard({ post, replies, likes, userId, courseName, onT
             {courseName && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{courseName}</span>
             )}
+            {post.groupName && (
+              <span className={`text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r ${post.groupGradient} text-white`}>{post.groupName}</span>
+            )}
+            {post.communityName && !post.groupName && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{post.communityName}</span>
+            )}
           </div>
           <h3 className="font-medium mt-2 leading-snug">{post.title}</h3>
           <p className="text-sm text-muted-foreground mt-1.5 whitespace-pre-wrap leading-relaxed">{post.content}</p>

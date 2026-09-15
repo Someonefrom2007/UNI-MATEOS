@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MessageSquarePlus } from "lucide-react";
 import { CONTENT_TYPES } from "@/lib/communityData";
 
-export default function PostComposer({ courses, onPost }) {
+export default function PostComposer({ courses, groups = [], onPost }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("question");
   const [courseId, setCourseId] = useState("none");
+  const [groupId, setGroupId] = useState("none");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [busy, setBusy] = useState(false);
@@ -21,11 +22,13 @@ export default function PostComposer({ courses, onPost }) {
     try {
       const payload = { title: title.trim(), content: content.trim(), type };
       if (courseId !== "none") payload.course_id = courseId;
+      if (groupId !== "none") payload.group_id = groupId;
       await onPost(payload);
       setTitle("");
       setContent("");
       setType("question");
       setCourseId("none");
+      setGroupId("none");
       setOpen(false);
     } finally {
       setBusy(false);
@@ -66,6 +69,18 @@ export default function PostComposer({ courses, onPost }) {
             </SelectContent>
           </Select>
         </div>
+        {groups.length > 0 && (
+          <div className="space-y-1.5">
+            <Label>Study group (optional)</Label>
+            <Select value={groupId} onValueChange={setGroupId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No group</SelectItem>
+                {groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
       <div className="space-y-1.5 mt-3">
         <Label>Title</Label>
