@@ -6,7 +6,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
-import Logo from './components/Logo';
+import Splash from './components/Brand/Splash';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppShell from '@/components/AppShell';
 
@@ -41,27 +41,13 @@ const Plans         = React.lazy(() => import("@/pages/Plans"));
 const Onboarding    = React.lazy(() => import("@/pages/Onboarding"));
 const StickyWall    = React.lazy(() => import("@/pages/StickyWall"));
 
-const PageFallback = () => (
-  <div className="fixed inset-0 flex items-center justify-center bg-background">
-    <div className="flex flex-col items-center gap-3">
-      <Logo size={34} className="animate-pulse" />
-      <div className="text-xs text-muted-foreground">Loading…</div>
-    </div>
-  </div>
-);
+const PageFallback = () => <Splash label="Loading" />;
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth } = useAuth();
 
   if (isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <Logo size={34} className="animate-pulse" />
-          <div className="text-xs text-muted-foreground">Organizing your semester…</div>
-        </div>
-      </div>
-    );
+    return <Splash label="Organizing your semester..." />;
   }
 
   return (

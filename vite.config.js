@@ -17,7 +17,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'icons/pwa-192x192.png', 'icons/pwa-512x512.png', 'icons/apple-touch-icon.png'],
       manifest: {
         name: 'UNI\u00b7MATE \u2014 Academic OS',
         short_name: 'UNI\u00b7MATE',
@@ -46,6 +46,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        globIgnores: ['**/icons/og-image.png'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/auth/, /^\/api/, /\.ics$/],
         runtimeCaching: [

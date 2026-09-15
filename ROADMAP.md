@@ -16,6 +16,11 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 - **Evidence:** typecheck 0 · lint 0 · tests 15 files / 189 pass (16 new: storage namespacing/round-trip, localRepo CRUD contract, uuid/timestamp/ownership injection, adapter selection via env stubs, on-device profile round-trip, demoData local seeding with FK integrity) · build ✅ (52 precache entries, 1281.62 KiB). Acceptance for browser: `npm run dev` with NO env renders + CRUDs locally and survives reload (asserted by tests; live-browser check still pending in this environment).
 - **Decision noted:** adapter chosen by env at startup — Supabase env present → hosted path (today's behavior, hosted data preserved); env absent → local workspace.
 
+### Mission 1.5 — Compressed on-device storage — DONE
+- **Objective:** keep local persistence small and compatible. Transparent compressed storage adapter; unmarked values (legacy data) pass through verbatim; a stored value is never larger than the input.
+- **Files:** `src/lib/dataCompressor.js` (LZ string layer, gzip wrappers with fallback, schema minify/expand), `src/lib/repo/storage.js` (default adapter now wraps compression), `src/__tests__/dataCompressor.test.js`. Handoff fixes: `String()` coercion for the decompressor dictionary lookup (checkJs `string|number`), test aligned to `localRepo.delete`.
+- **Evidence:** typecheck 0 · lint 0 · tests 16 files / 215 pass · build ✅ (cd `61b52cb`). Pre-existing (inherited): repo typecheck/test were red on arrival; documented and fixed in this mission.
+
 ### Mission 2 — Supabase-ready repository adapter (not wired, tested interface)
 - **Objective (§6):** Prove a future backend can sit under the same interface without UI rewrites.
 - **Scope:** `createSupabaseRepo()` implementing the interface against current tables when env present; feature/branch toggle, NOT default yet; adapter contract tests with mocked supabase client.
@@ -25,9 +30,10 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 
 ## Phase B — Brand & surfaces
 
-### Mission 3 — Brand asset system (§8)
-- **Objective:** Centralize UNI·MATE symbol variants: primary, compact, symbol-only, gradient symbol, white, black; export favicon/app-icon/OG/splash assets; keep three-layer diamond symbol.
-- **Files:** `src/components/Brand/*`, `public/*` icons/og.png/splash, `index.html` heads, `manifest.json`, tests for exported constants/alt text.
+### Mission 3 — Brand asset system (§8) — DONE
+- **Objective:** Centralize UNI·MATE symbol variants (primary/compact/symbol/gradient/white/black), favicon, PNG app icons, apple-touch, PWA icons, OG image, branded splash. Keep the three-layer diamond symbol.
+- **Files:** `src/components/Brand/{brand.js,BrandLogo.jsx,Splash.jsx}` (new), `src/components/Logo.jsx` (delegates to BrandLogo, API unchanged), `public/icon.svg` (rebuilt to the diamond mark), `public/icons/{pwa-192x192,pwa-512x512,apple-touch-icon,og-image}.png` (sips-rasterized, pixel-verified), `public/manifest.json`, `index.html`, `vite.config.js` (PWA precache icons; og-image glob-excluded), `src/App.jsx` (Splash for route fallback + auth loading), `src/__tests__/brand.test.js`.
+- **Evidence:** typecheck 0 · lint 0 · tests 17 files / 221 pass (6 new brand tests) · build ✅ 58 precache entries / 1411.86 KiB · preview-server smoke: all meta assets 200, manifest icons correct. Pixels verified programmatically (three layer colors present; OG text rendered).
 
 ### Mission 4 — Landing rebuild (§23)
 - **Objective:** Cinematic sequence: Hero → Problem → UNI·MATE → Product → Academic intelligence → Study planning → Focus → Community → Privacy → Future → CTA; real dashboards/product visuals as the hero; no invented numbers (illustrative mockups clearly marked or removed).

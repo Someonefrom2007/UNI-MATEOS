@@ -1,15 +1,15 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-14, cd `25a7fb3`). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-15, cd `61b52cb`). Do not treat this file as a spec — it records what actually exists.
 
 ## Baseline verification (all green)
 
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 15 files / 189 tests pass |
+| Tests | `npm test` (vitest run) | ✅ 17 files / 221 tests pass |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — PWA sw.js generated, 52 precache entries (1281.62 KiB). Pre-existing >500 kB chunk warning only |
+| Build | `npm run build` | ✅ PASS — PWA sw.js generated, 58 precache entries (1411.86 KiB) |
 
 Runtime/browser verification is NOT available in this environment — evidence is compile + test + build.
 
@@ -36,10 +36,16 @@ Runtime/browser verification is NOT available in this environment — evidence i
 - **Theme/i18n:** CSS-variable theme + accent presets (`theme.js`, `initTheme`, `um-` vars), `i18n.js` en|ca|es (CustomEvent store), `useDeskMode` (desk chaos/tidy), `useSoundscape`.
 
 ### Brand assets (current)
-- `src/components/Logo.jsx` — three stacked translucent diamond layers (cyan→blue→indigo), inline SVG, `size`, `showText`, `subtext` props. Single component; no gradient symbol / white / black / compact variants yet.
-- `public/icon.svg` — exists (referenced by index.html favicon, apple-touch-icon, and manifest.svg entries).
-- `public/manifest.json` — static manifest (name/short_name, standalone, dark colors, SVG icons only — no PNG 192/512; installability may be limited on some platforms).
-- No PNG app icons, no OG image, no splash/loading screen, no favicon.ico.
+- `src/components/Brand/` — centralized brand system (Mission 3):
+  - `brand.js` — single source of truth: `BRAND_NAME = "UNI·MATE"`, tagline, three-layer symbol geometry (`SYMBOL_LAYERS`), `BRAND_VARIANTS`.
+  - `BrandLogo.jsx` — one component, six conceptual variants: `primary` (classic), `compact`, `symbol`, `gradient`, `white`, `black`. Same approved three-layer diamond geometry in every variant; white/black/gradient are color treatments only — no redesign.
+  - `Splash.jsx` — branded loading/splash screen (gradient symbol + wordmark + tagline), reduces motion for `prefers-reduced-motion`, used by App route fallback + auth loading in `src/App.jsx`.
+- `src/components/Logo.jsx` — thin backward-compatible wrapper over `BrandLogo`; all existing usages (`size`/`showText`/`subtext`/`className`) unchanged.
+- `public/icon.svg` — favicon/PWA mark rebuilt to the three-layer diamond on the dark brand tile (previously a graduation-cap glyph — inconsistent symbol, fixed).
+- `public/icons/pwa-192x192.png`, `pwa-512x512.png` (+ maskable entry), `apple-touch-icon.png` (180), `og-image.png` (1200×630) — rasterized via macOS `sips`, pixel-verified (three layer colors + rendered text).
+- `public/manifest.json` — PNG icons added (192/512 any + 512 maskable + SVG fallback) for installability.
+- `index.html` — favicon, apple-touch-icon.png, `og:image` + `twitter:image` (1200×630), tagline description; title/theme unchanged.
+- `vite.config.js` — PWA precaches the brand icons; `og-image.png` glob-ignored so social-only art does not inflate the offline bundle (58 precache entries / 1411.86 KiB vs 52 / 1281.62 KiB baseline).
 
 ### Community (current)
 - Single-page module (`src/pages/Community.jsx`): composer + post feed (question/tip/win/resource), replies, likes, delete-own-post. No profile photos — single-letter initials on gradient circles.
@@ -62,7 +68,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 
 1. **Local-first (directive §6/§7): MET (Mission 1, 2026-09).** App runs with zero backend and data survives refresh/restart: repository interface + local adapter (`src/lib/repo/`), env-based adapter selection, local workspace mode (auto-auth, no accounts), 16 new tests (189 total green). Remaining: Supabase adapter under the same interface (Mission 2), local→cloud push UX.
 2. **Repository/service interface (§6/§5): present for persistence.** UI → `useUserData` stable surface → `src/lib/repo/*`. Direct `supabase` calls outside the data hook remain in some components (guarded per-mode); consolidating them under the interface is Mission 2 scope.
-3. **Brand variants (§8): partial.** Only primary Logo + one icon.svg.
+3. **Brand variants (§8): DONE (Mission 3).** Centralized `src/components/Brand/*`; six symbol/wordmark variants; favicon, PNG app icons, apple-touch, OG image, PWA icons, branded splash all wired (see Brand assets). Brand consistency test suite added (6 tests).
 4. **Landing (§23): sparse** (3-section linear, mock numbers).
 5. **Community (§22): basic single-feed**; no Discover/groups/events/announcements/moderation/saved; origins not multi-user-ready.
 6. **Grades (§15):** bands stop at "Sobresaliente" (Outstanding) — no "Matrícula de Honor" / custom-distinction band; 10.0 max only.
