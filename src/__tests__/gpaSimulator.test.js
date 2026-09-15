@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { courseGrade, ectsAverage, requiredGrade, totalWeight } from "@/lib/gradeEngine";
-import { clampGrade, updateTargets, targetFeasibility } from "@/lib/gradesim";
+import { clampGrade, updateTargets, targetFeasibility, gradeBandExtended, MATRICULA_DE_HONOR } from "@/lib/gradesim";
 
 const A = (grade, weight) => ({ grade, weight });
 
@@ -69,6 +69,73 @@ describe("GPA simulator: required-grade edge cases", () => {
     expect(f.remainingWeight).toBe(50);
     expect(f.required).toBeCloseTo(9, 10);
     expect(f.feasible).toBe(true);
+  });
+});
+
+describe("GPA simulator: Matrícula de Honor 10.0 band", () => {
+  it("gives a perfect 10.0 its own Matrícula de Honor band", () => {
+    expect(gradeBandExtended(10)).toBe(MATRICULA_DE_HONOR);
+    expect(gradeBandExtended(10)).toMatchObject({ label: "Matrícula de Honor", en: "Honors" });
+  });
+
+  it("keeps Sobresaliente/Outstanding for every score just below 10", () => {
+    expect(gradeBandExtended(9.999).en).toBe("Outstanding");
+    expect(gradeBandExtended(9.0).en).toBe("Outstanding");
+    expect(gradeBandExtended(9.0)).not.toBe(MATRICULA_DE_HONOR);
+  });
+
+  it("delegates the remaining bands to the pinned engine", () => {
+    expect(gradeBandExtended(8.999).en).toBe("Notable");
+    expect(gradeBandExtended(7.0).en).toBe("Notable");
+    expect(gradeBandExtended(6.999).en).toBe("Pass");
+    expect(gradeBandExtended(5.0).en).toBe("Pass");
+    expect(gradeBandExtended(4.999).en).toBe("Fail");
+    expect(gradeBandExtended(0).en).toBe("Fail");
+  });
+
+  it("returns null for missing or NaN grades like the pinned engine", () => {
+    expect(gradeBandExtended(null)).toBeNull();
+    expect(gradeBandExtended(undefined)).toBeNull();
+    expect(gradeBandExtended(NaN)).toBeNull();
+  });
+
+  it("a clamped out-of-range score still lands on Matrícula de Honor at 10", () => {
+    expect(gradeBandExtended(clampGrade(11.7))).toBe(MATRICULA_DE_HONOR);
+    expect(gradeBandExtended(clampGrade(10))).toBe(MATRICULA_DE_HONOR);
+  });
+
+  it("covers every band exactly once across the full 0–10 scale", () => {
+    const seen = new Set();
+    for (let i = 0; i <= 100; i += 1) {
+      const band = gradeBandExtended(i / 10);
+      expect(band).not.toBeNull();
+      seen.add(band.en);
+    }
+    expect(seen).toEqual(new Set(["Outstanding", "Notable", "Pass", "Fail", "Honors"]));
+  });
+});
+
+describe("GPA simulator: ECTS-weighted average and clamping", () => {
+  it("matches sum(grade × ects) / sum(ects) across a mixed set", () => {
+    const courses = [
+      { ects: 6, grade: 8.5 },
+      { ects: 4.5, grade: 7 },
+      { ects: 9, grade: 9.4 },
+      { ects: 6, grade: null }, // ungraded, excluded
+    ];
+    const expected = (8.5 * 6 + 7 * 4.5 + 9.4 * 9) / (6 + 4.5 + 9);
+    expect(ectsAverage(courses)).toBeCloseTo(expected, 10);
+  });
+
+  it("stays within 0–10 for every clamped input set", () => {
+    const courses = [
+      { ects: 6, grade: clampGrade(9.9) },
+      { ects: 6, grade: clampGrade(11) },
+      { ects: 6, grade: clampGrade(-2) },
+    ];
+    const avg = ectsAverage(courses);
+    expect(avg).toBeGreaterThanOrEqual(0);
+    expect(avg).toBeLessThanOrEqual(10);
   });
 });
 

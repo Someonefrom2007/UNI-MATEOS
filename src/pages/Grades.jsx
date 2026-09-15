@@ -3,8 +3,8 @@ import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { fmtGrade, courseColor } from "@/lib/format";
-import { courseGrade, ectsAverage, requiredGrade, projectedGrade, gradeBand } from "@/lib/gradeEngine";
-import { clampGrade, updateTargets, targetFeasibility } from "@/lib/gradesim";
+import { courseGrade, ectsAverage, requiredGrade, projectedGrade } from "@/lib/gradeEngine";
+import { clampGrade, updateTargets, targetFeasibility, gradeBandExtended, MATRICULA_DE_HONOR } from "@/lib/gradesim";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,6 +35,7 @@ export default function Grades() {
   }, [data, courses]);
 
   const gpa = ectsAverage(courseGrades.filter((c) => c.grade !== null));
+  const gpaBand = gpa !== null ? gradeBandExtended(gpa) : null;
   const totalEcts = courses.reduce((s, c) => s + (c.ects || 0), 0);
 
   const sim = useMemo(() => {
@@ -72,7 +73,7 @@ export default function Grades() {
             <span className="font-display text-3xl font-semibold">{gpa !== null ? fmtGrade(gpa) : "—"}</span>
             <span className="text-sm text-muted-foreground">/ 10</span>
           </div>
-          {gpa !== null && <div className={`text-xs mt-1 ${gradeBand(gpa)?.cls}`}>{gradeBand(gpa)?.en}</div>}
+          {gpaBand && <div className={`text-xs mt-1 ${gpaBand.cls}`}>{gpaBand.en}</div>}
         </Card>
         <Card className="p-5 glow-hover">
           <div className="um-label mb-2">ECTS this semester</div>
@@ -108,12 +109,13 @@ export default function Grades() {
                 const target = clampGrade(targets[c.id] ?? c.target_grade);
                 const { required: req, feasible } = targetFeasibility(c.assessments, target);
                 const reqCls = req === null ? "text-muted-foreground" : req <= 5 ? "text-emerald-400" : req <= 8.5 ? "text-amber-400" : "text-rose-400";
+                const isMH = c.grade !== null && gradeBandExtended(c.grade) === MATRICULA_DE_HONOR;
                 return (
                   <tr key={c.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-3"><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${cc.dot}`} /><span className="font-medium">{c.name}</span></div></td>
                     <td className="px-4 py-3 text-muted-foreground">{c.ects || "—"}</td>
                     <td className="px-4 py-3 text-muted-foreground">{c.grades.length}</td>
-                    <td className="px-4 py-3 font-medium">{c.grade !== null ? fmtGrade(c.grade) : "—"}</td>
+                    <td className={`px-4 py-3 font-medium ${isMH ? "text-amber-300" : ""}`}>{c.grade !== null ? fmtGrade(c.grade) : "—"}{isMH && <span className="ml-1.5 text-[10px] uppercase tracking-wider text-amber-300/70">MH</span>}</td>
                     <td className="px-4 py-3 min-w-[160px]">
                       <div className="flex items-center gap-3">
                         <Slider

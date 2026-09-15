@@ -1,7 +1,25 @@
-// Grade simulator helpers — slider clamping and target-feasibility logic
-// separated from the pinned gradeEngine so Grades.jsx component state is
-// deterministic and testable.
-import { requiredGrade } from "@/lib/gradeEngine";
+// Grade simulator helpers — slider clamping, target-feasibility logic, and the
+// Matrícula de Honor 10.0 band, separated from the pinned gradeEngine so
+// Grades.jsx component state is deterministic and testable.
+import { requiredGrade, gradeBand as gradeBandEngine } from "@/lib/gradeEngine";
+
+// Matrícula de Honor — the 10.0 distinction keeps a band of its own, above the
+// pinned engine's top band (Sobresaliente 9.0–10). Defined here so the pinned
+// computation engine stays untouched.
+export const MATRICULA_DE_HONOR = Object.freeze({
+  min: 10,
+  max: 10,
+  label: "Matrícula de Honor",
+  en: "Honors",
+  cls: "text-amber-300",
+});
+
+// Band lookup that adds the Matrícula de Honor band on top of the pinned engine
+// bands. Returns null for missing/NaN grades, exactly like the pinned engine.
+export const gradeBandExtended = (grade) => {
+  if (grade === null || grade === undefined || Number.isNaN(grade)) return null;
+  return Number(grade) >= MATRICULA_DE_HONOR.min ? MATRICULA_DE_HONOR : gradeBandEngine(grade);
+};
 
 // Clamp a raw slider value into the 0–10 range.
 export const clampGrade = (v, min = 0, max = 10) => Math.max(min, Math.min(max, Number(v) || 0));

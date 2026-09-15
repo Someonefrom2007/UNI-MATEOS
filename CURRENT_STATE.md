@@ -59,7 +59,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 
 ## What actually works (best-effort, static evidence)
 
-- **All core academic modules** render CRUD against `useUserData`/Supabase: Courses(+CourseDetail), Schedule (Day/Week/Month + course colors + conflict warnings + ICS feed dialog + Google Calendar connector `check`), Tasks (deadline/priority/course/duration/subtasks ui), Exams, Grades (0–10 bands + ECTS weighted average + required/projected grade), Notes (quill rich text), Resources, Focus (pomodoro modes + persisted sessions), Goals/Habits (+ logs/streaks), Workload, Insights, Sticky Wall.
+- **All core academic modules** render CRUD against `useUserData`/Supabase: Courses(+CourseDetail), Schedule (Day/Week/Month + course colors + conflict warnings + ICS feed dialog + Google Calendar connector `check`), Tasks (deadline/priority/course/duration/subtasks ui), Exams, Grades (0–10 bands incl. Matrícula de Honor 10.0 + ECTS weighted average + required/projected grade), Notes (quill rich text), Resources, Focus (pomodoro modes + persisted sessions), Goals/Habits (+ logs/streaks), Workload, Insights, Sticky Wall.
 - **Dashboard** — real-data bento (Spotlight, TodayTimeline, Attention, Pulse, Focus, Workload, Velocity, Habits/Goals/Insights cards, sticky tile). No invented numbers.
 - **AI Assistant** — real backend Edge Function `ai-assistant` (deterministic fallback without OPENAI_API_KEY; no fake AI).
 - **PWA** — `vite-plugin-pwa` `generateSW`, offline fallback + denylist (auth/api/.ics), runtime NetworkFirst cache for `*.supabase.co`.
@@ -72,7 +72,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 3. **Brand variants (§8): DONE (Mission 3).** Centralized `src/components/Brand/*`; six symbol/wordmark variants; favicon, PNG app icons, apple-touch, OG image, PWA icons, branded splash all wired (see Brand assets). Brand consistency test suite added (6 tests).
 4. **Landing (§23): DONE (Mission 4).** Full cinematic narrative in the required order; product interface as the hero; honest "Illustrative preview" markers on all decorative mocks; initials-only community mock; narrative + copy under test.
 5. **Community (§22): basic single-feed**; no Discover/groups/events/announcements/moderation/saved; origins not multi-user-ready.
-6. **Grades (§15):** bands stop at "Sobresaliente" (Outstanding) — no "Matrícula de Honor" / custom-distinction band; 10.0 max only.
+6. **Grades (§15): MET (Mission 6).** Matrícula de Honor 10.0 is its own band (amber "Honors" label on the GPA card + per-course `MH` chip), layered in `src/lib/gradesim.js` on top of the pinned engine (which still owns 9.x–"Outstanding" and below); 0–10 clamping and ECTS weighted average verified by tests (236 total green).
 7. **Empty/loading/error states (§27–29):** spotty across modules (only Dashboard skeleton + Community empty state verified).
 8. **Cleanup (§31):** `export-report.json` (stale Base44 export diagnostic) and `coverage/` were gitignored in this checkpoint; `src/api/` no longer exists. Runtime verification screenshots of demo/verification data not possible here.
 9. **Plans (§30):** static pricing, PRO/ULTRA "Join Waitlist" disabled buttons (honest, but dead end). Stripe packages installed but unused.

@@ -52,8 +52,10 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 
 ## Phase D — Product quality sweeps
 
-### Mission 6 — Grades Matrícula de Honor (§15)
+### Mission 6 — Grades Matrícula de Honor (§15) — DONE
 - Add the 10.0/custom-distinction band + label rendering (engine + UI + tests). Verify 0–10 clamping and ECTS weighted average with tests.
+- **Files:** `src/lib/gradesim.js` (new `MATRICULA_DE_HONOR` band + `gradeBandExtended` delegating <10 to the pinned `gradeBand`; pinned `gradeEngine.js` untouched), `src/pages/Grades.jsx` (GPA card band label via extended lookup; amber 10.0 + `MH` chip on course "Current" cells), `src/__tests__/gpaSimulator.test.js` (8 new tests).
+- **Evidence:** typecheck 0 · lint 0 · tests 18 files / 236 pass (8 new: 10.0→Matrícula de Honor, 9.x stays Outstanding, engine band delegation 0–9.999, null/NaN null, clamped 11.7→MH, full 0–10 five-band coverage, ECTS weighted average = Σ(g·e)/Σ(e), clamped average within 0–10) · build pending final commit.
 
 ### Mission 7 — Empty / loading / error states (§27–29)
 - Every module: explainer empty state + CTA; polished skeletons; user-facing error copy (what happened / what preserved / what to do). Audit each page.
