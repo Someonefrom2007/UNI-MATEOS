@@ -1,7 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gauge, ArrowRight, Flame, Activity, CalendarCheck } from "lucide-react";
+import { Gauge, ArrowRight, Flame, Activity, CalendarCheck, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { fmtDuration } from "@/lib/format";
 import { INTENSITY } from "@/lib/burnout";
 
@@ -21,8 +23,10 @@ const INTENSITY_META = {
 };
 
 export default function VelocityCard({ velocity }) {
+  const navigate = useNavigate();
   const meta = INTENSITY_META[velocity?.intensity] || INTENSITY_META.low;
   const { focusHoursWeek, completionsWeek, focus, completions, score } = velocity;
+  const hasData = velocity.focusMinWeek > 0 || completionsWeek > 0;
   const maxFocus = Math.max(15, ...focus);
   return (
     <Card className="p-5 h-full">
@@ -73,6 +77,12 @@ export default function VelocityCard({ velocity }) {
         <Activity className="w-3.5 h-3.5" /> {INTENSITY[velocity.intensity]?.label || "Balanced"}
         <span className="font-normal opacity-80 text-[11px]">{meta.note}</span>
       </div>
+
+      {!hasData && (
+        <Button size="sm" variant="outline" className="mt-4" onClick={() => navigate("/focus", { state: { autostart: true } })}>
+          <Play className="w-3.5 h-3.5 mr-1.5" />Start a focus session
+        </Button>
+      )}
 
       <Link to="/workload" className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors mt-4">
         Workload breakdown <ArrowRight className="w-3 h-3 ml-1" />

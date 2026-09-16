@@ -1,11 +1,24 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Clock } from "lucide-react";
+import { Clock, Plus, CalendarDays } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { fmtDuration, courseColor } from "@/lib/format";
 
-// Workload as rhythm — bars grow into place so capacity is understood at a glance.
-export default function WorkloadCard({ wl }) {
+const LEVEL_STYLE = {
+  low: { cls: "border-cyan-400/25 bg-cyan-400/5 text-cyan-300", dot: "bg-cyan-400" },
+  balanced: { cls: "border-emerald-400/25 bg-emerald-400/5 text-emerald-300", dot: "bg-emerald-400" },
+  overdrive: { cls: "border-rose-400/30 bg-rose-400/10 text-rose-300", dot: "bg-rose-400" },
+};
+
+// Workload as rhythm — bars grow into place so capacity is understood at a
+// glance, and the adjacent radar classifies the pace (Low / Balanced /
+// Overdrive) from the workloadEngine estimate + recorded focus.
+export default function WorkloadCard({ wl, radar }) {
+  const navigate = useNavigate();
+  const hasRadar = radar && (radar.workloadMinutes > 0 || radar.focusMinutes > 0);
+  const radarMeta = LEVEL_STYLE[radar?.level] || LEVEL_STYLE.low;
+
   return (
     <Card className="p-5 h-full">
       <div className="flex items-center justify-between mb-4">
@@ -13,10 +26,20 @@ export default function WorkloadCard({ wl }) {
           <Clock className="w-4 h-4 text-primary" />
           <h2 className="um-label">Workload this week</h2>
         </div>
-        <Link to="/workload" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Details →</Link>
+        <button onClick={() => navigate("/workload")} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Details →</button>
       </div>
-      {wl.total === 0 ? (
-        <p className="text-sm text-muted-foreground py-4">No estimated work this week. Add tasks with due dates and durations to see your workload.</p>
+      {wl.total === 0 && !hasRadar ? (
+        <div>
+          <p className="text-sm text-muted-foreground">No estimated work this week yet. Add a task or import your calendar to see your load.</p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Button size="sm" variant="outline" onClick={() => navigate("/tasks")}>
+              <Plus className="w-3.5 h-3.5 mr-1.5" />Add a task
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate("/schedule")}>
+              <CalendarDays className="w-3.5 h-3.5 mr-1.5" />Import ICS
+            </Button>
+          </div>
+        </div>
       ) : (
         <>
           <div className="font-display text-2xl font-semibold mb-4">
@@ -44,6 +67,33 @@ export default function WorkloadCard({ wl }) {
               );
             })}
           </div>
+
+          {hasRadar && (
+            <div className="mt-5 pt-4 border-t border-border/60">
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-muted-foreground">Load radar</span>
+                <span className="font-medium text-muted-foreground">{radar.totalHours}h estimated + focused</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {["low", "balanced", "overdrive"].map((lvl) => {
+                  const st = LEVEL_STYLE[lvl];
+                  const active = radar.level === lvl;
+                  return (
+                    <div
+                      key={lvl}
+                      className={`flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-1.5 rounded-lg border transition-colors ${
+                        active ? st.cls : "border-white/[0.06] bg-white/[0.02] text-muted-foreground/60"
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${active ? st.dot : "bg-muted-foreground/40"}`} />
+                      {lvl}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-2">{radar.note}</p>
+            </div>
+          )}
         </>
       )}
     </Card>

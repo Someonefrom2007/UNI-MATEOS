@@ -1,6 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const CAT_STYLE = {
   Risk: "text-rose-400 bg-rose-500/10",
@@ -11,6 +13,7 @@ const CAT_STYLE = {
 
 // Discovering something about yourself — observations surface progressively.
 export default function InsightsCard({ insights }) {
+  const navigate = useNavigate();
   return (
     <Card className="p-5 h-full">
       <div className="flex items-center gap-2 mb-4">
@@ -18,7 +21,12 @@ export default function InsightsCard({ insights }) {
         <h2 className="um-label">Insights</h2>
       </div>
       {insights.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4">Not enough data yet — as you complete tasks, focus, and grade, patterns will appear here.</p>
+        <div>
+          <p className="text-sm text-muted-foreground">Not enough data yet — as you complete tasks, focus, and grade, patterns will appear here.</p>
+          <Button size="sm" variant="outline" className="mt-4" onClick={() => navigate("/focus")}>
+            <Play className="w-3.5 h-3.5 mr-1.5" />Start with a focus session
+          </Button>
+        </div>
       ) : (
         <div className="space-y-3">
           {insights.slice(0, 3).map((ins, i) => (

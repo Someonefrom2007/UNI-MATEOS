@@ -11,17 +11,21 @@ function Vital({ label, value, hint }) {
   );
 }
 
-// The establishing shot — a hero panel: who you are, when it is, and where you stand.
+// The establishing shot — a layered dark-void hero: who you are, when it is,
+// and where you stand. Subtle hairlines and low-opacity white layers only.
 export default function HeroGreeting({ user, gpa, ects, streak }) {
   const name = user?.full_name?.trim().split(/\s+/)[0] || user?.email?.split("@")[0] || "there";
   return (
     <Reveal>
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-md p-6 sm:p-8 cyber-scanlines">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/15 via-transparent to-cyan-500/10" aria-hidden />
-        <div className="pointer-events-none absolute -bottom-16 right-1/4 w-96 h-48 rounded-full bg-primary/15 blur-[100px]" aria-hidden />
-        {/* faint cityscape silhouette along the bottom edge */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#07080D] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] p-6 sm:p-8">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent" aria-hidden />
+        <div
+          className="pointer-events-none absolute -bottom-16 right-1/4 w-96 h-48 rounded-full bg-white/[0.04] blur-[90px]"
+          aria-hidden
+        />
+        {/* faint skyline silhouette along the bottom edge */}
         <svg
-          className="absolute bottom-0 inset-x-0 w-full h-20 text-primary/[0.08] pointer-events-none"
+          className="absolute bottom-0 inset-x-0 w-full h-20 text-white/[0.04] pointer-events-none"
           viewBox="0 0 800 80"
           preserveAspectRatio="none"
           fill="currentColor"

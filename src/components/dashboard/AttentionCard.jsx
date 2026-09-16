@@ -1,12 +1,15 @@
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { relativeDeadline, relativeExam } from "@/lib/format";
 
 const SEV = { danger: "border-l-rose-500", warn: "border-l-amber-500", info: "border-l-cyan-500" };
 
 // Controlled chaos: urgency is expressed as visual weight, not as noise.
 export default function AttentionCard({ urgent }) {
+  const navigate = useNavigate();
   return (
     <Card className="p-5 h-full">
       <div className="flex items-center gap-2 mb-4">
@@ -14,7 +17,12 @@ export default function AttentionCard({ urgent }) {
         <h2 className="um-label">Needs attention</h2>
       </div>
       {urgent.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4">You're in good shape — nothing urgent right now. Enjoy it.</p>
+        <div>
+          <p className="text-sm text-muted-foreground">You're in good shape — nothing urgent right now. Enjoy it.</p>
+          <Button size="sm" variant="outline" className="mt-4" onClick={() => navigate("/tasks")}>
+            <Plus className="w-3.5 h-3.5 mr-1.5" />Plan ahead
+          </Button>
+        </div>
       ) : (
         <div>
           {urgent.map((u, i) => {

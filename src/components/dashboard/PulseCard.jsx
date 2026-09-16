@@ -1,7 +1,8 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { GraduationCap, ArrowRight } from "lucide-react";
+import { GraduationCap, ArrowRight, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { fmtGrade } from "@/lib/format";
 
 // Sparkline of the last graded assessments — real data, no decoration.
@@ -21,7 +22,9 @@ function Sparkline({ grades }) {
 
 // The academic pulse: where you stand, and the shape of your trajectory.
 export default function PulseCard({ gpa, ects, grades = [] }) {
+  const navigate = useNavigate();
   const hasGpa = gpa !== null && gpa !== undefined;
+  const hasGrades = (grades || []).some((g) => g.grade !== null && g.grade !== undefined);
   const ectsPct = Math.min(100, (ects / 60) * 100);
   return (
     <Card className="p-5 h-full">
@@ -53,6 +56,14 @@ export default function PulseCard({ gpa, ects, grades = [] }) {
           />
         </div>
       </div>
+      {!hasGrades && (
+        <div className="mt-4">
+          <p className="text-xs text-muted-foreground mb-2">No grades logged yet — your first one lights this up.</p>
+          <Button size="sm" variant="outline" onClick={() => navigate("/courses")}>
+            <Plus className="w-3.5 h-3.5 mr-1.5" />Add your first course
+          </Button>
+        </div>
+      )}
       <Link to="/grades" className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors mt-4">
         View grades <ArrowRight className="w-3 h-3 ml-1" />
       </Link>

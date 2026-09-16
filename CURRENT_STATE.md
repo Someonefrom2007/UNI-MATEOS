@@ -1,15 +1,15 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-15, end of the 2.0 roadmap). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-16, end of the 2.0 roadmap + Mission 2.5 dashboard elevation). Do not treat this file as a spec — it records what actually exists.
 
 ## Baseline verification (all green)
 
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 21 files / 289 tests pass |
+| Tests | `npm test` (vitest run) | ✅ 22 files / 308 tests pass |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — no >500 kB chunks; entry 182 kB (was 584 kB); PWA 61 precache entries (1425.02 KiB) |
+| Build | `npm run build` | ✅ PASS — no >500 kB chunks; entry 182 kB (was 584 kB); PWA 61 precache entries (1436.29 KiB) |
 
 Runtime/browser verification is NOT available in this environment — evidence is compile + test + build.
 
@@ -63,7 +63,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 ## What actually works (best-effort, static evidence)
 
 - **All core academic modules** render CRUD against `useUserData`/Supabase: Courses(+CourseDetail), Schedule (Day/Week/Month + course colors + conflict warnings + ICS feed dialog + Google Calendar connector `check`), Tasks (deadline/priority/course/duration/subtasks ui), Exams, Grades (0–10 bands incl. Matrícula de Honor 10.0 + ECTS weighted average + required/projected grade), Notes (quill rich text), Resources, Focus (pomodoro modes + persisted sessions), Goals/Habits (+ logs/streaks), Workload, Insights, Sticky Wall.
-- **Dashboard** — real-data bento (Spotlight, TodayTimeline, Attention, Pulse, Focus, Workload, Velocity, Habits/Goals/Insights cards, sticky tile). No invented numbers.
+- **Dashboard** — real-data command center (Mission 2.5): layered dark-void hero (#07080D + white/0.05 hairlines, no scanlines/glare), a live contextual status bar (next class countdown / pending high-priority exams / weekly study load / all-clear, derived by `src/lib/dashboardRadar.js`), bento of Spotlight, Today (with ICS-event badges), Attention, Pulse, Focus, Workload (+Low/Balanced/Overdrive Load-radar band built on `workloadEngine` + burnout), Velocity, Quick Actions (⌘K command palette + focus autostart), Habits/Goals/Insights, sticky tile; every zero-data widget carries an action-driven empty state (Add first course, Import ICS, Start a session, Plan ahead). No invented numbers — the radar only ever composites the pinned engines.
 - **AI Assistant** — real backend Edge Function `ai-assistant` (deterministic fallback without OPENAI_API_KEY; no fake AI).
 - **PWA** — `vite-plugin-pwa` `generateSW`, offline fallback + denylist (auth/api/.ics), runtime NetworkFirst cache for `*.supabase.co`.
 - **Design language** already leans "student's mind, visualized" (cyber-grid scanlines, bento desk, reveal motion, atmospheric blur, Hud mono labels, dark-first).

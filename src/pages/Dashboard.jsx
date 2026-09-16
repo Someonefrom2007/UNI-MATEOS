@@ -7,6 +7,7 @@ import { weekWorkload, focusStreak } from "@/lib/workloadEngine";
 import { todayTimeline, nextClass } from "@/lib/scheduleEngine";
 import { generateInsights, recommendNow } from "@/lib/insightsEngine";
 import { weeklyVelocity } from "@/lib/burnout";
+import { statusBanner, studyVelocity, markIcsTimeline } from "@/lib/dashboardRadar";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,8 @@ import ErrorState from "@/components/ErrorState";
 import { Reveal } from "@/components/motion/Reveal";
 import { STICKY_BG } from "@/components/stickies/stickyColors";
 import HeroGreeting from "@/components/dashboard/HeroGreeting";
+import HeroStatusBanner from "@/components/dashboard/HeroStatusBanner";
+import QuickActions from "@/components/dashboard/QuickActions";
 import SpotlightCard from "@/components/dashboard/SpotlightCard";
 import TodayTimeline from "@/components/dashboard/TodayTimeline";
 import AttentionCard from "@/components/dashboard/AttentionCard";
@@ -36,6 +39,7 @@ const BENTO_ROT = {
   attention: "-rotate-2",
   pulse: "rotate-1",
   focus: "-rotate-1",
+  quick: "rotate-1",
   workload: "rotate-1",
   velocity: "-rotate-1",
   habits: "-rotate-2",
@@ -100,8 +104,10 @@ export default function Dashboard() {
 
     const nc = nextClass(events);
     const timeline = todayTimeline(events, tasks, exams, todayStr);
+    const timelineIcs = markIcsTimeline(timeline, events);
     const wl = weekWorkload(tasks, exams, focus, courses, todayStr);
     const velocity = weeklyVelocity({ tasks, focusSessions: focus, todayStr });
+    const radar = studyVelocity({ tasks, exams, focusSessions: focus, courses, todayStr });
     const insights = generateInsights({ tasks, exams, focusSessions: focus, courses, grades, habits, habitLogs });
     const rec = recommendNow({ tasks, exams, courses, events });
 
@@ -116,7 +122,7 @@ export default function Dashboard() {
       }).filter(Boolean),
     ].sort((a, b) => a.n - b.n).slice(0, 4);
 
-    return { courses, tasks, exams, grades, courseGrades, semesterGPA, totalEcts, nc, timeline, wl, velocity, insights, rec, urgent, goals, habits, habitLogs, sticky, todayStr };
+    return { courses, tasks, exams, grades, courseGrades, semesterGPA, totalEcts, nc, timeline, timelineIcs, wl, velocity, radar, insights, rec, urgent, goals, habits, habitLogs, sticky, todayStr };
   }, [data]);
 
   if (error) return <ErrorState onRetry={refresh} />;
@@ -129,11 +135,16 @@ export default function Dashboard() {
     <div className="space-y-6">
       <HeroGreeting user={user} gpa={d.semesterGPA} ects={d.totalEcts} streak={focusStreak(data.FocusSession)} />
 
+      <Reveal delay={0.04}>
+        <HeroStatusBanner banner={statusBanner({ nc: d.nc, urgent: d.urgent, workloadMinutes: d.wl.total })} />
+      </Reveal>
+
       {empty && (
         <Reveal delay={0.08}>
-          <div className="relative overflow-hidden cyber-grid cyber-scanlines flex flex-col md:flex-row md:items-center gap-4 md:gap-6 justify-between px-6 py-5 rounded-2xl border border-border bg-card/60 backdrop-blur-md">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 glow-cyan">
+          <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center gap-4 md:gap-6 justify-between px-6 py-5 rounded-2xl border border-white/[0.06] bg-[#07080D] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent" aria-hidden />
+            <div className="relative flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
                 <BookOpen className="w-6 h-6 text-primary" />
               </div>
               <div>
@@ -141,8 +152,9 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground mt-1 max-w-md">Add your first course or explore with a demo semester — the HUD tiles below stay live either way.</p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="relative flex flex-wrap gap-3">
               <Button onClick={() => navigate("/courses")}>Add your first course</Button>
+              <Button variant="outline" onClick={() => navigate("/schedule")}>Import ICS</Button>
               <Button variant="outline" onClick={() => navigate("/onboarding")}>Guided setup</Button>
               <Button variant="outline" onClick={loadDemo} disabled={demoLoading}>
                 {demoLoading ? "Loading demo…" : (<><Sparkles className="w-4 h-4 mr-2 text-primary" />Explore with demo data</>)}
@@ -172,7 +184,7 @@ export default function Dashboard() {
         </Reveal>
         <Reveal delay={0.12} mode="inView" className="md:col-span-2">
           <div className={cell("timeline")}>
-            <TodayTimeline timeline={d.timeline} courses={d.courses} />
+            <TodayTimeline timeline={d.timelineIcs} courses={d.courses} />
           </div>
         </Reveal>
 
@@ -187,9 +199,12 @@ export default function Dashboard() {
           <div className={cell("focus")}><FocusCard sessions={data.FocusSession} /></div>
         </Reveal>
 
-        {/* Density: workload + velocity (and habits when present) */}
+        {/* Command lane + density: quick actions, workload + velocity */}
+        <Reveal delay={0.02} mode="inView" className="md:col-span-2">
+          <div className={cell("quick")}><QuickActions /></div>
+        </Reveal>
         <Reveal mode="inView" className="md:col-span-4">
-          <div className={cell("workload")}><WorkloadCard wl={d.wl} /></div>
+          <div className={cell("workload")}><WorkloadCard wl={d.wl} radar={d.radar} /></div>
         </Reveal>
         <Reveal delay={0.08} mode="inView" className="md:col-span-2">
           <div className={cell("velocity")}><VelocityCard velocity={d.velocity} /></div>
@@ -220,15 +235,21 @@ export default function Dashboard() {
 function StickyTile({ notes, navigate }) {
   const sticky = notes.slice(0, 3);
   return (
-    <div className="relative overflow-hidden h-full rounded-xl border border-border bg-card/60 backdrop-blur-md p-4 flex flex-col cyber-scanlines">
-      <div className="flex items-center justify-between mb-3">
+    <div className="relative overflow-hidden h-full rounded-xl border border-white/[0.06] bg-[#07080D] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] p-4 flex flex-col">
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent" aria-hidden />
+      <div className="relative flex items-center justify-between mb-3">
         <span className="um-label">Sticky notes</span>
         <button onClick={() => navigate("/stickies")} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Sticky wall →</button>
       </div>
       {sticky.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4">Half-formed thoughts welcome — stick them before they escape.</p>
+        <div className="relative flex-1 flex flex-col justify-center">
+          <p className="text-sm text-muted-foreground">Half-formed thoughts welcome — stick them before they escape.</p>
+          <button onClick={() => navigate("/stickies")} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors self-start">
+            Add a sticky →
+          </button>
+        </div>
       ) : (
-        <div className="flex-1 flex flex-wrap gap-3 content-start">
+        <div className="relative flex-1 flex flex-wrap gap-3 content-start">
           {sticky.map((n, i) => (
             <button
               key={n.id}

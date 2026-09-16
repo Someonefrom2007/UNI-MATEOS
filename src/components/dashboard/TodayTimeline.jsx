@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CalendarPlus, CalendarDays } from "lucide-react";
 import { courseColor } from "@/lib/format";
 
 const TYPE_STYLE = {
@@ -13,8 +16,10 @@ const TYPE_STYLE = {
 };
 
 // Time unfolding: today as a living timeline — the "now" marker
-// moves by itself, the present is spotlit, the past recedes.
+// moves by itself, the present is spotlit, the past recedes. Class and exam
+// items from an imported ICS feed carry a small badge.
 export default function TodayTimeline({ timeline, courses }) {
+  const navigate = useNavigate();
   const [now, setNow] = useState(() => new Date().toTimeString().slice(0, 5));
 
   useEffect(() => {
@@ -34,7 +39,17 @@ export default function TodayTimeline({ timeline, courses }) {
         <Link to="/schedule" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Schedule →</Link>
       </div>
       {timeline.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-6">Nothing scheduled today. A good time to get ahead.</p>
+        <div className="flex-1 flex flex-col justify-center">
+          <p className="text-sm text-muted-foreground">Nothing scheduled today. A good time to get ahead.</p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Button size="sm" variant="outline" onClick={() => navigate("/schedule")}>
+              <CalendarPlus className="w-3.5 h-3.5 mr-1.5" />Add a class
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate("/schedule")}>
+              <CalendarDays className="w-3.5 h-3.5 mr-1.5" />Import ICS
+            </Button>
+          </div>
+        </div>
       ) : (
         <div className="space-y-0.5 flex-1">
           {timeline.map((item) => {
@@ -52,7 +67,14 @@ export default function TodayTimeline({ timeline, courses }) {
                 <div className="w-12 text-xs text-muted-foreground font-mono shrink-0">{item.start?.slice(0, 5)}</div>
                 <div className={`w-2 h-2 rounded-full shrink-0 ${cc ? cc.dot : ts.dot}`} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{item.title}</div>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm font-medium truncate">{item.title}</span>
+                    {item.ics && (
+                      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-muted-foreground">
+                        ICS
+                      </span>
+                    )}
+                  </div>
                   {item.room && <div className="text-xs text-muted-foreground">{item.room}</div>}
                 </div>
                 {st === "now" && <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary text-primary-foreground">Now</span>}

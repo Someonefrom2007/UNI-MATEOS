@@ -18,9 +18,10 @@ export default function SpotlightCard({ rec, nc, courses, exams, className = "" 
   const Icon = rec ? Sparkles : CalendarDays;
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/[0.06] via-card/70 to-card/70 backdrop-blur-md p-6 sm:p-8 flex flex-col h-full transition-shadow hover:shadow-[0_0_28px_hsl(190_100%_50%/0.16)] cyber-scanlines ${className}`}>
-      <div className="pointer-events-none absolute -right-20 -top-24 w-72 h-72 rounded-full bg-primary/10 blur-[100px]" aria-hidden />
-      <div className="flex items-center gap-2">
+    <div className={`relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#07080D] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] p-6 sm:p-8 flex flex-col h-full ${className}`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.05] via-transparent to-transparent" aria-hidden />
+      <div className="pointer-events-none absolute -right-20 -top-24 w-72 h-72 rounded-full bg-white/[0.04] blur-[90px]" aria-hidden />
+      <div className="relative flex items-center gap-2">
         <Icon className="w-4 h-4 text-primary" />
         <span className="um-label">{label}</span>
       </div>
