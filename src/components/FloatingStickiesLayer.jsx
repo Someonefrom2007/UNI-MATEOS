@@ -1,4 +1,4 @@
-import { useMemo, useRef, useCallback } from "react";
+import { useMemo, useRef, useCallback, useEffect } from "react";
 import { X, Minus, GripVertical } from "lucide-react";
 import { useUserData } from "@/lib/useUserData";
 import useAnchoredStickies from "@/hooks/useAnchoredStickies";
@@ -110,7 +110,7 @@ const PinnedChip = ({ note, pin, toggleMinimize, unanchorSticky, bringToFrontOf,
 };
 
 export default function FloatingStickiesLayer() {
-  const { data } = useUserData();
+  const { data, refresh } = useUserData();
   const { anchors, unanchorSticky, toggleMinimize, bringToFrontOf, moveSticky, resizeSticky } = useAnchoredStickies();
   const notesById = useMemo(() => {
     const m = new Map();
@@ -119,15 +119,32 @@ export default function FloatingStickiesLayer() {
   }, [data?.StickyNote]);
 
   const visible = useMemo(() => anchors.map((a) => ({ anchor: a, note: notesById.get(a.stickyId) })).filter(({ note }) => !!note), [anchors, notesById]);
+
+  // The layer fetches its own data snapshot. Without realtime (local/dev mode)
+  // it never hears about notes created on the Sticky Wall, so a freshly pinned
+  // note would be missing from `data` and silently drop out of `visible`.
+  // Refresh once per set of missing anchored note ids so pins surface after a
+  // reload without risk of an infinite refetch loop.
+  const missingRef = useRef("");
+  useEffect(() => {
+    if (!data) return;
+    const missing = anchors
+      .map((a) => a.stickyId)
+      .filter((id) => !notesById.has(id))
+      .sort()
+      .join(",");
+    if (!missing || missingRef.current === missing) return;
+    missingRef.current = missing;
+    refresh();
+  }, [data, anchors, notesById, refresh]);
+
   if (!visible.length) return null;
 
   return (
     <div className="fixed inset-0 z-40 pointer-events-none" aria-label="Pinned notes">
       {visible.map(({ anchor, note }) =>
         anchor.minimized ? (
-          <div key={note.id} style={{ left: anchor.x, top: anchor.y, zIndex: anchor.z }} className="absolute pointer-events-auto">
-            <PinnedChip note={note} pin={anchor} toggleMinimize={toggleMinimize} unanchorSticky={unanchorSticky} bringToFrontOf={bringToFrontOf} moveSticky={moveSticky} />
-          </div>
+          <PinnedChip key={note.id} note={note} pin={anchor} toggleMinimize={toggleMinimize} unanchorSticky={unanchorSticky} bringToFrontOf={bringToFrontOf} moveSticky={moveSticky} />
         ) : (
           <div
             key={note.id}
