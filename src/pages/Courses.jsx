@@ -86,7 +86,7 @@ const { data, loading, error, mutate, refresh } = useUserData();
         <PageHeader title={t("title.courses")} subtitle={t("title.courses.subtitle")} />
         <EmptyState icon={BookOpen} title="Your semester is empty." description="Add your first course — or paste your syllabus CSV/JSON to bulk-import the whole semester." actionLabel="Add Course" onAction={() => setQaOpen(true)} />
         <div className="flex justify-center mt-4">
-          <button onClick={() => setImportOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-accent/40 text-cyan-300 text-sm font-medium glow-hover hover:bg-accent/10 transition-colors">
+          <button onClick={() => setImportOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-accent/40 text-hud-cyan text-sm font-medium glow-hover hover:bg-accent/10 transition-colors">
             <Upload className="w-4 h-4" /> Import Syllabus CSV
           </button>
         </div>
@@ -99,7 +99,7 @@ const { data, loading, error, mutate, refresh } = useUserData();
   return (
     <>
       <PageHeader title="Courses" subtitle="Everything you're studying this semester.">
-        <button onClick={() => setImportOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-accent/40 text-cyan-300 text-sm font-medium glow-hover hover:bg-accent/10 transition-colors">
+        <button onClick={() => setImportOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-accent/40 text-hud-cyan text-sm font-medium glow-hover hover:bg-accent/10 transition-colors">
           <Upload className="w-4 h-4" /> Import Syllabus
         </button>
         <button onClick={() => setQaOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90">
@@ -122,10 +122,10 @@ const { data, loading, error, mutate, refresh } = useUserData();
           {sorted.map((c, i) => {
             const cc = courseColor(c.color);
             const status = c.grade === null || c.grade === undefined
-              ? { label: "in progress", cls: "text-cyan-400 border-cyan-500/40 bg-cyan-500/10" }
+              ? { label: "in progress", cls: "text-hud-cyan border-hud-cyan/40 bg-hud-cyan/10" }
               : c.grade >= (c.target_grade ?? 0)
-                ? { label: "on track", cls: "text-emerald-400 border-emerald-500/40 bg-emerald-500/10" }
-                : { label: "below target", cls: "text-amber-400 border-amber-500/40 bg-amber-500/10" };
+                ? { label: "on track", cls: "text-hud-emerald border-hud-emerald/40 bg-hud-emerald/10" }
+                : { label: "below target", cls: "text-hud-amber border-hud-amber/40 bg-hud-amber/10" };
             const pct = c.grade != null ? Math.min(100, Math.max(0, Math.round((c.grade / 10) * 100))) : 0;
             return (
               <Link key={c.id} to={`/courses/${c.id}`}>
@@ -133,7 +133,7 @@ const { data, loading, error, mutate, refresh } = useUserData();
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <span className={`w-2.5 h-2.5 rounded-full ${cc.dot}`} />
-                      <span className="text-xs font-mono text-muted-foreground transition-colors group-hover:text-cyan-300">{c.code || "—"}</span>
+                      <span className="text-xs font-mono text-muted-foreground transition-colors group-hover:text-hud-cyan">{c.code || "—"}</span>
                     </div>
                     <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
@@ -180,31 +180,31 @@ function SyllabusImportModal({ importText, setImportText, importResult, onPrevie
       <div className="w-full max-w-2xl max-h-[85vh] bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-cyan-400" />
+            <FileSpreadsheet className="w-5 h-5 text-hud-cyan" />
             <h2 className="font-display text-lg font-semibold">Import Syllabus Data</h2>
           </div>
           <button onClick={onClose} aria-label="Close import dialog" className="text-muted-foreground hover:text-foreground">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <p className="text-sm text-muted-foreground">Paste CSV or JSON with columns: <span className="font-mono text-xs text-cyan-300">type, name, course, code, professor, ects, date, weight, priority, duration</span>. Types: <span className="font-mono text-xs">course | task | exam</span>.</p>
+          <p className="text-sm text-muted-foreground">Paste CSV or JSON with columns: <span className="font-mono text-xs text-hud-cyan">type, name, course, code, professor, ects, date, weight, priority, duration</span>. Types: <span className="font-mono text-xs">course | task | exam</span>.</p>
           <textarea value={importText} onChange={(e) => setImportText(e.target.value)} aria-label="Syllabus data to import" placeholder={"type,name,course,code,date,priority,duration\nexam,Final Exam,Linear Algebra,MATH101,2026-06-20,high,180\nhomework,Problem Set 3,MATH101,MATH101,2026-03-15,medium,60"} rows={8} className="w-full font-mono text-xs p-3 rounded-lg border border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-1 focus:ring-accent/50" />
           {!importResult && (
-            <button onClick={onPreview} disabled={!importText.trim()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-accent/40 text-cyan-300 text-sm font-medium disabled:opacity-50 hover:bg-accent/10 transition-colors">
+            <button onClick={onPreview} disabled={!importText.trim()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-accent/40 text-hud-cyan text-sm font-medium disabled:opacity-50 hover:bg-accent/10 transition-colors">
               <FileSpreadsheet className="w-4 h-4" /> Preview
             </button>
           )}
           {importResult && (
             <>
               {importResult.errors.length > 0 && (
-                <div aria-live="polite" className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-amber-400 mb-1"><AlertTriangle className="w-3.5 h-3.5" /> Warnings</div>
+                <div aria-live="polite" className="rounded-lg border border-hud-amber/30 bg-hud-amber/5 p-3">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-hud-amber mb-1"><AlertTriangle className="w-3.5 h-3.5" /> Warnings</div>
                   {importResult.errors.map((e, i) => <p key={i} className="text-[11px] text-muted-foreground">{e}</p>)}
                 </div>
               )}
               <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-lg border border-border p-3"><div className="text-2xl font-bold text-cyan-300">{importResult.courses.length}</div><div className="text-xs text-muted-foreground">courses</div></div>
-                <div className="rounded-lg border border-border p-3"><div className="text-2xl font-bold text-violet-400">{importResult.tasks.length}</div><div className="text-xs text-muted-foreground">tasks</div></div>
-                <div className="rounded-lg border border-border p-3"><div className="text-2xl font-bold text-rose-400">{importResult.exams.length}</div><div className="text-xs text-muted-foreground">exams</div></div>
+                <div className="rounded-lg border border-border p-3"><div className="text-2xl font-bold text-hud-cyan">{importResult.courses.length}</div><div className="text-xs text-muted-foreground">courses</div></div>
+                <div className="rounded-lg border border-border p-3"><div className="text-2xl font-bold text-hud-violet">{importResult.tasks.length}</div><div className="text-xs text-muted-foreground">tasks</div></div>
+                <div className="rounded-lg border border-border p-3"><div className="text-2xl font-bold text-hud-rose">{importResult.exams.length}</div><div className="text-xs text-muted-foreground">exams</div></div>
               </div>
               <button onClick={onImport} disabled={importing} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50">
                 {importing ? "Importing…" : <><Check className="w-4 h-4" /> Import All</>}

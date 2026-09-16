@@ -54,7 +54,7 @@ export default function StickyWall() {
       <div className="relative rounded-xl border border-border bg-card/60 backdrop-blur-md p-4 mb-6 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 cyber-grid opacity-40" />
         <div className="relative">
-          <div className="hud-mono text-muted-foreground/70 mb-1">Memo input — <span className="text-cyan-400">cmd / ctrl + enter</span> to stick</div>
+          <div className="hud-mono text-muted-foreground/70 mb-1">Memo input — <span className="text-hud-cyan">cmd / ctrl + enter</span> to stick</div>
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}

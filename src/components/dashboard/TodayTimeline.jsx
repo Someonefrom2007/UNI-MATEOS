@@ -70,7 +70,7 @@ export default function TodayTimeline({ timeline, courses }) {
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-sm font-medium truncate">{item.title}</span>
                     {item.ics && (
-                      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-muted-foreground">
+                      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border border-border bg-muted/40 text-muted-foreground">
                         ICS
                       </span>
                     )}

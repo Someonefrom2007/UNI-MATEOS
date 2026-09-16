@@ -112,14 +112,14 @@ export default function Grades() {
                 const cc = courseColor(c.color);
                 const target = clampGrade(targets[c.id] ?? c.target_grade);
                 const { required: req, feasible } = targetFeasibility(c.assessments, target);
-                const reqCls = req === null ? "text-muted-foreground" : req <= 5 ? "text-emerald-400" : req <= 8.5 ? "text-amber-400" : "text-rose-400";
+                const reqCls = req === null ? "text-muted-foreground" : req <= 5 ? "text-hud-emerald" : req <= 8.5 ? "text-hud-amber" : "text-hud-rose";
                 const isMH = c.grade !== null && gradeBandExtended(c.grade) === MATRICULA_DE_HONOR;
                 return (
                   <tr key={c.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-3"><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${cc.dot}`} /><span className="font-medium">{c.name}</span></div></td>
                     <td className="px-4 py-3 text-muted-foreground">{c.ects || "—"}</td>
                     <td className="px-4 py-3 text-muted-foreground">{c.grades.length}</td>
-                    <td className={`px-4 py-3 font-medium ${isMH ? "text-amber-300" : ""}`}>{c.grade !== null ? fmtGrade(c.grade) : "—"}{isMH && <span className="ml-1.5 text-[10px] uppercase tracking-wider text-amber-300/70">MH</span>}</td>
+                    <td className={`px-4 py-3 font-medium ${isMH ? "text-hud-amber" : ""}`}>{c.grade !== null ? fmtGrade(c.grade) : "—"}{isMH && <span className="ml-1.5 text-[10px] uppercase tracking-wider text-hud-amber/70">MH</span>}</td>
                     <td className="px-4 py-3 min-w-[160px]">
                       <div className="flex items-center gap-3">
                         <Slider
@@ -130,12 +130,12 @@ export default function Grades() {
                           onValueChange={(v) => setTargets((p) => updateTargets(p, c.id, v[0]))}
                           className="w-28"
                         />
-                        <span className="font-mono text-xs text-cyan-300 w-7 shrink-0">{target.toFixed(1)}</span>
+                        <span className="font-mono text-xs text-hud-cyan w-7 shrink-0">{target.toFixed(1)}</span>
                       </div>
                     </td>
                     <td className={`px-4 py-3 font-medium ${reqCls}`}>
                       {req !== null ? fmtGrade(req) : "—"}
-                      {req !== null && !feasible && <span className="ml-1.5 text-[10px] uppercase tracking-wider text-rose-400/70">max</span>}
+                      {req !== null && !feasible && <span className="ml-1.5 text-[10px] uppercase tracking-wider text-hud-rose/70">max</span>}
                     </td>
                   </tr>
                 );
@@ -144,7 +144,7 @@ export default function Grades() {
           </table>
         </div>
         <div className="flex items-center gap-2 border-t border-border px-4 py-2.5 text-xs text-muted-foreground">
-          <Gauge className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+          <Gauge className="w-3.5 h-3.5 text-hud-cyan shrink-0" />
           Drag any target — the score you'd need across remaining assessments (like the final exam) recomputes live from that course's weights.
         </div>
       </Card>
@@ -152,7 +152,7 @@ export default function Grades() {
       {/* Grade simulator */}
       <Card className="p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Calculator className="w-4 h-4 text-cyan-400" />
+          <Calculator className="w-4 h-4 text-hud-cyan" />
           <h2 className="um-label">Grade simulator</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
@@ -181,8 +181,8 @@ export default function Grades() {
         {sim && (
           <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border">
             <div><div className="text-xs text-muted-foreground">Current</div><div className="font-display text-xl font-semibold mt-0.5">{sim.current !== null ? fmtGrade(sim.current) : "—"}</div></div>
-            <div><div className="text-xs text-muted-foreground">Required for {fmtGrade(simTarget)}</div><div className="font-display text-xl font-semibold mt-0.5 text-amber-400">{sim.required !== null ? fmtGrade(sim.required) : "—"}</div></div>
-            <div><div className="text-xs text-muted-foreground">Projected if {fmtGrade(simHypo)}</div><div className="font-display text-xl font-semibold mt-0.5 text-cyan-400">{sim.projected !== null ? fmtGrade(sim.projected) : "—"}</div></div>
+            <div><div className="text-xs text-muted-foreground">Required for {fmtGrade(simTarget)}</div><div className="font-display text-xl font-semibold mt-0.5 text-hud-amber">{sim.required !== null ? fmtGrade(sim.required) : "—"}</div></div>
+            <div><div className="text-xs text-muted-foreground">Projected if {fmtGrade(simHypo)}</div><div className="font-display text-xl font-semibold mt-0.5 text-hud-cyan">{sim.projected !== null ? fmtGrade(sim.projected) : "—"}</div></div>
           </div>
         )}
       </Card>

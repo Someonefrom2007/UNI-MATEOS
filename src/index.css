@@ -8,21 +8,21 @@
   :root {
     /* UNI·MATE — deep-space academic command center */
     --background: 226 57% 5%;
-    --foreground: 220 25% 96%;
-    --card: 226 44% 9%;
-    --card-foreground: 220 25% 96%;
-    --popover: 226 44% 8%;
-    --popover-foreground: 220 25% 96%;
+    --foreground: 210 40% 98%;
+    --card: 228 27% 8%;
+    --card-foreground: 210 40% 98%;
+    --popover: 228 27% 7%;
+    --popover-foreground: 210 40% 98%;
     --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
     --secondary: 228 24% 14%;
-    --secondary-foreground: 220 25% 96%;
+    --secondary-foreground: 210 40% 98%;
     --muted: 228 24% 14%;
-    --muted-foreground: 224 12% 62%;
+    --muted-foreground: 215 20% 65%;
     --accent: 190 100% 50%;
     --accent-foreground: 226 57% 5%;
     --destructive: 0 72% 56%;
-    --destructive-foreground: 220 25% 98%;
+    --destructive-foreground: 210 40% 98%;
     --border: 228 22% 17%;
     --input: 228 22% 17%;
     --ring: 239 84% 67%;
@@ -37,39 +37,66 @@
     --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     --sidebar-background: 226 48% 6%;
-    --sidebar-foreground: 224 12% 60%;
+    --sidebar-foreground: 215 20% 65%;
     --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 228 24% 13%;
-    --sidebar-accent-foreground: 220 25% 96%;
+    --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 228 22% 14%;
     --sidebar-ring: 239 84% 67%;
+
+    /* Hero void surface (deep canvas) + HUD accent hues (theme-aware) */
+    --void: 226 57% 5%;
+    --hud-cyan: 187 75% 55%;
+    --hud-amber: 38 92% 50%;
+    --hud-emerald: 160 84% 39%;
+    --hud-violet: 262 83% 66%;
+    --hud-rose: 350 89% 60%;
+
+    /* Atmosphere glows — tuned per theme so light stays a clean off-white */
+    --bg-glow-1: hsl(190 100% 50% / 0.07);
+    --bg-glow-2: hsl(282 85% 60% / 0.09);
+    --space-glow-1: hsl(239 84% 67% / 0.13);
+    --space-glow-2: hsl(187 75% 55% / 0.07);
   }
 
   .light {
-    --background: 240 30% 98%;
-    --foreground: 230 25% 10%;
+    --background: 220 33% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 230 25% 10%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 230 25% 10%;
+    --popover-foreground: 222 47% 11%;
     --primary: 243 75% 59%;
-    --secondary: 240 20% 94%;
-    --secondary-foreground: 230 25% 10%;
-    --muted: 240 20% 94%;
-    --muted-foreground: 228 10% 42%;
-    --accent: 190 80% 42%;
-    --accent-foreground: 240 30% 98%;
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 215 25% 27%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 190 80% 34%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 50%;
-    --destructive-foreground: 240 30% 98%;
-    --border: 228 20% 88%;
-    --input: 228 20% 88%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
     --ring: 243 75% 59%;
-    --sidebar-background: 240 30% 97%;
-    --sidebar-foreground: 228 10% 42%;
-    --sidebar-accent: 240 20% 92%;
-    --sidebar-accent-foreground: 230 25% 10%;
-    --sidebar-border: 228 20% 86%;
+    --sidebar-background: 220 20% 97%;
+    --sidebar-foreground: 215 16% 47%;
+    --sidebar-accent: 220 14% 92%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 220 13% 88%;
+
+    /* Hero + HUD flips to white cards and deeper accent text for contrast */
+    --void: 0 0% 100%;
+    --hud-cyan: 199 89% 34%;
+    --hud-amber: 32 95% 37%;
+    --hud-emerald: 152 76% 33%;
+    --hud-violet: 262 83% 41%;
+    --hud-rose: 350 89% 41%;
+
+    --bg-glow-1: hsl(190 80% 45% / 0.03);
+    --bg-glow-2: hsl(262 83% 50% / 0.03);
+    --space-glow-1: hsl(239 40% 55% / 0.05);
+    --space-glow-2: hsl(187 60% 45% / 0.04);
   }
 }
 
@@ -80,8 +107,8 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
     background:
-      radial-gradient(1100px 700px at 78% -12%, hsl(190 100% 50% / 0.07), transparent 55%),
-      radial-gradient(1000px 700px at -12% 108%, hsl(282 85% 60% / 0.09), transparent 55%),
+      radial-gradient(1100px 700px at 78% -12%, var(--bg-glow-1), transparent 55%),
+      radial-gradient(1000px 700px at -12% 108%, var(--bg-glow-2), transparent 55%),
       hsl(var(--background));
   }
   ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -108,10 +135,27 @@
   /* Deep-space canvas — navy base with indigo and cyan aurora glows. */
   .space-bg {
     background:
-      radial-gradient(1100px 700px at 75% -12%, hsl(239 84% 67% / 0.13), transparent 55%),
-      radial-gradient(900px 650px at -10% 110%, hsl(187 75% 55% / 0.07), transparent 55%),
+      radial-gradient(1100px 700px at 75% -12%, var(--space-glow-1), transparent 55%),
+      radial-gradient(900px 650px at -10% 110%, var(--space-glow-2), transparent 55%),
       linear-gradient(170deg, hsl(var(--background)) 30%, hsl(var(--card)) 130%);
   }
+
+  /* Hero void surface — deep canvas in dark, white card in light. */
+  .void-surface {
+    background-color: hsl(var(--void));
+    border: 1px solid hsl(var(--border));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  }
+  .light .void-surface {
+    box-shadow: inset 0 1px 0 rgb(0 0 0 / 0.04);
+  }
+
+  /* HUD accent hues — theme-aware translucent chips (border/bg/text bundle). */
+  .chip-hud-cyan   { border-color: hsl(var(--hud-cyan) / 0.25); background-color: hsl(var(--hud-cyan) / 0.07); color: hsl(var(--hud-cyan)); }
+  .chip-hud-amber  { border-color: hsl(var(--hud-amber) / 0.25); background-color: hsl(var(--hud-amber) / 0.07); color: hsl(var(--hud-amber)); }
+  .chip-hud-emerald { border-color: hsl(var(--hud-emerald) / 0.25); background-color: hsl(var(--hud-emerald) / 0.07); color: hsl(var(--hud-emerald)); }
+  .chip-hud-violet { border-color: hsl(var(--hud-violet) / 0.25); background-color: hsl(var(--hud-violet) / 0.07); color: hsl(var(--hud-violet)); }
+  .chip-hud-rose   { border-color: hsl(var(--hud-rose) / 0.25); background-color: hsl(var(--hud-rose) / 0.07); color: hsl(var(--hud-rose)); }
 
   /* Cyber-Canvas HUD: scanlines, gridlines, glows and micro-badges. */
   .cyber-scanlines::after {

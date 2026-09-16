@@ -173,7 +173,7 @@ export default function Schedule() {
           <button onClick={() => setQaOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90">
             <Plus className="w-4 h-4" /> Add Event
           </button>
-          <Button size="sm" variant="outline" onClick={() => setIcsOpen(true)} className="border-cyan-500/40 text-cyan-300">
+          <Button size="sm" variant="outline" onClick={() => setIcsOpen(true)} className="border-hud-cyan/40 text-hud-cyan">
             <CalendarPlus className="w-4 h-4 mr-1" /> Import ICS
           </Button>
         </div>
@@ -182,22 +182,22 @@ export default function Schedule() {
       <CalendarSync onSynced={refresh} />
 
       {urgentExams.length > 0 && (
-        <Card className="p-4 border-rose-500/20 bg-rose-500/5 glow-hover">
+        <Card className="p-4 border-hud-rose/20 bg-hud-rose/5 glow-hover">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-rose-400" />
-              <span className="um-label text-rose-400">Upcoming exams — next 3 days</span>
+              <Zap className="w-4 h-4 text-hud-rose" />
+              <span className="um-label text-hud-rose">Upcoming exams — next 3 days</span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {urgentExams.map((ex) => {
                 const course = courses.find((c) => c.id === ex.course_id);
                 return (
-                  <span key={ex.id} className="chip border-rose-500/40 bg-rose-500/10 text-rose-300">
+                  <span key={ex.id} className="chip border-hud-rose/40 bg-hud-rose/10 text-hud-rose">
                     {course?.name || ex.name} · {ex.date}
                   </span>
                 );
               })}
-              <Button size="sm" variant="outline" disabled={scheduling} onClick={autoScheduleStudy} className="ml-2 border-cyan-500/40 text-cyan-300 glow-hover">
+              <Button size="sm" variant="outline" disabled={scheduling} onClick={autoScheduleStudy} className="ml-2 border-hud-cyan/40 text-hud-cyan glow-hover">
                 <Clock className="w-3.5 h-3.5 mr-1" /> {scheduling ? "Scheduling…" : "Auto-schedule study blocks"}
               </Button>
             </div>

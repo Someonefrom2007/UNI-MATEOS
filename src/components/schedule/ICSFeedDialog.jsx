@@ -165,7 +165,7 @@ export default function ICSFeedDialog({ open, onClose, data, onImported }) {
           <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium flex items-center gap-2">
-                <FileSpreadsheet className="w-4 h-4 text-cyan-400" /> {parsed.events.length} events found
+                <FileSpreadsheet className="w-4 h-4 text-hud-cyan" /> {parsed.events.length} events found
               </div>
               {parsed.warnings.length > 0 && <span className="text-xs text-muted-foreground">{parsed.warnings.length} entries skipped</span>}
             </div>
@@ -202,7 +202,7 @@ export default function ICSFeedDialog({ open, onClose, data, onImported }) {
             {feeds.map((f) => (
               <div key={f.url} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Link2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <Link2 className="w-3.5 h-3.5 text-hud-cyan shrink-0" />
                   <div className="min-w-0">
                     <div className="text-sm truncate">{f.name}</div>
                     <div className="text-[10px] text-muted-foreground truncate">{f.url}</div>

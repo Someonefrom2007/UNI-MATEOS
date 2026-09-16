@@ -242,7 +242,7 @@ export default function Community() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setType("all")}
-            className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${type === "all" ? "border-primary/50 text-cyan-300 bg-primary/10" : "border-border/70 text-muted-foreground hover:border-accent/40"}`}
+            className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${type === "all" ? "border-primary/50 text-hud-cyan bg-primary/10" : "border-border/70 text-muted-foreground hover:border-accent/40"}`}
           >
             All
           </button>
@@ -260,7 +260,7 @@ export default function Community() {
         {scopeOptions.communities.length > 0 || scopeOptions.groups.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${!communityId && !groupId ? "border-primary/50 text-cyan-300 bg-primary/10" : "border-border/70 text-muted-foreground hover:border-accent/40 cursor-pointer"}`}
+              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${!communityId && !groupId ? "border-primary/50 text-hud-cyan bg-primary/10" : "border-border/70 text-muted-foreground hover:border-accent/40 cursor-pointer"}`}
               onClick={() => {
                 setCommunityId("");
                 setGroupId("");
@@ -284,7 +284,7 @@ export default function Community() {
                   setCommunityId(communityId === c.id ? "" : c.id);
                   setGroupId("");
                 }}
-                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${communityId === c.id ? "border-primary/50 text-cyan-300 bg-primary/10" : "border-border/70 text-muted-foreground hover:border-accent/40"}`}
+                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${communityId === c.id ? "border-primary/50 text-hud-cyan bg-primary/10" : "border-border/70 text-muted-foreground hover:border-accent/40"}`}
                 title={c.kind === "course" ? "Course community" : "University community"}
               >
                 {c.name}{c.kind === "course" ? " · course" : ""}
@@ -297,7 +297,7 @@ export default function Community() {
                   setGroupId(groupId === g.id ? "" : g.id);
                   setCommunityId("");
                 }}
-                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${groupId === g.id ? "border-primary/50 text-cyan-300 bg-primary/10" : "border-border/70 text-muted-foreground hover:border-accent/40"}`}
+                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${groupId === g.id ? "border-primary/50 text-hud-cyan bg-primary/10" : "border-border/70 text-muted-foreground hover:border-accent/40"}`}
                 title="Study group"
               >
                 <Users className="w-3 h-3 inline-block mr-1 -mt-0.5" />

@@ -32,7 +32,7 @@ export default function Plans() {
           <Card key={p.name} className={`p-6 flex flex-col ${p.active ? "border-primary/40" : ""}`}>
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl font-semibold">{p.name}</h2>
-              {p.active ? <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">Active</span> : <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Coming at launch</span>}
+              {p.active ? <span className="text-xs px-2 py-0.5 rounded-full bg-hud-emerald/10 text-hud-emerald border border-hud-emerald/30">Active</span> : <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Coming at launch</span>}
             </div>
             <div className="um-label mt-1">{p.tag}</div>
             <p className="text-sm text-muted-foreground mt-3">{p.desc}</p>

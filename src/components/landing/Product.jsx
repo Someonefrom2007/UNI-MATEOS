@@ -9,8 +9,8 @@ const SURFACES = [
     label: "Course",
     title: "Linear Algebra",
     meta: "prof · MAT-201 · 6 ECTS",
-    color: "text-cyan-400",
-    bg: "bg-cyan-400/10",
+    color: "text-hud-cyan",
+    bg: "bg-hud-cyan/10",
   },
   {
     icon: CalendarDays,
@@ -34,7 +34,7 @@ const SURFACES = [
     title: "Midterm · 20%",
     meta: "countdown · topics · prep",
     color: "text-violet-500",
-    bg: "bg-violet-500/10",
+    bg: "bg-hud-violet/10",
   },
 ];
 

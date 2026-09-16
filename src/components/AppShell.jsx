@@ -76,13 +76,13 @@ function NavItem({ item, active, onClick, t }) {
       aria-current={active ? "page" : undefined}
       className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
         active
-          ? "bg-sidebar-accent/30 text-cyan-300 font-medium glow-active"
+          ? "bg-sidebar-accent/30 text-hud-cyan font-medium glow-active"
           : "text-sidebar-foreground glow-hover hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
       }`}
     >
-      <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? "text-cyan-400" : "text-muted-foreground"}`} />
+      <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? "text-hud-cyan" : "text-muted-foreground"}`} />
       <span>{t(item.labelKey)}</span>
-      {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_hsl(190_100%_50%/0.9)]" />}
+      {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-hud-cyan shadow-[0_0_8px_hsl(190_100%_50%/0.9)]" />}
     </Link>
   );
 }
@@ -95,7 +95,7 @@ function LangSwitcher({ lang, setLang }) {
           key={l.code}
           onClick={() => setLang(l.code)}
           className={`flex-1 px-1.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded-md transition-all ${
-            lang === l.code ? "bg-cyan-500/15 text-cyan-300 glow-active" : "text-sidebar-foreground/70 hover:text-foreground"
+            lang === l.code ? "bg-hud-cyan/15 text-hud-cyan glow-active" : "text-sidebar-foreground/70 hover:text-foreground"
           }`}
           title={l.name}
         >
@@ -129,7 +129,7 @@ export default function AppShell() {
       {/* Atmospheric depth — faint, fixed, never distracting */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
         <div className="absolute -top-40 left-1/3 w-[560px] h-[380px] rounded-full bg-primary/[0.05] blur-[120px]" />
-        <div className="absolute top-1/3 -right-24 w-[420px] h-[420px] rounded-full bg-cyan-500/[0.04] blur-[120px]" />
+        <div className="absolute top-1/3 -right-24 w-[420px] h-[420px] rounded-full bg-hud-cyan/[0.04] blur-[120px]" />
       </div>
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-sidebar-border bg-sidebar/85 backdrop-blur-md">

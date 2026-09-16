@@ -7,7 +7,7 @@ export default function GoalsCard({ goals }) {
   return (
     <Card className="p-5 h-full">
       <div className="flex items-center gap-2 mb-4">
-        <Target className="w-4 h-4 text-emerald-400" />
+        <Target className="w-4 h-4 text-hud-emerald" />
         <h2 className="um-label">Goals</h2>
       </div>
       <div className="space-y-3">

@@ -141,8 +141,8 @@ export default function Dashboard() {
 
       {empty && (
         <Reveal delay={0.08}>
-          <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center gap-4 md:gap-6 justify-between px-6 py-5 rounded-2xl border border-white/[0.06] bg-[#07080D] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent" aria-hidden />
+          <div className="relative overflow-hidden flex flex-col md:flex-row md:items-center gap-4 md:gap-6 justify-between px-6 py-5 rounded-2xl void-surface">
+            <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.03] via-transparent to-transparent" aria-hidden />
             <div className="relative flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
                 <BookOpen className="w-6 h-6 text-primary" />
@@ -167,9 +167,9 @@ export default function Dashboard() {
       {/* Desk mode → the HUD toggle: chaos tilts the desk, tidy lines it up. */}
       <div className="flex justify-end">
         <div className="flex items-center gap-3">
-          <span className={`cyber-tag hidden sm:inline-flex ${deskMode ? "text-violet-300 border-violet-400/40 bg-violet-400/10" : ""}`}>{deskMode ? t("desk.chaos") : t("desk.tidy")}</span>
+          <span className={`cyber-tag hidden sm:inline-flex ${deskMode ? "text-hud-violet border-hud-violet bg-hud-violet/10" : ""}`}>{deskMode ? t("desk.chaos") : t("desk.tidy")}</span>
           <Button size="sm" variant="outline" onClick={toggleDesk} data-testid="desk-toggle" className="h-8 gap-1.5 font-mono text-[11px] uppercase tracking-wider">
-            {deskMode ? <PanelsTopLeft className="w-3.5 h-3.5 text-cyan-400" /> : <Sparkles className="w-3.5 h-3.5 text-violet-400" />}
+            {deskMode ? <PanelsTopLeft className="w-3.5 h-3.5 text-hud-cyan" /> : <Sparkles className="w-3.5 h-3.5 text-hud-violet" />}
             {deskMode ? t("desk.tidy") : t("desk.chaos")}
           </Button>
         </div>
@@ -235,8 +235,8 @@ export default function Dashboard() {
 function StickyTile({ notes, navigate }) {
   const sticky = notes.slice(0, 3);
   return (
-    <div className="relative overflow-hidden h-full rounded-xl border border-white/[0.06] bg-[#07080D] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] p-4 flex flex-col">
-      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent" aria-hidden />
+    <div className="relative overflow-hidden h-full rounded-xl void-surface p-4 flex flex-col">
+      <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.02] via-transparent to-transparent" aria-hidden />
       <div className="relative flex items-center justify-between mb-3">
         <span className="um-label">Sticky notes</span>
         <button onClick={() => navigate("/stickies")} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Sticky wall →</button>

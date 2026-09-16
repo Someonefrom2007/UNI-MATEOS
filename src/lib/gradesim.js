@@ -11,7 +11,7 @@ export const MATRICULA_DE_HONOR = Object.freeze({
   max: 10,
   label: "Matrícula de Honor",
   en: "Honors",
-  cls: "text-amber-300",
+  cls: "text-hud-amber",
 });
 
 // Band lookup that adds the Matrícula de Honor band on top of the pinned engine

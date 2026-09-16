@@ -150,7 +150,7 @@ export default function Onboarding() {
 
       {step === 5 && (
         <div className="text-center py-10">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4"><Check className="w-7 h-7 text-emerald-400" /></div>
+          <div className="w-14 h-14 rounded-2xl bg-hud-emerald/10 flex items-center justify-center mx-auto mb-4"><Check className="w-7 h-7 text-hud-emerald" /></div>
           <h1 className="font-display text-2xl font-semibold">You're all set.</h1>
           <p className="text-muted-foreground mt-2 max-w-sm mx-auto">Your academic workspace is ready. Open the dashboard to see your semester come together.</p>
           <Button className="mt-6" onClick={finish}>Open dashboard <ArrowRight className="w-4 h-4 ml-2" /></Button>

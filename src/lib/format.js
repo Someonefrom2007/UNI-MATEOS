@@ -80,19 +80,19 @@ export const fmtTimeShort = (t) => {
 };
 
 export const COURSE_COLORS = {
-  amber: { dot: "bg-amber-500", text: "text-amber-400", ring: "ring-amber-500/30", soft: "bg-amber-500/10", hex: "#f59e0b" },
-  cyan: { dot: "bg-cyan-500", text: "text-cyan-400", ring: "ring-cyan-500/30", soft: "bg-cyan-500/10", hex: "#06b6d4" },
-  purple: { dot: "bg-violet-500", text: "text-violet-400", ring: "ring-violet-500/30", soft: "bg-violet-500/10", hex: "#8b5cf6" },
-  green: { dot: "bg-emerald-500", text: "text-emerald-400", ring: "ring-emerald-500/30", soft: "bg-emerald-500/10", hex: "#10b981" },
-  rose: { dot: "bg-rose-500", text: "text-rose-400", ring: "ring-rose-500/30", soft: "bg-rose-500/10", hex: "#f43f5e" },
-  blue: { dot: "bg-blue-500", text: "text-blue-400", ring: "ring-blue-500/30", soft: "bg-blue-500/10", hex: "#3b82f6" },
+  amber: { dot: "bg-amber-500", text: "text-hud-amber", ring: "ring-amber-500/30", soft: "bg-amber-500/10", hex: "#f59e0b" },
+  cyan: { dot: "bg-cyan-500", text: "text-hud-cyan", ring: "ring-cyan-500/30", soft: "bg-cyan-500/10", hex: "#06b6d4" },
+  purple: { dot: "bg-violet-500", text: "text-hud-violet", ring: "ring-violet-500/30", soft: "bg-violet-500/10", hex: "#8b5cf6" },
+  green: { dot: "bg-emerald-500", text: "text-hud-emerald", ring: "ring-emerald-500/30", soft: "bg-emerald-500/10", hex: "#10b981" },
+  rose: { dot: "bg-rose-500", text: "text-hud-rose", ring: "ring-rose-500/30", soft: "bg-rose-500/10", hex: "#f43f5e" },
+  blue: { dot: "bg-blue-500", text: "text-hud-cyan", ring: "ring-blue-500/30", soft: "bg-blue-500/10", hex: "#3b82f6" },
 };
 
 export const courseColor = (key) => COURSE_COLORS[key] || COURSE_COLORS.amber;
 
 export const PRIORITY_META = {
-  urgent: { label: "Urgent", cls: "text-rose-400 bg-rose-500/10 border-rose-500/30" },
-  high: { label: "High", cls: "text-amber-400 bg-amber-500/10 border-amber-500/30" },
-  medium: { label: "Medium", cls: "text-cyan-400 bg-cyan-500/10 border-cyan-500/30" },
+  urgent: { label: "Urgent", cls: "text-hud-rose bg-hud-rose/10 border-hud-rose/30" },
+  high: { label: "High", cls: "text-hud-amber bg-hud-amber/10 border-hud-amber/30" },
+  medium: { label: "Medium", cls: "text-hud-cyan bg-hud-cyan/10 border-hud-cyan/30" },
   low: { label: "Low", cls: "text-muted-foreground bg-muted border-border" },
 };

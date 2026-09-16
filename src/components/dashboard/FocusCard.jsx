@@ -12,7 +12,7 @@ export default function FocusCard({ sessions }) {
   return (
     <Card className="p-5 h-full">
       <div className="flex items-center gap-2 mb-4">
-        <Timer className="w-4 h-4 text-violet-400" />
+        <Timer className="w-4 h-4 text-hud-violet" />
         <h2 className="um-label">Focus</h2>
       </div>
       <div className="grid grid-cols-3 gap-3">

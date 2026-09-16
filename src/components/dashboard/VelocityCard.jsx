@@ -9,15 +9,15 @@ import { INTENSITY } from "@/lib/burnout";
 
 const INTENSITY_META = {
   low: {
-    cls: "border-cyan-500/40 bg-cyan-500/10 text-cyan-300",
+    cls: "chip-hud-cyan",
     note: "Easy pace — space to push.",
   },
   balanced: {
-    cls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
+    cls: "chip-hud-emerald",
     note: "Sustainable flow — keep it there.",
   },
   overdrive: {
-    cls: "border-rose-500/50 bg-rose-500/10 text-rose-300",
+    cls: "chip-hud-rose",
     note: "High output — protect recovery.",
   },
 };
@@ -31,7 +31,7 @@ export default function VelocityCard({ velocity }) {
   return (
     <Card className="p-5 h-full">
       <div className="flex items-center gap-2 mb-4">
-        <Gauge className="w-4 h-4 text-cyan-400" />
+        <Gauge className="w-4 h-4 text-hud-cyan" />
         <h2 className="um-label">Velocity &amp; burnout risk</h2>
       </div>
 
@@ -49,7 +49,7 @@ export default function VelocityCard({ velocity }) {
       <div className="flex items-end gap-1 h-14 mb-1">
         {focus.map((m, i) => (
           <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-            <div className="w-full rounded-t bg-gradient-to-t from-cyan-500/30 to-cyan-400" style={{ height: `${Math.max(4, (m / maxFocus) * 40)}px` }} />
+            <div className="w-full rounded-t bg-gradient-to-t from-hud-cyan/30 to-hud-cyan" style={{ height: `${Math.max(4, (m / maxFocus) * 40)}px` }} />
             {completions[i] > 0 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />}
           </div>
         ))}

@@ -13,7 +13,7 @@ export default function AttentionCard({ urgent }) {
   return (
     <Card className="p-5 h-full">
       <div className="flex items-center gap-2 mb-4">
-        <AlertTriangle className="w-4 h-4 text-amber-400" />
+        <AlertTriangle className="w-4 h-4 text-hud-amber" />
         <h2 className="um-label">Needs attention</h2>
       </div>
       {urgent.length === 0 ? (

@@ -42,7 +42,7 @@ export default function PostCard({ post, replies, likes, userId, courseName, onT
             <button
               onClick={() => onToggleLike(post)}
               aria-label={liked ? "Remove like" : "Like post"}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors hover:bg-muted ${liked ? "text-rose-400" : "text-muted-foreground"}`}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors hover:bg-muted ${liked ? "text-hud-rose" : "text-muted-foreground"}`}
             >
               <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
               {post.like_count > 0 && post.like_count}
@@ -56,7 +56,7 @@ export default function PostCard({ post, replies, likes, userId, courseName, onT
             </button>
             <button
               onClick={() => onToggleSave(post)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors hover:bg-muted ${saved ? "text-cyan-400" : "text-muted-foreground"}`}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors hover:bg-muted ${saved ? "text-hud-cyan" : "text-muted-foreground"}`}
               title={saved ? "Remove from saved" : "Save for later"}
             >
               <Bookmark className={`w-4 h-4 ${saved ? "fill-current" : ""}`} />
@@ -64,7 +64,7 @@ export default function PostCard({ post, replies, likes, userId, courseName, onT
             </button>
             <button
               onClick={() => onReport(post)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors hover:bg-muted ${reportOpen ? "text-amber-400" : "text-muted-foreground"}`}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors hover:bg-muted ${reportOpen ? "text-hud-amber" : "text-muted-foreground"}`}
               title="Report to moderators"
             >
               <Flag className="w-4 h-4" />
@@ -88,7 +88,7 @@ export default function PostCard({ post, replies, likes, userId, courseName, onT
                 <button
                   key={r}
                   onClick={() => onReport(post, r)}
-                  className="px-2.5 py-1 rounded-lg border border-border/70 text-muted-foreground hover:border-amber-500/40 hover:text-amber-300 transition-colors capitalize"
+                  className="px-2.5 py-1 rounded-lg border border-border/70 text-muted-foreground hover:border-hud-amber/40 hover:text-hud-amber transition-colors capitalize"
                 >
                   {r}
                 </button>

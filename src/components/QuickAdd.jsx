@@ -28,15 +28,15 @@ const insert = async (table, payload) => {
 };
 
 const OPTIONS = [
-  { key: "task", label: "Task", icon: CheckSquare, color: "text-cyan-400" },
-  { key: "course", label: "Course", icon: BookOpen, color: "text-amber-400" },
-  { key: "exam", label: "Exam", icon: GraduationCap, color: "text-rose-400" },
-  { key: "event", label: "Event", icon: CalendarDays, color: "text-violet-400" },
-  { key: "note", label: "Note", icon: FileText, color: "text-emerald-400" },
+  { key: "task", label: "Task", icon: CheckSquare, color: "text-hud-cyan" },
+  { key: "course", label: "Course", icon: BookOpen, color: "text-hud-amber" },
+  { key: "exam", label: "Exam", icon: GraduationCap, color: "text-hud-rose" },
+  { key: "event", label: "Event", icon: CalendarDays, color: "text-hud-violet" },
+  { key: "note", label: "Note", icon: FileText, color: "text-hud-emerald" },
   { key: "goal", label: "Goal", icon: Target, color: "text-primary" },
-  { key: "habit", label: "Habit", icon: Repeat, color: "text-blue-400" },
-  { key: "grade", label: "Grade", icon: Award, color: "text-emerald-400" },
-  { key: "resource", label: "Resource", icon: Link2, color: "text-sky-400" },
+  { key: "habit", label: "Habit", icon: Repeat, color: "text-hud-cyan" },
+  { key: "grade", label: "Grade", icon: Award, color: "text-hud-emerald" },
+  { key: "resource", label: "Resource", icon: Link2, color: "text-hud-cyan" },
 ];
 
 export default function QuickAdd({ open, onClose, preset = null }) {

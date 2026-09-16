@@ -72,7 +72,7 @@ export default function Exams() {
             return (
               <Link key={e.id} to={`/exams/${e.id}`}>
                 <Card className={`p-4 flex items-center gap-4 glow-hover group transition-colors`}>
-                  <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center ${cc ? `${cc.soft} ${cc.text}` : "bg-muted"} ${n === "Today" || n === "In 1d" ? "shadow-[0_0_14px_rgba(244,63,94,0.3)] ring-1 ring-rose-500/40" : ""}`}>
+                  <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center ${cc ? `${cc.soft} ${cc.text}` : "bg-muted"} ${n === "Today" || n === "In 1d" ? "shadow-[0_0_14px_rgba(244,63,94,0.3)] ring-1 ring-hud-rose/40" : ""}`}>
                     {e.date ? (
                       <>
                         <span className="text-lg font-semibold leading-none">{n === "Today" ? "!" : n.replace("In ", "").replace("d", "")}</span>
@@ -86,7 +86,7 @@ export default function Exams() {
                     <div className="text-sm font-medium">{e.name}</div>
                     <div className="text-xs text-muted-foreground">{course?.name} · {e.date}{e.weight ? ` · ${e.weight}%` : ""}</div>
                   </div>
-                  <span className={`text-xs ${n === "Today" || n === "In 1d" ? "text-rose-400 font-medium" : "text-muted-foreground"}`}>{n}</span>
+                  <span className={`text-xs ${n === "Today" || n === "In 1d" ? "text-hud-rose font-medium" : "text-muted-foreground"}`}>{n}</span>
                 </Card>
               </Link>
             );

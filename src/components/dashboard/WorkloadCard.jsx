@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { fmtDuration, courseColor } from "@/lib/format";
 
 const LEVEL_STYLE = {
-  low: { cls: "border-cyan-400/25 bg-cyan-400/5 text-cyan-300", dot: "bg-cyan-400" },
-  balanced: { cls: "border-emerald-400/25 bg-emerald-400/5 text-emerald-300", dot: "bg-emerald-400" },
-  overdrive: { cls: "border-rose-400/30 bg-rose-400/10 text-rose-300", dot: "bg-rose-400" },
+  low: { cls: "chip-hud-cyan", dot: "bg-hud-cyan" },
+  balanced: { cls: "chip-hud-emerald", dot: "bg-hud-emerald" },
+  overdrive: { cls: "chip-hud-rose", dot: "bg-hud-rose" },
 };
 
 // Workload as rhythm — bars grow into place so capacity is understood at a
@@ -82,7 +82,7 @@ export default function WorkloadCard({ wl, radar }) {
                     <div
                       key={lvl}
                       className={`flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-1.5 rounded-lg border transition-colors ${
-                        active ? st.cls : "border-white/[0.06] bg-white/[0.02] text-muted-foreground/60"
+                        active ? st.cls : "border-border bg-muted/30 text-muted-foreground/70"
                       }`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${active ? st.dot : "bg-muted-foreground/40"}`} />

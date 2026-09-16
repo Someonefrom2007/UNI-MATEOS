@@ -106,7 +106,7 @@ export default function Habits() {
                   <div>
                     <div className="font-medium">{h.name}</div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                      <span className="flex items-center gap-1"><Flame className="w-3 h-3 text-amber-400" />{s} day streak</span>
+                      <span className="flex items-center gap-1"><Flame className="w-3 h-3 text-hud-amber" />{s} day streak</span>
                       <span>{weekDone}/7 this week</span>
                     </div>
                   </div>

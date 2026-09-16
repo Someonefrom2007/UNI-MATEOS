@@ -8,12 +8,12 @@
 // grades, ECTS, averages, or attendance.
 
 export const CONTENT_TYPES = Object.freeze([
-  { value: "question", label: "Question", en: "Question", cls: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" },
-  { value: "tip", label: "Tip", en: "Tip", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  { value: "win", label: "Win", en: "Win", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  { value: "resource", label: "Resource", en: "Resource", cls: "bg-violet-500/10 text-violet-400 border-violet-500/20" },
-  { value: "event", label: "Event", en: "Event", cls: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
-  { value: "announcement", label: "Announcement", en: "Announcement", cls: "bg-rose-500/10 text-rose-400 border-rose-500/20" },
+  { value: "question", label: "Question", en: "Question", cls: "bg-hud-cyan/10 text-hud-cyan border-hud-cyan/20" },
+  { value: "tip", label: "Tip", en: "Tip", cls: "bg-hud-emerald/10 text-hud-emerald border-hud-emerald/20" },
+  { value: "win", label: "Win", en: "Win", cls: "bg-hud-amber/10 text-hud-amber border-hud-amber/20" },
+  { value: "resource", label: "Resource", en: "Resource", cls: "bg-hud-violet/10 text-hud-violet border-hud-violet/20" },
+  { value: "event", label: "Event", en: "Event", cls: "bg-hud-cyan/10 text-hud-cyan border-hud-cyan/20" },
+  { value: "announcement", label: "Announcement", en: "Announcement", cls: "bg-hud-rose/10 text-hud-rose border-hud-rose/20" },
 ]);
 
 export const contentType = (value) => CONTENT_TYPES.find((t) => t.value === value) || CONTENT_TYPES[0];
@@ -26,10 +26,10 @@ export const MODERATION = Object.freeze({
 });
 
 export const MODERATION_META = Object.freeze({
-  active: { label: "Active", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  pending: { label: "Pending review", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  active: { label: "Active", cls: "bg-hud-emerald/10 text-hud-emerald border-hud-emerald/20" },
+  pending: { label: "Pending review", cls: "bg-hud-amber/10 text-hud-amber border-hud-amber/20" },
   hidden: { label: "Hidden by you", cls: "bg-muted text-muted-foreground border-border" },
-  removed: { label: "Removed by moderators", cls: "bg-rose-500/10 text-rose-400 border-rose-500/20" },
+  removed: { label: "Removed by moderators", cls: "bg-hud-rose/10 text-hud-rose border-hud-rose/20" },
 });
 
 export const moderationMeta = (status) => MODERATION_META[status] || MODERATION_META.active;

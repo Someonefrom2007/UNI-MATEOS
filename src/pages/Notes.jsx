@@ -71,7 +71,7 @@ export default function Notes() {
                 <Card className={`p-4 h-full glow-hover transition-transform duration-300 ${chaos ? (i % 2 === 0 ? "rotate-1" : "-rotate-1") : "rotate-0"}`}>
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-medium text-sm leading-tight">{n.title}</h3>
-                    {n.pinned && <Pin className="w-3.5 h-3.5 text-cyan-400 shrink-0 drop-shadow-[0_0_6px_rgba(34,211,238,0.8)]" />}
+                    {n.pinned && <Pin className="w-3.5 h-3.5 text-hud-cyan shrink-0 drop-shadow-[0_0_6px_rgba(34,211,238,0.8)]" />}
                   </div>
                   <p className="text-xs text-muted-foreground mt-2 line-clamp-3">{(n.content || "").replace(/[#*>]/g, "").slice(0, 140)}</p>
                   {course && (

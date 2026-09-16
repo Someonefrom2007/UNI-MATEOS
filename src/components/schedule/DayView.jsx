@@ -61,9 +61,9 @@ export default function DayView({ date, events, courses, tasks, exams, todayStr 
       {/* Side panels */}
       <div className="space-y-4">
         {conflicts.length > 0 && (
-          <Card aria-live="polite" className="p-4 border-amber-500/30 bg-amber-500/5">
+          <Card aria-live="polite" className="p-4 border-hud-amber/30 bg-hud-amber/5">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <AlertTriangle className="w-4 h-4 text-hud-amber" />
               <span className="um-label">Conflict on this day</span>
             </div>
             {conflicts.map((c, i) => (
@@ -77,7 +77,7 @@ export default function DayView({ date, events, courses, tasks, exams, todayStr 
         {dayExams.length > 0 && (
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <GraduationCap className="w-4 h-4 text-rose-400" />
+              <GraduationCap className="w-4 h-4 text-hud-rose" />
               <span className="um-label">Exams</span>
             </div>
             {dayExams.map((e) => (
@@ -89,7 +89,7 @@ export default function DayView({ date, events, courses, tasks, exams, todayStr 
         {dueTasks.length > 0 && (
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CheckSquare className="w-4 h-4 text-amber-400" />
+              <CheckSquare className="w-4 h-4 text-hud-amber" />
               <span className="um-label">Due this day</span>
             </div>
             <div className="space-y-1.5">

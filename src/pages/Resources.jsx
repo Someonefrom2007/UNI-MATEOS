@@ -52,7 +52,7 @@ export default function Resources() {
                   <div className="text-sm font-medium truncate">{r.name}</div>
                   <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
                     {course && <span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full ${cc.dot}`} />{course.name}</span>}
-                    <span className="chip border-border/70 bg-muted/40 text-muted-foreground"><span className={`${r.type === "video" ? "text-amber-400" : "text-cyan-400"}`}>◆</span>{r.type}</span>
+                    <span className="chip border-border/70 bg-muted/40 text-muted-foreground"><span className={`${r.type === "video" ? "text-hud-amber" : "text-hud-cyan"}`}>◆</span>{r.type}</span>
                   </div>
                   {r.url && <a href={r.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary mt-2 hover:underline">Open <ExternalLink className="w-3 h-3" /></a>}
                 </div>

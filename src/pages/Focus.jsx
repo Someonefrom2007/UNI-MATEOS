@@ -134,10 +134,10 @@ export default function Focus() {
               {phase === "focus" && (
                 <div className="flex items-center justify-center gap-1.5 mb-3">
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.9)]" />
-                  <span className="hud-mono text-rose-400">rec</span>
+                  <span className="hud-mono text-hud-rose">rec</span>
                 </div>
               )}
-              <div className={`um-label mb-3 ${phase === "focus" ? "text-cyan-400" : ""}`}>{phase === "break" ? "Break" : phase === "done" ? "Session complete" : phase === "paused" ? "Paused" : phase === "focus" ? "Focusing" : "Ready"}</div>
+              <div className={`um-label mb-3 ${phase === "focus" ? "text-hud-cyan" : ""}`}>{phase === "break" ? "Break" : phase === "done" ? "Session complete" : phase === "paused" ? "Paused" : phase === "focus" ? "Focusing" : "Ready"}</div>
               <div className={`font-display text-7xl sm:text-8xl font-semibold tabular-nums tracking-tight ${phase === "focus" ? "drop-shadow-[0_0_24px_rgba(34,211,238,0.35)]" : ""}`}>{mm}:{ss}</div>
               {course && <div className="mt-3 text-sm text-muted-foreground">{course.name}</div>}
               {label && <div className="text-xs text-muted-foreground">{label}</div>}
@@ -146,7 +146,7 @@ export default function Focus() {
                   {levels.slice(0, 12).map((lv, i) => (
                     <div
                       key={i}
-                      className="w-1 rounded-t bg-gradient-to-t from-cyan-500/40 to-violet-400 transition-[height] duration-100 ease-linear"
+                      className="w-1 rounded-t bg-gradient-to-t from-hud-cyan/40 to-hud-violet transition-[height] duration-100 ease-linear"
                       style={{ height: `${Math.max(4, Math.min(100, lv))}%` }}
                     />
                   ))}
@@ -208,10 +208,10 @@ export default function Focus() {
           </Card>
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-3">
-              <Headphones className="w-4 h-4 text-cyan-400" />
+              <Headphones className="w-4 h-4 text-hud-cyan" />
               <h2 className="um-label">Ambient soundscape</h2>
               {soundPlaying && (
-                <span className="chip ml-auto text-cyan-400 border-cyan-500/30 bg-cyan-500/10">
+                <span className="chip ml-auto text-hud-cyan border-hud-cyan/30 bg-hud-cyan/10">
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" /> live
                 </span>
               )}
@@ -221,7 +221,7 @@ export default function Focus() {
                 <button
                   key={m.key}
                   onClick={() => setSound(m.key)}
-                  className={`px-2 py-1.5 rounded-md border text-left transition-all ${soundMode === m.key && m.key !== "none" ? "border-accent/50 bg-accent/10 text-cyan-300 glow-cyan" : soundMode === m.key ? "border-border bg-muted/40 text-muted-foreground" : "border-border/60 text-muted-foreground hover:border-accent/30"}`}
+                  className={`px-2 py-1.5 rounded-md border text-left transition-all ${soundMode === m.key && m.key !== "none" ? "border-accent/50 bg-accent/10 text-hud-cyan glow-cyan" : soundMode === m.key ? "border-border bg-muted/40 text-muted-foreground" : "border-border/60 text-muted-foreground hover:border-accent/30"}`}
                 >
                   <div className="text-xs font-medium leading-tight">{m.label}</div>
                   <div className="text-[10px] text-muted-foreground truncate">{m.hint}</div>
@@ -233,7 +233,7 @@ export default function Focus() {
                 {levels.map((lv, i) => (
                   <div
                     key={i}
-                    className="flex-1 rounded-t bg-gradient-to-t from-cyan-500/30 to-cyan-300 transition-[height] duration-100 ease-linear"
+                    className="flex-1 rounded-t bg-gradient-to-t from-hud-cyan/30 to-hud-cyan transition-[height] duration-100 ease-linear"
                     style={{ height: `${Math.max(4, Math.min(100, lv))}%` }}
                   />
                 ))}

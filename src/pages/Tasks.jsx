@@ -96,8 +96,8 @@ export default function Tasks() {
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
         <span className="cyber-tag"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />{t("tasks.clutter")} · {activeCount} {t("tasks.open")}</span>
         <div className="flex items-center gap-2">
-          {overdueCount > 0 && <span className="chip text-rose-400 border-rose-500/30 bg-rose-500/10">{overdueCount} {t("tasks.overdue")}</span>}
-          <button onClick={() => setPanic((v) => !v)} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${panic ? "bg-rose-500 text-white shadow-[0_0_18px_rgba(244,63,94,0.55)]" : "border border-rose-500/40 text-rose-400 bg-rose-500/5 hover:bg-rose-500/10"}`}>
+          {overdueCount > 0 && <span className="chip text-hud-rose border-hud-rose/30 bg-hud-rose/10">{overdueCount} {t("tasks.overdue")}</span>}
+          <button onClick={() => setPanic((v) => !v)} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${panic ? "bg-rose-500 text-white shadow-[0_0_18px_rgba(244,63,94,0.55)]" : "border border-hud-rose/40 text-hud-rose bg-hud-rose/5 hover:bg-hud-rose/10"}`}>
             <Siren className="w-3.5 h-3.5" /> {panic ? t("tasks.panicOn") : t("tasks.panicToggle")}
           </button>
         </div>
@@ -105,15 +105,15 @@ export default function Tasks() {
 
       {panic ? (
         <div className="space-y-2">
-          <div className="relative rounded-xl border border-rose-500/30 bg-rose-500/5 p-4 overflow-hidden">
+          <div className="relative rounded-xl border border-hud-rose/30 bg-hud-rose/5 p-4 overflow-hidden">
             <div className="absolute inset-0 cyber-scanlines opacity-40" />
             <div className="relative">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <Siren className="w-4 h-4 text-rose-400" />
-                  <span className="um-label text-rose-400">{t("tasks.panicMode")}</span>
+                  <Siren className="w-4 h-4 text-hud-rose" />
+                  <span className="um-label text-hud-rose">{t("tasks.panicMode")}</span>
                 </div>
-                <span className="chip border-rose-500/40 bg-rose-500/10 text-rose-400">{panicTasks.length} {t("tasks.next48h")}</span>
+                <span className="chip border-hud-rose/40 bg-hud-rose/10 text-hud-rose">{panicTasks.length} {t("tasks.next48h")}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-2">Low-priority noise filtered out. Only fire zones due within 48 hours remain — break anything heavy into 15-minute micro-tasks.</p>
             </div>
@@ -127,7 +127,7 @@ export default function Tasks() {
             const course = courses.find((c) => c.id === t.course_id);
             const cc = course ? courseColor(course.color) : null;
             return (
-              <Card key={t.id} className="p-3 flex items-center gap-3 group glow-hover border-rose-500/20">
+              <Card key={t.id} className="p-3 flex items-center gap-3 group glow-hover border-hud-rose/20">
                 <button onClick={() => toggle(t)} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${t.status === "completed" ? "bg-emerald-500 border-emerald-500" : "border-border hover:border-primary"}`}>
                   {t.status === "completed" && <span className="text-[10px] text-white">✓</span>}
                 </button>
@@ -135,12 +135,12 @@ export default function Tasks() {
                   <div className={`text-sm font-medium ${t.status === "completed" ? "line-through text-muted-foreground" : ""}`}>{t.title}</div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                     {course && <span className="flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${cc.dot}`} />{course.name}</span>}
-                    {t.due_date && <span className="text-rose-400 font-medium">{relativeDeadline(t.due_date)}</span>}
+                    {t.due_date && <span className="text-hud-rose font-medium">{relativeDeadline(t.due_date)}</span>}
                     {t.estimated_duration > 0 && <span>· {fmtDuration(t.estimated_duration)}</span>}
                   </div>
                 </div>
                 <span className={`text-[10px] px-2 py-0.5 rounded border ${PRIORITY_GLOW[t.priority] || ""} ${pm.cls}`}>{pm.label}</span>
-                <button onClick={() => breakTask(t)} className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-cyan-500/40 text-cyan-300 text-xs hover:bg-cyan-500/10 transition-colors" title="Split into 15-minute micro-tasks">
+                <button onClick={() => breakTask(t)} className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-hud-cyan/40 text-hud-cyan text-xs hover:bg-hud-cyan/10 transition-colors" title="Split into 15-minute micro-tasks">
                   <Scissors className="w-3.5 h-3.5" /> Micro-tasks
                 </button>
               </Card>
@@ -177,7 +177,7 @@ export default function Tasks() {
                       <div className={`text-sm font-medium ${t.status === "completed" ? "line-through text-muted-foreground" : ""}`}>{t.title}</div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                         {course && <span className="flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${cc.dot}`} />{course.name}</span>}
-                        {t.due_date && <span className={overdue ? "text-rose-400 font-medium" : ""}>{relativeDeadline(t.due_date)}</span>}
+                        {t.due_date && <span className={overdue ? "text-hud-rose font-medium" : ""}>{relativeDeadline(t.due_date)}</span>}
                         {t.estimated_duration > 0 && <span>· {fmtDuration(t.estimated_duration)}</span>}
                       </div>
                     </div>

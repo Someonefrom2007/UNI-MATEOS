@@ -114,7 +114,7 @@ export default function Settings() {
       <PageHeader title={t("title.settings")} subtitle={t("title.settings.subtitle")} />
       <div className="max-w-2xl space-y-5">
         <Card className="p-5">
-          <div className="flex items-center gap-2 mb-4"><Sun className="w-4 h-4 text-amber-400" /><h2 className="um-label">Appearance</h2></div>
+          <div className="flex items-center gap-2 mb-4"><Sun className="w-4 h-4 text-hud-amber" /><h2 className="um-label">Appearance</h2></div>
           <div className="grid grid-cols-3 gap-2">
             {[{ k: "dark", label: "Dark", Icon: Moon }, { k: "light", label: "Light", Icon: Sun }, { k: "system", label: "System", Icon: Monitor }].map(({ k, label, Icon }) => (
               <button key={k} onClick={() => chooseTheme(k)} className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${theme === k ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
@@ -143,7 +143,7 @@ export default function Settings() {
         </Card>
 
         <Card className="p-5">
-          <div className="flex items-center gap-2 mb-4"><Globe className="w-4 h-4 text-cyan-400" /><h2 className="um-label">Language</h2></div>
+          <div className="flex items-center gap-2 mb-4"><Globe className="w-4 h-4 text-hud-cyan" /><h2 className="um-label">Language</h2></div>
           <Select value={lang} onValueChange={saveLang}>
             <SelectTrigger className="w-full" aria-label="Language"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="en">English</SelectItem><SelectItem value="es">Español</SelectItem><SelectItem value="ca">Català</SelectItem></SelectContent>
@@ -151,7 +151,7 @@ export default function Settings() {
         </Card>
 
         <Card className="p-5">
-          <div className="flex items-center gap-2 mb-4"><Database className="w-4 h-4 text-emerald-400" /><h2 className="um-label">Data</h2></div>
+          <div className="flex items-center gap-2 mb-4"><Database className="w-4 h-4 text-hud-emerald" /><h2 className="um-label">Data</h2></div>
           <Button variant="outline" className="w-full justify-start" onClick={exportData} disabled={exporting}>
             {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
             {exporting ? "Preparing export…" : "Export your data (JSON)"}

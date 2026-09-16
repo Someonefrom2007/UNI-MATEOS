@@ -5,10 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 const CAT_STYLE = {
-  Risk: "text-rose-400 bg-rose-500/10",
-  Productivity: "text-violet-400 bg-violet-500/10",
-  Planning: "text-cyan-400 bg-cyan-500/10",
-  Academic: "text-emerald-400 bg-emerald-500/10",
+  Risk: "chip-hud-rose",
+  Productivity: "chip-hud-violet",
+  Planning: "chip-hud-cyan",
+  Academic: "chip-hud-emerald",
 };
 
 // Discovering something about yourself — observations surface progressively.
@@ -17,7 +17,7 @@ export default function InsightsCard({ insights }) {
   return (
     <Card className="p-5 h-full">
       <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="w-4 h-4 text-cyan-400" />
+        <Sparkles className="w-4 h-4 text-hud-cyan" />
         <h2 className="um-label">Insights</h2>
       </div>
       {insights.length === 0 ? (

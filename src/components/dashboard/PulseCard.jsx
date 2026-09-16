@@ -13,7 +13,7 @@ function Sparkline({ grades }) {
   const y = (g) => (28 - (g / 10) * 24 - 2).toFixed(1);
   const path = pts.map((g, i) => `${(i * step).toFixed(1)},${y(g.grade)}`).join(" ");
   return (
-    <svg viewBox="0 0 100 28" className="w-24 h-7 text-cyan-400 shrink-0" fill="none" aria-hidden>
+    <svg viewBox="0 0 100 28" className="w-24 h-7 text-hud-cyan shrink-0" fill="none" aria-hidden>
       <polyline points={path} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx="100" cy={y(pts[pts.length - 1].grade)} r="1.8" fill="currentColor" />
     </svg>
@@ -29,7 +29,7 @@ export default function PulseCard({ gpa, ects, grades = [] }) {
   return (
     <Card className="p-5 h-full">
       <div className="flex items-center gap-2 mb-4">
-        <GraduationCap className="w-4 h-4 text-cyan-400" />
+        <GraduationCap className="w-4 h-4 text-hud-cyan" />
         <h2 className="um-label">Academic pulse</h2>
       </div>
       <div className="flex items-end justify-between gap-3">

@@ -32,9 +32,9 @@ export default function WeekView({ anchor, events, courses, todayStr }) {
   return (
     <>
       {conflicts.length > 0 && (
-        <Card aria-live="polite" className="p-4 mb-4 border-amber-500/30 bg-amber-500/5">
+        <Card aria-live="polite" className="p-4 mb-4 border-hud-amber/30 bg-hud-amber/5">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <AlertTriangle className="w-4 h-4 text-hud-amber" />
             <span className="um-label">Schedule conflict</span>
           </div>
           {conflicts.map((c, i) => (
@@ -51,9 +51,9 @@ export default function WeekView({ anchor, events, courses, todayStr }) {
           const ds = d.toISOString().slice(0, 10);
           const isToday = ds === todayStr;
           return (
-            <div key={i} className={`text-center py-2 rounded-lg ${isToday ? "bg-primary/10 ring-1 ring-cyan-400/40 shadow-[0_0_12px_rgba(34,211,238,0.15)]" : ""}`}>
-              <div className={`text-[10px] uppercase tracking-wider ${isToday ? "text-cyan-300" : "text-muted-foreground"}`}>{DAY_SHORT[d.getDay()]}</div>
-              <div className={`text-sm font-medium ${isToday ? "text-cyan-300" : ""}`}>{d.getDate()}</div>
+            <div key={i} className={`text-center py-2 rounded-lg ${isToday ? "bg-primary/10 ring-1 ring-hud-cyan/40 shadow-[0_0_12px_rgba(34,211,238,0.15)]" : ""}`}>
+              <div className={`text-[10px] uppercase tracking-wider ${isToday ? "text-hud-cyan" : "text-muted-foreground"}`}>{DAY_SHORT[d.getDay()]}</div>
+              <div className={`text-sm font-medium ${isToday ? "text-hud-cyan" : ""}`}>{d.getDate()}</div>
             </div>
           );
         })}

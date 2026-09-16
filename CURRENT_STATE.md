@@ -1,6 +1,6 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-16, end of the 2.0 roadmap + Mission 2.5 dashboard elevation + Mission 10.5 floating stickies). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-16, end of the 2.0 roadmap + Mission 2.5 dashboard elevation + Mission 10.5 floating stickies + Mission 11 light-mode contrast). Do not treat this file as a spec — it records what actually exists.
 
 ## Baseline verification (all green)
 
@@ -34,7 +34,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 - **Auth:** `src/lib/AuthContext.jsx`. Supabase mode unchanged. Local workspace auto-authenticates a synthetic `LOCAL_WORKSPACE_USER` identity (`is_local_workspace: true`), skips `onAuthStateChange`, and exposes `localWorkspace` on the context. Login/Register redirect to `/dashboard`; ForgotPassword/ResetPassword render an honest notice; AppShell shows an amber "Local workspace" indicator and hides logout. Local user profile is persisted separately (`src/lib/repo/select.js` → `localStorage`).
 - **Computation engines (pinned, do not modify):** `gradeEngine.js`, `scheduleEngine.js`, `workloadEngine.js`, `insightsEngine.js`, `burnout.js`, `calendarSync.js` (+ existing `.test.js` files).
 - **New tested pure modules (added for the test suite):** `triage.js`, `planner.js`, `paletteSearch.js`, `syllabusImporter.js`, `gradesim.js`.
-- **Theme/i18n:** CSS-variable theme + accent presets (`theme.js`, `initTheme`, `um-` vars), `i18n.js` en|ca|es (CustomEvent store), `useDeskMode` (desk chaos/tidy), `useSoundscape`.
+- **Theme/i18n:** CSS-variable theme + accent presets (`theme.js`, `initTheme`, `um-` vars), `i18n.js` en|ca|es (CustomEvent store), `useDeskMode` (desk chaos/tidy), `useSoundscape`. Dual-theme tokens (Mission 11): light mode is high-contrast (`#F8F9FC` canvas, white cards, `#0F172A`/`#334155` text, `#64748B` muted, light borders) while dark stays tungsten (`#07080D`/`#0F111A`); a `hud` color group in `tailwind.config.js` + the `--hud-*` HSL vars back `text-hud-*`/`bg-hud-*/N`/`border-hud-*/N`, and `.void-surface` replaces hardcoded `#07080D` hero cards app-wide.
 
 ### Brand assets (current)
 - `src/components/Brand/` — centralized brand system (Mission 3):
@@ -83,6 +83,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 10. **Plans (§30):** static pricing, PRO/ULTRA "Join Waitlist" disabled buttons (honest, but dead end). Stripe packages were unused and removed in Mission 9.
 
 11. **Floating stickies (§31 post-launch):** anchor persistence lives in localStorage (compressed); no cloud sync of pinned positions yet. Drag/resize and minimize-to-corner work across all screens in both local and hosted modes (no Supabase dependency for pin state).
+12. **Light-mode typography (§24 contrast):** hardcoded pale accent text (cyan-300 family) replaced app-wide with theme-aware `hud` tokens (Mission 11) — readable in both themes. Marginal bright-text-on-bright-fills in decorative landing glows/gradients remain (non-typographic, kept intentionally).
 
 ## Do NOT touch (verified working / pinned)
 

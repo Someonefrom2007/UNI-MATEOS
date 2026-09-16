@@ -56,9 +56,9 @@ export default function Workload() {
       <PageHeader title={t("title.workload")} subtitle={t("title.workload.subtitle")} />
 
       {heavy && (
-        <Card className="p-4 mb-4 border-amber-500/30 bg-amber-500/5">
+        <Card className="p-4 mb-4 border-hud-amber/30 bg-hud-amber/5">
           <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <AlertTriangle className="w-4 h-4 text-hud-amber" />
             <span className="text-sm font-medium">Your estimated workload this week is high.</span>
           </div>
           <p className="text-xs text-muted-foreground">Consider starting earlier — {fmtDuration(wl.total)} across {wl.breakdown.length} courses.</p>

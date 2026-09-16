@@ -1,10 +1,10 @@
 import { Clock, AlertTriangle, Activity, CheckCircle2 } from "lucide-react";
 
 const VARIANTS = {
-  upcoming: { icon: Clock, text: "text-cyan-300", chip: "border-cyan-400/25 bg-cyan-400/5", dot: "bg-cyan-400" },
-  attention: { icon: AlertTriangle, text: "text-amber-300", chip: "border-amber-400/25 bg-amber-400/5", dot: "bg-amber-400" },
-  steady: { icon: Activity, text: "text-emerald-300", chip: "border-emerald-400/25 bg-emerald-400/5", dot: "bg-emerald-400" },
-  clear: { icon: CheckCircle2, text: "text-muted-foreground", chip: "border-white/[0.06] bg-white/[0.02]", dot: "bg-muted-foreground/50" },
+  upcoming: { icon: Clock, text: "text-hud-cyan", chip: "chip-hud-cyan", dot: "bg-hud-cyan" },
+  attention: { icon: AlertTriangle, text: "text-hud-amber", chip: "chip-hud-amber", dot: "bg-hud-amber" },
+  steady: { icon: Activity, text: "text-hud-emerald", chip: "chip-hud-emerald", dot: "bg-hud-emerald" },
+  clear: { icon: CheckCircle2, text: "text-muted-foreground", chip: "border-border bg-muted/30", dot: "bg-muted-foreground/50" },
 };
 
 // Layered dark-void status bar (#07080D + hairline highlight, no scanlines):
@@ -15,9 +15,9 @@ export default function HeroStatusBanner({ banner }) {
   return (
     <div
       aria-live="polite"
-      className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#07080D] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+      className="relative overflow-hidden rounded-2xl void-surface"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent" aria-hidden />
+      <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.03] via-transparent to-transparent" aria-hidden />
       <div className="relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4">
         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border self-start sm:self-auto ${meta.chip}`}>
           <Icon className={`w-4 h-4 ${meta.text}`} />
