@@ -1,15 +1,15 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-16, end of the 2.0 roadmap + Mission 2.5 dashboard elevation). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-16, end of the 2.0 roadmap + Mission 2.5 dashboard elevation + Mission 10.5 floating stickies). Do not treat this file as a spec — it records what actually exists.
 
 ## Baseline verification (all green)
 
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 22 files / 308 tests pass |
+| Tests | `npm test` (vitest run) | ✅ 23 files / 349 tests pass |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — no >500 kB chunks; entry 182 kB (was 584 kB); PWA 61 precache entries (1436.29 KiB) |
+| Build | `npm run build` | ✅ PASS — no >500 kB chunks; entry 182 kB; PWA 60 precache entries (1445.56 KiB) |
 
 Runtime/browser verification is NOT available in this environment — evidence is compile + test + build.
 
@@ -64,6 +64,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 
 - **All core academic modules** render CRUD against `useUserData`/Supabase: Courses(+CourseDetail), Schedule (Day/Week/Month + course colors + conflict warnings + ICS feed dialog + Google Calendar connector `check`), Tasks (deadline/priority/course/duration/subtasks ui), Exams, Grades (0–10 bands incl. Matrícula de Honor 10.0 + ECTS weighted average + required/projected grade), Notes (quill rich text), Resources, Focus (pomodoro modes + persisted sessions), Goals/Habits (+ logs/streaks), Workload, Insights, Sticky Wall.
 - **Dashboard** — real-data command center (Mission 2.5): layered dark-void hero (#07080D + white/0.05 hairlines, no scanlines/glare), a live contextual status bar (next class countdown / pending high-priority exams / weekly study load / all-clear, derived by `src/lib/dashboardRadar.js`), bento of Spotlight, Today (with ICS-event badges), Attention, Pulse, Focus, Workload (+Low/Balanced/Overdrive Load-radar band built on `workloadEngine` + burnout), Velocity, Quick Actions (⌘K command palette + focus autostart), Habits/Goals/Insights, sticky tile; every zero-data widget carries an action-driven empty state (Add first course, Import ICS, Start a session, Plan ahead). No invented numbers — the radar only ever composites the pinned engines.
+- **Floating Stickies** (Mission 10.5): pin any sticky note from the Sticky Wall as a persistent floating overlay (anchored to a position/size in localStorage, compressed via `dataCompressor`) visible on every screen. Full-size windows are draggable (GripVertical handle) and resizable (corner handle), with a minimize-to-corner compact chip that remembers the open size for seamless restore. The overlay renders inside AppShell at `z-40`, so it sits above page content but below the Command Palette and mobile drawer. An Anchor icon toggle on each StickyNoteCard in the wall controls the float state; deleting a note also unpins it. The pure engine lives in `src/lib/anchoredStickies.js` with 41 unit tests (geometry, toggle, z-order, normalization, compressed persistence round-trip) passing in node.
 - **AI Assistant** — real backend Edge Function `ai-assistant` (deterministic fallback without OPENAI_API_KEY; no fake AI).
 - **PWA** — `vite-plugin-pwa` `generateSW`, offline fallback + denylist (auth/api/.ics), runtime NetworkFirst cache for `*.supabase.co`.
 - **Design language** already leans "student's mind, visualized" (cyber-grid scanlines, bento desk, reveal motion, atmospheric blur, Hud mono labels, dark-first).
@@ -80,6 +81,8 @@ Runtime/browser verification is NOT available in this environment — evidence i
 8. **Accessibility (§24) / responsive (§25): MET-pass for audit items (Mission 8, 2026-09).** Icon-only buttons across the app now carry `aria-label`s (NoteDetail, Goals, Habits, Schedule nav, Courses import, Tasks/Exams/CourseDetail toggles, PostCard like, ICSFeedDialog close, AIAssistant send, AppShell mobile controls + FAB); nav has `aria-current="page"`; StickyNoteCard edit is keyboard-operable (`tabIndex` + Enter/Space); unbound labels wired in Focus, Grades sim selects, Settings Language, Profile, Onboarding, QuickAdd (`Field` injects accessible names onto inputs and Radix `SelectTrigger`s), Notes/Community search, StickyWall, CommandPalette, NoteDetail, Courses import/sort, Exams mastery; `aria-live="polite"` on AI "Thinking…", CommandPalette no-results, Courses import warnings, WeekView/DayView conflict banners; reduced motion honored app-wide via `<MotionConfig reducedMotion="user">` + a `prefers-reduced-motion` CSS guard. Layout is already responsive (bottom nav, stacked grids, drawer) with no horizontal overflow observed at the source level. Full keyboard/focus-visual pass remains a manual browser step.
 9. **Cleanup (§31):** `export-report.json` (stale Base44 export diagnostic) and `coverage/` were gitignored in this checkpoint; `src/api/` no longer exists. Runtime verification screenshots of demo/verification data not possible here.
 10. **Plans (§30):** static pricing, PRO/ULTRA "Join Waitlist" disabled buttons (honest, but dead end). Stripe packages were unused and removed in Mission 9.
+
+11. **Floating stickies (§31 post-launch):** anchor persistence lives in localStorage (compressed); no cloud sync of pinned positions yet. Drag/resize and minimize-to-corner work across all screens in both local and hosted modes (no Supabase dependency for pin state).
 
 ## Do NOT touch (verified working / pinned)
 

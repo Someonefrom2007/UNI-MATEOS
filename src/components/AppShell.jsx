@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import CommandPalette from "@/components/CommandPalette";
+import FloatingStickiesLayer from "@/components/FloatingStickiesLayer";
 import Logo from "@/components/Logo";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -289,6 +290,7 @@ export default function AppShell() {
 
       <QuickAdd open={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
       <CommandPalette />
+      <FloatingStickiesLayer />
     </div>
   );
 }

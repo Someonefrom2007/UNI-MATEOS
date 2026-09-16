@@ -3,6 +3,7 @@ import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import StickyNoteCard from "@/components/stickies/StickyNoteCard";
 import { COLOR_KEYS, STICKY_DOT, randomRotation } from "@/components/stickies/stickyColors";
+import useAnchoredStickies from "@/hooks/useAnchoredStickies";
 import { Plus, StickyNote as StickyNoteIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import ErrorState from "@/components/ErrorState";
@@ -10,6 +11,8 @@ import ErrorState from "@/components/ErrorState";
 export default function StickyWall() {
   const { data, loading, error, mutate, refresh } = useUserData();
   const { t } = useI18n();
+  const { anchors, anchorSticky, unanchorSticky } = useAnchoredStickies();
+  const anchoredIds = useMemo(() => new Set(anchors.map((a) => a.stickyId)), [anchors]);
   const [draft, setDraft] = useState("");
   const [color, setColor] = useState("amber");
   const [saving, setSaving] = useState(false);
@@ -29,6 +32,16 @@ export default function StickyWall() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const toggleFloat = (note) => {
+    if (anchoredIds.has(note.id)) unanchorSticky(note.id);
+    else anchorSticky(note.id);
+  };
+
+  const handleDelete = (id) => {
+    unanchorSticky(id);
+    mutate("StickyNote", "delete", id);
   };
 
   if (error) return <ErrorState onRetry={refresh} />;
@@ -95,7 +108,9 @@ export default function StickyWall() {
               onSave={(note, content) => mutate("StickyNote", "update", note.id, { content })}
               onColor={(note, c) => mutate("StickyNote", "update", note.id, { color: c })}
               onTogglePin={(note) => mutate("StickyNote", "update", note.id, { pinned: !note.pinned })}
-              onDelete={(id) => mutate("StickyNote", "delete", id)}
+              onDelete={handleDelete}
+              floating={anchoredIds.has(n.id)}
+              onFloat={toggleFloat}
             />
           ))}
         </div>

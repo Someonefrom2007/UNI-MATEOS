@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Pin, PinOff, Trash2 } from "lucide-react";
+import { Anchor, Pin, PinOff, Trash2 } from "lucide-react";
 import { COLOR_KEYS, STICKY_BG, STICKY_DOT } from "./stickyColors";
 
-export default function StickyNoteCard({ note, onSave, onColor, onTogglePin, onDelete }) {
+export default function StickyNoteCard({ note, onSave, onColor, onTogglePin, onDelete, floating, onFloat }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(note.content);
 
@@ -31,6 +31,14 @@ export default function StickyNoteCard({ note, onSave, onColor, onTogglePin, onD
         <div className="flex items-center gap-1">
           <button onClick={() => onTogglePin(note)} title={note.pinned ? "Unpin" : "Pin"} className="hover:opacity-100">
             {note.pinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
+          </button>
+          <button
+            onClick={() => onFloat?.(note)}
+            title={floating ? "Unfloat from every screen" : "Float across the app"}
+            aria-label={floating ? "Remove floating note" : "Pin as floating note"}
+            className="hover:opacity-100"
+          >
+            <Anchor className={`w-3.5 h-3.5 ${floating ? "text-emerald-700" : ""}`} />
           </button>
           <button onClick={() => onDelete(note.id)} title="Throw away" className="hover:opacity-100">
             <Trash2 className="w-3.5 h-3.5" />
