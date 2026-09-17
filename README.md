@@ -63,4 +63,4 @@ npm run build
 
 - **RLS**: every data table has row-level security scoped to `auth.uid()`. The `user_profiles` row for `auth.users` is auto-provisioned by the `handle_new_user()` trigger.
 - **Profile fields** (university, degree, target GPA, language, etc.) are stored in auth user metadata via `supabase.auth.updateUser({ data: ... })`.
-- The grade/schedule/workload/insights engines in `src/lib/*Engine.js` and their tests are pinned — do not modify them.
+- The grade/schedule/workload/insights engines in `src/lib/*Engine.js` and their tests are pinned — do not modify them.# UNI-MATEOS
