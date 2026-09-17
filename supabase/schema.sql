@@ -836,3 +836,12 @@ CREATE INDEX IF NOT EXISTS study_groups_community_id_idx  ON public.study_groups
 CREATE INDEX IF NOT EXISTS study_groups_course_id_idx     ON public.study_groups (course_id);
 CREATE INDEX IF NOT EXISTS community_posts_community_id_idx ON public.community_posts (community_id);
 CREATE INDEX IF NOT EXISTS community_posts_group_id_idx    ON public.community_posts (group_id);
+
+-- ---------------------------------------------------------------------------
+-- Mission 13 — task archiving (idempotent, additive)
+-- ---------------------------------------------------------------------------
+-- Archive is a boolean so the status CHECK (todo|in_progress|completed) stays
+-- intact; archived tasks leave every active view but remain recoverable.
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS archived boolean NOT NULL DEFAULT false;
+
+CREATE INDEX IF NOT EXISTS tasks_archived_idx ON public.tasks (archived);

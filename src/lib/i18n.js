@@ -66,6 +66,7 @@ const DICT = {
     "tasks.views.overdue": "overdue",
     "tasks.views.all": "all",
     "tasks.views.completed": "completed",
+    "tasks.views.archived": "archived",
     // Section titles
     "title.dashboard": "Dashboard",
     "title.courses": "Courses",
@@ -158,6 +159,7 @@ const DICT = {
     "tasks.views.overdue": "vençudes",
     "tasks.views.all": "totes",
     "tasks.views.completed": "completades",
+    "tasks.views.archived": "arxivades",
     // Section titles
     "title.dashboard": "Taulell",
     "title.courses": "Cursos",
@@ -250,6 +252,7 @@ const DICT = {
     "tasks.views.overdue": "vencidas",
     "tasks.views.all": "todas",
     "tasks.views.completed": "completadas",
+    "tasks.views.archived": "archivadas",
     // Section titles
     "title.dashboard": "Panel",
     "title.courses": "Cursos",

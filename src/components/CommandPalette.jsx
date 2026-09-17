@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ArrowRight, CheckSquare, FilePlus, Timer, CornerDownLeft } from "lucide-react";
 import { useUserData } from "@/lib/useUserData";
+import { activeTasks } from "@/lib/taskEdit";
 import { useToast } from "@/components/ui/use-toast";
 import { todayISO } from "@/lib/format";
 import { norm, filterCommandPalette, isPaletteShortcut } from "@/lib/paletteSearch";
@@ -96,7 +97,7 @@ export default function CommandPalette() {
         items.forEach((x) => dataRows.push({ type, label: label(x), sub: sub ? sub(x) : "", to: to(x) }));
       };
       push(data.Course || [], "Course", (c) => c.name, (c) => c.code, (c) => `/courses/${c.id}`);
-      push(data.Task || [], "Task", (t) => t.title, (t) => t.due_date, () => "/tasks");
+      push(activeTasks(data.Task), "Task", (t) => t.title, (t) => t.due_date, () => "/tasks");
       push(data.Note || [], "Note", (n) => n.title, null, (n) => `/notes/${n.id}`);
       push(data.Exam || [], "Exam", (e) => e.name, (e) => e.date, (e) => `/exams/${e.id}`);
       push(data.Resource || [], "Resource", (r) => r.name, (r) => r.type, () => "/resources");

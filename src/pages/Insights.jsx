@@ -3,6 +3,7 @@ import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { generateInsights } from "@/lib/insightsEngine";
+import { activeTasks } from "@/lib/taskEdit";
 import { Card } from "@/components/ui/card";
 import { Sparkles, TrendingUp, AlertTriangle, Clock, Target } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
@@ -22,7 +23,7 @@ export default function Insights() {
   const insights = useMemo(() => {
     if (!data) return [];
     return generateInsights({
-      tasks: data.Task,
+      tasks: activeTasks(data.Task),
       exams: data.Exam,
       focusSessions: data.FocusSession,
       courses: data.Course,

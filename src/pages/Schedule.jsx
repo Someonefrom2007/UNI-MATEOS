@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Plus, Zap, Clock } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
+import { activeTasks } from "@/lib/taskEdit";
 import { toLocalISO } from "@/lib/format";
 import QuickAdd from "@/components/QuickAdd";
 import ErrorState from "@/components/ErrorState";
@@ -41,7 +42,7 @@ export default function Schedule() {
 
   const events = data?.ScheduleEvent || [];
   const courses = data?.Course || [];
-  const tasks = data?.Task || [];
+  const tasks = useMemo(() => activeTasks(data?.Task), [data]);
   const exams = data?.Exam || [];
   const todayStr = toLocalISO(new Date());
 

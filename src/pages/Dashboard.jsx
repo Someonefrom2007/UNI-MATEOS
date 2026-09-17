@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, Sparkles, PanelsTopLeft } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { loadDemoData } from "@/lib/demoData";
+import { activeTasks } from "@/lib/taskEdit";
 import ErrorState from "@/components/ErrorState";
 import { Reveal } from "@/components/motion/Reveal";
 import { STICKY_BG } from "@/components/stickies/stickyColors";
@@ -77,7 +78,7 @@ export default function Dashboard() {
   const d = useMemo(() => {
     if (!data) return null;
     const courses = data.Course.filter((c) => !c.archived);
-    const tasks = data.Task;
+    const tasks = activeTasks(data.Task);
     const exams = data.Exam;
     const grades = data.Grade;
     const events = data.ScheduleEvent;

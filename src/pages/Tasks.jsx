@@ -5,14 +5,17 @@ import EmptyState from "@/components/EmptyState";
 import { courseColor, relativeDeadline, PRIORITY_META, fmtDuration, todayISO } from "@/lib/format";
 import { panicTasks as selectPanicTasks, microCount, microBase, microTitle } from "@/lib/triage";
 import { Card } from "@/components/ui/card";
-import { CheckSquare, Plus, Timer, Siren, Scissors } from "lucide-react";
+import { CheckSquare, Plus, Timer, Siren, Scissors, Pencil, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
+import TaskEditor from "@/components/TaskEditor";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import ErrorState from "@/components/ErrorState";
+import { isActive, isArchived } from "@/lib/taskEdit";
 
-const VIEWS = ["today", "upcoming", "overdue", "all", "completed"];
+const VIEWS = ["today", "upcoming", "overdue", "all", "completed", "archived"];
 const PRIORITY_GLOW = {
   urgent: "shadow-[0_0_12px_rgba(244,63,94,0.35)]",
   high: "shadow-[0_0_10px_rgba(245,158,11,0.28)]",
@@ -25,31 +28,41 @@ export default function Tasks() {
   const [view, setView] = useState("today");
   const [panic, setPanic] = useState(false);
   const [qaOpen, setQaOpen] = useState(false);
+  const [editing, setEditing] = useState(null);   // task row or {} for create
+  const [toDelete, setToDelete] = useState(null);
+  const [busy, setBusy] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { t } = useI18n();
   const todayStr = todayISO();
 
   const courses = data?.Course || [];
+  const activeCourses = useMemo(() => courses.filter((c) => !c.archived), [courses]);
+
+  // Archived tasks are excluded from every working view — workload, counts and
+  // triage all read this same filtered set so archiving a task actually removes
+  // it from the numbers, not just the list.
+  const visible = useMemo(() => (data ? data.Task.filter((t) => !isArchived(t)) : []), [data]);
 
   const tasks = useMemo(() => {
     if (!data) return [];
-    let list = data.Task;
+    let list = view === "archived" ? data.Task.filter(isArchived) : visible;
     if (view === "today") list = list.filter((t) => t.status !== "completed" && t.due_date === todayStr);
     if (view === "upcoming") list = list.filter((t) => t.status !== "completed" && t.due_date && t.due_date >= todayStr);
     if (view === "overdue") list = list.filter((t) => t.status !== "completed" && t.due_date && t.due_date < todayStr);
     if (view === "completed") list = list.filter((t) => t.status === "completed");
     return list.sort((a, b) => (a.due_date || "9999").localeCompare(b.due_date || "9999"));
-  }, [data, view, todayStr]);
+  }, [data, view, todayStr, visible]);
 
-  const activeCount = data ? data.Task.filter((t) => t.status !== "completed").length : 0;
-  const overdueCount = data ? data.Task.filter((t) => t.status !== "completed" && t.due_date && t.due_date < todayStr).length : 0;
+  const activeCount = visible.filter(isActive).length;
+  const overdueCount = visible.filter((t) => t.status !== "completed" && t.due_date && t.due_date < todayStr).length;
+  const archivedCount = data ? data.Task.filter(isArchived).length : 0;
 
   // Panic / triage mode: only uncompleted, non-low-priority items due ≤48h.
   const panicTasks = useMemo(() => {
     if (!data) return [];
-    return selectPanicTasks(data.Task, { todayStr });
-  }, [data, todayStr]);
+    return selectPanicTasks(visible, { todayStr });
+  }, [data, todayStr, visible]);
 
   const breakTask = async (t) => {
     const n = microCount(t);
@@ -71,6 +84,35 @@ export default function Tasks() {
     const done = task.status !== "completed";
     await mutate("Task", "update", task.id, { status: done ? "completed" : "todo", completed_date: done ? todayStr : null });
     if (done) toast({ title: "Task completed" });
+  };
+
+  const saveTask = async (patch) => {
+    if (editing?.id) {
+      await mutate("Task", "update", editing.id, patch);
+      toast({ title: "Task updated" });
+    } else {
+      await mutate("Task", "create", { ...patch, completed_date: patch.status === "completed" ? todayStr : null });
+      toast({ title: "Task created" });
+    }
+  };
+
+  const setArchived = async (task, archived) => {
+    await mutate("Task", "update", task.id, { archived });
+    toast({ title: archived ? "Task archived" : "Task restored", description: archived ? "Find it under Archived." : undefined });
+  };
+
+  const deleteTask = async () => {
+    if (!toDelete) return;
+    setBusy(true);
+    try {
+      await mutate("Task", "delete", toDelete.id);
+      toast({ title: "Task deleted" });
+      setToDelete(null);
+    } catch {
+      toast({ title: "Couldn't delete the task. Please try again." });
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (error) return <ErrorState onRetry={refresh} />;
@@ -182,9 +224,26 @@ export default function Tasks() {
                       </div>
                     </div>
                     <span className={`text-[10px] px-2 py-0.5 rounded border ${PRIORITY_GLOW[t.priority] || ""} ${pm.cls}`}>{pm.label}</span>
-                    <button onClick={() => navigate("/focus")} className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-muted transition-opacity" title="Start focus">
-                      <Timer className="w-4 h-4 text-muted-foreground" />
-                    </button>
+                    <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                      {view === "archived" ? (
+                        <button onClick={() => setArchived(t, false)} className="p-1.5 rounded hover:bg-muted" title="Restore task" aria-label={`Restore ${t.title}`}>
+                          <ArchiveRestore className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      ) : (
+                        <button onClick={() => setArchived(t, true)} className="p-1.5 rounded hover:bg-muted" title="Archive task" aria-label={`Archive ${t.title}`}>
+                          <Archive className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      )}
+                      <button onClick={() => setEditing(t)} className="p-1.5 rounded hover:bg-muted" title="Edit task" aria-label={`Edit ${t.title}`}>
+                        <Pencil className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                      <button onClick={() => navigate("/focus")} className="p-1.5 rounded hover:bg-muted" title="Start focus">
+                        <Timer className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                      <button onClick={() => setToDelete(t)} className="p-1.5 rounded hover:bg-muted" title="Delete task" aria-label={`Delete ${t.title}`}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </button>
+                    </div>
                   </Card>
                 );
               })}
@@ -193,6 +252,30 @@ export default function Tasks() {
         </>
       )}
       <QuickAdd open={qaOpen} onClose={() => setQaOpen(false)} />
+      <TaskEditor
+        open={editing !== null}
+        task={editing?.id ? editing : null}
+        courses={activeCourses}
+        onSave={saveTask}
+        onClose={() => setEditing(null)}
+      />
+      <ConfirmDialog
+        open={Boolean(toDelete)}
+        onClose={() => setToDelete(null)}
+        title="Delete this task?"
+        description="Deleting removes it from your workload and history. Archiving keeps it recoverable instead."
+        confirmLabel="Delete task"
+        busy={busy}
+        alternatives={[{ key: "archive", label: "Archive instead", variant: "outline" }]}
+        onConfirm={async (choice) => {
+          if (choice?.key === "archive") {
+            await setArchived(toDelete, true);
+            setToDelete(null);
+            return;
+          }
+          await deleteTask();
+        }}
+      />
     </>
   );
 }

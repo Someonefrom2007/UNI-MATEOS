@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { useUserData } from "@/lib/useUserData";
+import { activeTasks } from "@/lib/taskEdit";
 import { useSoundscape, SOUNDSCAPE_MODES } from "@/hooks/use-soundscape";
 import PageHeader from "@/components/PageHeader";
 import { fmtDuration, courseColor } from "@/lib/format";
@@ -42,7 +43,7 @@ export default function Focus() {
   }, [autostart, phase]);
 
   const courses = data?.Course || [];
-  const tasks = useMemo(() => (data?.Task || []).filter((t) => t.status !== "completed"), [data]);
+  const tasks = useMemo(() => activeTasks(data?.Task).filter((t) => t.status !== "completed"), [data]);
 
   const saveSession = async (minutes) => {
     if (minutes <= 0) return;

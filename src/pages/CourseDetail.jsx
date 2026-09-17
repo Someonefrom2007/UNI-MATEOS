@@ -13,6 +13,7 @@ import ErrorState from "@/components/ErrorState";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { courseDependents, planCourseDelete, dependentSummary } from "@/lib/courseLifecycle";
+import { activeTasks } from "@/lib/taskEdit";
 
 export default function CourseDetail() {
   const { id } = useParams();
@@ -31,7 +32,7 @@ export default function CourseDetail() {
     if (!data || !c) return null;
     const grades = data.Grade.filter((g) => g.course_id === id);
     const exams = data.Exam.filter((e) => e.course_id === id);
-    const tasks = data.Task.filter((t) => t.course_id === id);
+    const tasks = activeTasks(data.Task).filter((t) => t.course_id === id);
     const notes = data.Note.filter((n) => n.course_id === id);
     const resources = data.Resource.filter((r) => r.course_id === id);
     const focus = data.FocusSession.filter((f) => f.course_id === id);
