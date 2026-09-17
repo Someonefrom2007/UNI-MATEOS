@@ -6,18 +6,22 @@ import { courseGrade, requiredGrade } from "@/lib/gradeEngine";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, GraduationCap, Timer, CheckSquare, FileText, BookOpen } from "lucide-react";
+import { ArrowLeft, GraduationCap, Timer, CheckSquare, FileText, BookOpen, Archive } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/ui/use-toast";
+import { courseDependents, planCourseDelete, dependentSummary } from "@/lib/courseLifecycle";
 
 export default function CourseDetail() {
   const { id } = useParams();
-  const { data, loading, error, mutate, refresh } = useUserData();
+  const { data, loading, error, mutate, mutateBatch, refresh } = useUserData();
   const [tab, setTab] = useState("overview");
   const [qaOpen, setQaOpen] = useState(false);
   const [qaPreset, setQaPreset] = useState(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -42,6 +46,9 @@ export default function CourseDetail() {
     return { grades, exams, tasks, notes, resources, focus, grade, req, focusTotal, completedTasks };
   }, [data, c, id]);
 
+  const dependents = useMemo(() => (data && c ? courseDependents(data, c.id) : {}), [data, c]);
+  const summary = useMemo(() => dependentSummary(dependents), [dependents]);
+
   if (error) return <ErrorState onRetry={refresh} />;
 
   if (loading) return <div className="h-64 bg-muted rounded-xl animate-pulse" />;
@@ -59,11 +66,42 @@ export default function CourseDetail() {
     await mutate("Task", "update", task.id, { status: done ? "completed" : "todo", completed_date: done ? new Date().toISOString().slice(0, 10) : null });
   };
 
-  const deleteCourse = async () => {
-    if (!confirm(`Delete ${c.name}? This removes the course. Linked tasks, exams, and notes remain but unlinked.`)) return;
-    await mutate("Course", "delete", c.id);
-    toast({ title: "Course deleted" });
-    navigate("/courses");
+  // Deletion runs from a pure plan so local and hosted behave identically:
+  // optional children are unlinked and kept, required children (exams, grades,
+  // attendance) cannot exist without a course and are removed with it.
+  const deleteCourse = async ({ keepWork }) => {
+    if (!c || busy) return;
+    setBusy(true);
+    try {
+      const plan = planCourseDelete(data, c.id, { keepWork });
+      const ops = [
+        ...plan.unlink.map((r) => ({ entity: r.entity, op: "update", id: r.id, payload: { course_id: null } })),
+        ...plan.remove.map((r) => ({ entity: r.entity, op: "delete", id: r.id })),
+        { entity: "Course", op: "delete", id: c.id },
+      ];
+      await mutateBatch(ops);
+      toast({ title: `Course deleted`, description: keepWork ? `${plan.unlink.length} linked items kept without a course.` : `${plan.total} linked items removed too.` });
+      setDeleteOpen(false);
+      navigate("/courses");
+    } catch {
+      toast({ title: "Couldn't delete the course", description: "Nothing was removed. Please try again." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const archiveCourse = async () => {
+    if (!c || busy) return;
+    setBusy(true);
+    try {
+      await mutate("Course", "update", c.id, { archived: true });
+      toast({ title: "Course archived", description: "It's hidden from your semester but nothing was deleted." });
+      navigate("/courses");
+    } catch {
+      toast({ title: "Couldn't archive the course. Please try again." });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -120,8 +158,12 @@ export default function CourseDetail() {
                 <Button size="sm" variant="outline" onClick={() => openQA("note")}><BookOpen className="w-3.5 h-3.5 mr-1.5" />Add note</Button>
                 <Button size="sm" variant="outline" onClick={() => navigate("/focus")}><Timer className="w-3.5 h-3.5 mr-1.5" />Start focus</Button>
               </div>
-              <div className="mt-6 pt-4 border-t border-border">
-                <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={deleteCourse}>Delete course</Button>
+              <div className="mt-6 pt-4 border-t border-border space-y-2">
+                <Button size="sm" variant="outline" className="w-full justify-start" onClick={archiveCourse} disabled={busy}>
+                  <Archive className="w-3.5 h-3.5 mr-1.5" />Archive course
+                </Button>
+                <p className="text-xs text-muted-foreground">Hides it from your semester without deleting anything.</p>
+                <Button size="sm" variant="ghost" className="w-full justify-start text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)} disabled={busy}>Delete course</Button>
               </div>
             </Card>
           </div>
@@ -212,6 +254,37 @@ export default function CourseDetail() {
       </Tabs>
 
       <QuickAdd open={qaOpen} preset={qaPreset} onClose={() => setQaOpen(false)} />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title={`Delete ${c.name}?`}
+        description="This can't be undone. Choose what happens to the work attached to this course."
+        details={
+          summary.length > 0 ? (
+            <div className="rounded-lg border border-border bg-muted/30 p-3 mt-1 space-y-1.5">
+              <div className="text-xs font-medium text-foreground">Attached to this course</div>
+              {summary.map((s) => (
+                <div key={s.entity} className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground capitalize">{s.label}</span>
+                  <span className="font-mono">{s.count}</span>
+                </div>
+              ))}
+              <p className="text-[11px] text-muted-foreground pt-1.5 border-t border-border/60">
+                Exams, grades and attendance can't exist without a course, so they're removed either way.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-1">Nothing else is linked to this course.</p>
+          )
+        }
+        confirmLabel="Delete everything"
+        busy={busy}
+        alternatives={[
+          { key: "keep", label: "Keep linked work", variant: "outline" },
+        ]}
+        onConfirm={(choice) => deleteCourse({ keepWork: choice?.key === "keep" })}
+      />
     </div>
   );
 }

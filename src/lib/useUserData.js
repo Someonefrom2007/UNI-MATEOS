@@ -135,6 +135,40 @@ export const useUserData = () => {
 
   const refresh = load;
 
+  // Run several writes as one unit and reload once. Used by flows that touch
+  // many rows at once (deleting a course and everything scoped to it); doing
+  // that through `mutate` in a loop would reload every table per row.
+  const mutateBatch = useCallback(async (ops = []) => {
+    const results = [];
+    for (const op of ops) {
+      const { entity, op: kind, id, payload } = op || {};
+      const table = getTable(entity);
+      if (!table) throw new Error(`Unknown entity: ${entity}`);
+      if (repo) {
+        if (kind === "create") results.push(repo.create(table, toSnakeCase(payload || {})));
+        else if (kind === "update") results.push(repo.update(table, id, toSnakeCase(payload || {})));
+        else if (kind === "delete") results.push(repo.delete(table, id));
+        else throw new Error(`Unknown op: ${kind}`);
+      } else if (kind === "create") {
+        const { data: rows, error } = await supabase.from(table).insert(toSnakeCase(payload || {})).select();
+        if (error) throw error;
+        results.push(rows?.[0] ?? null);
+      } else if (kind === "update") {
+        const { data: rows, error } = await supabase.from(table).update(toSnakeCase(payload || {})).eq("id", id).select();
+        if (error) throw error;
+        results.push(rows?.[0] ?? null);
+      } else if (kind === "delete") {
+        const { error } = await supabase.from(table).delete().eq("id", id);
+        if (error) throw error;
+        results.push(null);
+      } else {
+        throw new Error(`Unknown op: ${kind}`);
+      }
+    }
+    await load();
+    return results;
+  }, [load]);
+
   const mutate = useCallback(async (entityName, op, ...args) => {
     const table = getTable(entityName);
     if (!table) throw new Error(`Unknown entity: ${entityName}`);
@@ -168,5 +202,5 @@ export const useUserData = () => {
     return result;
   }, [load]);
 
-  return { data, loading, error, refresh, mutate };
+  return { data, loading, error, refresh, mutate, mutateBatch };
 };

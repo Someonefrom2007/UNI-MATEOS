@@ -9,7 +9,8 @@ import { courseGrade } from "@/lib/gradeEngine";
 import { parseSyllabus } from "@/lib/syllabusParser";
 import { prepareSyllabusImport, resolveCourseId } from "@/lib/syllabusImporter";
 import { Card } from "@/components/ui/card";
-import { BookOpen, Plus, ArrowRight, Clock, Upload, FileSpreadsheet, AlertTriangle, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BookOpen, Plus, ArrowRight, Clock, Upload, FileSpreadsheet, AlertTriangle, Check, ArchiveRestore, Archive } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
 import QuickAdd from "@/components/QuickAdd";
@@ -26,6 +27,9 @@ const { data, loading, error, mutate, refresh } = useUserData();
   const [importText, setImportText] = useState("");
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+
+  const archived = useMemo(() => (data?.Course || []).filter((c) => c.archived), [data]);
 
   const courses = useMemo(() => {
     if (!data) return [];
@@ -169,6 +173,42 @@ const { data, loading, error, mutate, refresh } = useUserData();
         </div>
       )}
       <QuickAdd open={qaOpen} onClose={() => setQaOpen(false)} />
+      {archived.length > 0 && (
+        <div className="mt-8 pt-6 border-t border-border">
+          <button
+            onClick={() => setShowArchived((v) => !v)}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            aria-expanded={showArchived}
+          >
+            <Archive className="w-4 h-4" />
+            Archived courses ({archived.length})
+            <ArrowRight className={`w-3.5 h-3.5 transition-transform ${showArchived ? "rotate-90" : ""}`} />
+          </button>
+          {showArchived && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+              {archived.map((c) => (
+                <Card key={c.id} className="p-4 flex items-center gap-3">
+                  <span className={`w-2.5 h-2.5 rounded-full ${courseColor(c.color).dot} shrink-0`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{c.name}</div>
+                    <div className="text-xs text-muted-foreground">{c.code || "—"} · archived</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      await mutate("Course", "update", c.id, { archived: false });
+                      toast({ title: `${c.name} restored` });
+                    }}
+                  >
+                    <ArchiveRestore className="w-3.5 h-3.5 mr-1.5" />Restore
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {importOpen && <SyllabusImportModal importText={importText} setImportText={setImportText} importResult={importResult} onPreview={handlePreview} onImport={handleImport} importing={importing} onClose={() => { setImportOpen(false); setImportText(""); setImportResult(null); }} />}
     </>
   );
