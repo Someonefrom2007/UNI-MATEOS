@@ -6,6 +6,7 @@
 import { weekWorkload } from "@/lib/workloadEngine";
 import { weeklyVelocity, classifyIntensity, INTENSITY } from "@/lib/burnout";
 import { toLocalISO, fmtDuration, relativeDeadline } from "@/lib/format";
+import { translate } from "@/lib/i18n";
 
 const HOUR = 60;
 
@@ -27,9 +28,9 @@ export const minutesUntilStart = (startTime, nowDate = new Date()) => {
 };
 
 const fmtMinsFuture = (m) => {
-  if (m <= 1) return "Class starting now";
-  if (m < 60) return `Next class in ${m} mins`;
-  return `Next class in ${Math.floor(m / 60)}h ${m % 60}m`;
+  if (m <= 1) return translate("dash.classStartingNow");
+  if (m < 60) return translate("dash.nextClassMins", { n: m });
+  return translate("dash.nextClassHM", { h: Math.floor(m / 60), m: m % 60 });
 };
 
 // The dynamic hero banner — one honest line answering "what's happening?",
@@ -41,7 +42,7 @@ export const statusBanner = ({ nc, urgent = [], workloadMinutes = 0, nowDate = n
       return {
         variant: "upcoming",
         title: fmtMinsFuture(m),
-        detail: [nc.title, nc.room ? `Room ${nc.room}` : ""].filter(Boolean).join(" · "),
+        detail: [nc.title, nc.room ? translate("dash.room", { room: nc.room }) : ""].filter(Boolean).join(" · "),
         minutes: m,
       };
     }
@@ -50,26 +51,26 @@ export const statusBanner = ({ nc, urgent = [], workloadMinutes = 0, nowDate = n
   if (exams.length) {
     return {
       variant: "attention",
-      title: `${exams.length} pending high-priority exam${exams.length > 1 ? "s" : ""}`,
-      detail: exams[0].course?.name || exams[0].item?.name || "Get preparing now.",
+      title: translate(exams.length > 1 ? "dash.pendingExams" : "dash.pendingExam", { n: exams.length }),
+      detail: exams[0].course?.name || exams[0].item?.name || translate("dash.getPreparing"),
     };
   }
   const task = urgent.find((u) => u && u.kind === "task");
   if (task) {
     return {
       variant: "attention",
-      title: task.item?.title || "A task is due right now",
-      detail: `Priority ${task.item?.priority || "high"} · ${relativeDeadline(task.item?.due_date)}`,
+      title: task.item?.title || translate("dash.taskDueNow"),
+      detail: `${translate("dash.priority", { p: task.item?.priority || "high" })} · ${relativeDeadline(task.item?.due_date)}`,
     };
   }
   if (workloadMinutes > 0) {
     return {
       variant: "steady",
-      title: `${fmtDuration(workloadMinutes)} of study planned this week`,
-      detail: "Keep the pace — block it out before it blocks you.",
+      title: translate("dash.studyPlanned", { duration: fmtDuration(workloadMinutes) }),
+      detail: translate("dash.keepPace"),
     };
   }
-  return { variant: "clear", title: "All clear for today", detail: "Nothing urgent. A genuinely good moment to get ahead." };
+  return { variant: "clear", title: translate("dash.allClearToday"), detail: translate("dash.allClearDetail") };
 };
 
 // Pure classification of estimate + recorded effort into the existing
@@ -77,15 +78,10 @@ export const statusBanner = ({ nc, urgent = [], workloadMinutes = 0, nowDate = n
 export const radarClassify = ({ workloadMinutes = 0, focusMinutes = 0, completionsWeek = 0 } = {}) => {
   const totalHours = (workloadMinutes + focusMinutes) / HOUR;
   const level = classifyIntensity(totalHours, completionsWeek);
-  const notes = {
-    low: "Easy pace — space to push.",
-    balanced: "Sustainable flow — keep it there.",
-    overdrive: "High output — protect recovery.",
-  };
   return {
     level,
-    label: INTENSITY[level]?.label || "Balanced",
-    note: notes[level] || "",
+    label: translate(`dash.intensity.${level in INTENSITY ? level : "balanced"}`),
+    note: translate(`dash.intensity.note.${level in INTENSITY ? level : "balanced"}`),
     workloadMinutes,
     focusMinutes,
     totalHours: Math.round(totalHours * 10) / 10,

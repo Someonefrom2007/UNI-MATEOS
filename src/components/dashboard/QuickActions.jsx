@@ -1,18 +1,20 @@
 import { useNavigate } from "react-router-dom";
 import { Command, Play, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 
 // Quick actions / command launcher — a fast lane to the Command Palette (⌘K)
 // and to Focus mode, surfaced right on the dashboard.
 export default function QuickActions() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const openPalette = () => window.dispatchEvent(new Event("unimate:palette"));
   return (
     <div className="relative overflow-hidden rounded-2xl void-surface p-5 h-full">
       <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.03] via-transparent to-transparent" aria-hidden />
       <div className="relative h-full flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="um-label">Quick actions</h2>
+          <h2 className="um-label">{t("dash.quickActions")}</h2>
           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 hidden sm:inline-flex items-center gap-1">
             <Command className="w-3 h-3" /> K
           </span>
@@ -25,7 +27,7 @@ export default function QuickActions() {
             onClick={openPalette}
           >
             <CheckSquare className="w-4 h-4 text-hud-cyan" />
-            Command palette
+            {t("dash.commandPalette")}
             <span className="ml-auto text-[10px] font-mono text-muted-foreground/70 hidden sm:inline">⌘K</span>
           </Button>
           <Button
@@ -34,10 +36,10 @@ export default function QuickActions() {
             onClick={() => navigate("/focus", { state: { autostart: true } })}
           >
             <Play className="w-4 h-4" />
-            Start focus mode
+            {t("dash.startFocusMode")}
           </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground mt-auto pt-3">Search anything, add a task or note, arm a session — ⌘K works app-wide.</p>
+        <p className="text-[11px] text-muted-foreground mt-auto pt-3">{t("dash.quickHint")}</p>
       </div>
     </div>
   );

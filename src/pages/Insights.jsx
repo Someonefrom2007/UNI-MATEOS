@@ -3,6 +3,7 @@ import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { generateInsights } from "@/lib/insightsEngine";
+import { localizeInsights } from "@/lib/insightText";
 import { activeTasks } from "@/lib/taskEdit";
 import { Card } from "@/components/ui/card";
 import { Sparkles, TrendingUp, AlertTriangle, Clock, Target } from "lucide-react";
@@ -18,20 +19,22 @@ const CAT_ICON = {
 
 export default function Insights() {
   const { data, loading, error, refresh } = useUserData();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   const insights = useMemo(() => {
     if (!data) return [];
-    return generateInsights({
+    const inputs = {
       tasks: activeTasks(data.Task),
       exams: data.Exam,
-      focusSessions: data.FocusSession,
       courses: data.Course,
       grades: data.Grade,
       habits: data.Habit,
-      habitLogs: data.HabitLog,
-    });
-  }, [data]);
+    };
+    return localizeInsights(
+      generateInsights({ ...inputs, focusSessions: data.FocusSession, habitLogs: data.HabitLog }),
+      inputs,
+    );
+  }, [data, lang]);
 
   const byCat = useMemo(() => {
     const m = {};
@@ -45,7 +48,7 @@ export default function Insights() {
     return (
       <>
         <PageHeader title={t("title.insights")} subtitle={t("title.insights.subtitle")} />
-        <EmptyState icon={Sparkles} title="No insights yet" description="As you add tasks, grades, and focus sessions, UNI·MATE will surface patterns here — based only on real activity." />
+        <EmptyState icon={Sparkles} title={t("insights.empty.title")} description={t("insights.empty.body")} />
       </>
     );
   }
@@ -60,7 +63,7 @@ export default function Insights() {
           <div key={cat} className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Icon className="w-4 h-4 text-muted-foreground" />
-              <h2 className="um-label">{cat}</h2>
+              <h2 className="um-label">{t(`dash.cat.${cat}`)}</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {list.map((ins) => (

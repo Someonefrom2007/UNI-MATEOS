@@ -5,14 +5,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarPlus, CalendarDays } from "lucide-react";
 import { courseColor } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 
 const TYPE_STYLE = {
-  class: { dot: "bg-cyan-500", label: "Class" },
-  exam: { dot: "bg-rose-500", label: "Exam" },
-  task: { dot: "bg-amber-500", label: "Task" },
-  study: { dot: "bg-violet-500", label: "Study" },
-  personal: { dot: "bg-emerald-500", label: "Personal" },
-  deadline: { dot: "bg-rose-500", label: "Deadline" },
+  class: { dot: "bg-cyan-500", label: "dash.type.class" },
+  exam: { dot: "bg-rose-500", label: "dash.type.exam" },
+  task: { dot: "bg-amber-500", label: "dash.type.task" },
+  study: { dot: "bg-violet-500", label: "dash.type.study" },
+  personal: { dot: "bg-emerald-500", label: "dash.type.personal" },
+  deadline: { dot: "bg-rose-500", label: "dash.type.deadline" },
 };
 
 // Time unfolding: today as a living timeline — the "now" marker
@@ -20,6 +21,7 @@ const TYPE_STYLE = {
 // items from an imported ICS feed carry a small badge.
 export default function TodayTimeline({ timeline, courses }) {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [now, setNow] = useState(() => new Date().toTimeString().slice(0, 5));
 
   useEffect(() => {
@@ -35,18 +37,18 @@ export default function TodayTimeline({ timeline, courses }) {
   return (
     <Card className="p-5 h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="um-label">Today</h2>
-        <Link to="/schedule" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Schedule →</Link>
+        <h2 className="um-label">{t("dash.today")}</h2>
+        <Link to="/schedule" className="text-xs text-muted-foreground hover:text-foreground transition-colors">{t("dash.scheduleLink")}</Link>
       </div>
       {timeline.length === 0 ? (
         <div className="flex-1 flex flex-col justify-center">
-          <p className="text-sm text-muted-foreground">Nothing scheduled today. A good time to get ahead.</p>
+          <p className="text-sm text-muted-foreground">{t("dash.nothingToday")}</p>
           <div className="flex flex-wrap gap-2 mt-4">
             <Button size="sm" variant="outline" onClick={() => navigate("/schedule")}>
-              <CalendarPlus className="w-3.5 h-3.5 mr-1.5" />Add a class
+              <CalendarPlus className="w-3.5 h-3.5 mr-1.5" />{t("dash.addClass")}
             </Button>
             <Button size="sm" variant="outline" onClick={() => navigate("/schedule")}>
-              <CalendarDays className="w-3.5 h-3.5 mr-1.5" />Import ICS
+              <CalendarDays className="w-3.5 h-3.5 mr-1.5" />{t("dash.importIcs")}
             </Button>
           </div>
         </div>
@@ -77,8 +79,8 @@ export default function TodayTimeline({ timeline, courses }) {
                   </div>
                   {item.room && <div className="text-xs text-muted-foreground">{item.room}</div>}
                 </div>
-                {st === "now" && <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary text-primary-foreground">Now</span>}
-                {st !== "now" && <span className="text-[10px] uppercase tracking-wider text-muted-foreground hidden sm:block">{ts.label}</span>}
+                {st === "now" && <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary text-primary-foreground">{t("dash.now")}</span>}
+                {st !== "now" && <span className="text-[10px] uppercase tracking-wider text-muted-foreground hidden sm:block">{t(ts.label)}</span>}
               </div>
             );
           })}

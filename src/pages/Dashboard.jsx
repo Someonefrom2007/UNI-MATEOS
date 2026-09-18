@@ -6,6 +6,7 @@ import { courseGrade, ectsAverage } from "@/lib/gradeEngine";
 import { weekWorkload, focusStreak } from "@/lib/workloadEngine";
 import { todayTimeline, nextClass } from "@/lib/scheduleEngine";
 import { generateInsights, recommendNow } from "@/lib/insightsEngine";
+import { localizeInsights, localizeRecommendation } from "@/lib/insightText";
 import { weeklyVelocity } from "@/lib/burnout";
 import { statusBanner, studyVelocity, markIcsTimeline } from "@/lib/dashboardRadar";
 import { useAuth } from "@/lib/AuthContext";
@@ -54,22 +55,22 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [demoLoading, setDemoLoading] = useState(false);
   const { chaos: deskMode, toggle: toggleDesk } = useDeskMode();
 
   const cell = (k) => `h-full transition-transform duration-300 ease-out ${deskMode ? BENTO_ROT[k] : "rotate-0"}`;
 
   const loadDemo = async () => {
-    if (!confirm("This loads a full sample semester (courses, classes, tasks, exams, grades, notes, stickies, habits, goals). Running it again refreshes that sample rather than duplicating it. Your own courses are left alone. Continue?")) return;
+    if (!confirm(t("dash.demoConfirm"))) return;
     setDemoLoading(true);
     try {
       await loadDemoData();
       await refresh();
-      toast({ title: "Demo semester loaded — take a look around!" });
+      toast({ title: t("dash.demoLoaded") });
     } catch (e) {
       console.error("Demo seeding failed:", e);
-      toast({ title: "Demo data couldn't be loaded", description: "Check the terminal/console for the failing table." });
+      toast({ title: t("dash.demoFailed"), description: t("dash.demoFailed.body") });
     } finally {
       setDemoLoading(false);
     }
@@ -109,8 +110,15 @@ export default function Dashboard() {
     const wl = weekWorkload(tasks, exams, focus, courses, todayStr);
     const velocity = weeklyVelocity({ tasks, focusSessions: focus, todayStr });
     const radar = studyVelocity({ tasks, exams, focusSessions: focus, courses, todayStr });
-    const insights = generateInsights({ tasks, exams, focusSessions: focus, courses, grades, habits, habitLogs });
-    const rec = recommendNow({ tasks, exams, courses, events });
+    // The engines decide *what* to say (pinned); insightText renders it in the
+    // active language. The inputs are passed along so the sentences carry the
+    // same numbers the engines based their decision on.
+    const insightInputs = { tasks, exams, courses, grades, habits };
+    const insights = localizeInsights(
+      generateInsights({ tasks, exams, focusSessions: focus, courses, grades, habits, habitLogs }),
+      insightInputs,
+    );
+    const rec = localizeRecommendation(recommendNow({ tasks, exams, courses, events }), insightInputs);
 
     const urgent = [
       ...exams.filter((e) => e.status !== "completed" && e.date).map((e) => {
@@ -124,7 +132,10 @@ export default function Dashboard() {
     ].sort((a, b) => a.n - b.n).slice(0, 4);
 
     return { courses, tasks, exams, grades, courseGrades, semesterGPA, totalEcts, nc, timeline, timelineIcs, wl, velocity, radar, insights, rec, urgent, goals, habits, habitLogs, sticky, todayStr };
-  }, [data]);
+    // `lang` is a dependency because the insight, recommendation and radar
+    // sentences inside this object are localized — without it a language
+    // switch would leave the old language in place behind the memo.
+  }, [data, lang]);
 
   if (error) return <ErrorState onRetry={refresh} />;
 
@@ -149,16 +160,16 @@ export default function Dashboard() {
                 <BookOpen className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h2 className="font-display text-lg sm:text-xl font-semibold tracking-tight">Your semester starts here</h2>
-                <p className="text-sm text-muted-foreground mt-1 max-w-md">Add your first course or explore with a demo semester — the HUD tiles below stay live either way.</p>
+                <h2 className="font-display text-lg sm:text-xl font-semibold tracking-tight">{t("dash.semesterStarts")}</h2>
+                <p className="text-sm text-muted-foreground mt-1 max-w-md">{t("dash.semesterStarts.body")}</p>
               </div>
             </div>
             <div className="relative flex flex-wrap gap-3">
-              <Button onClick={() => navigate("/courses")}>Add your first course</Button>
-              <Button variant="outline" onClick={() => navigate("/schedule")}>Import ICS</Button>
-              <Button variant="outline" onClick={() => navigate("/onboarding")}>Guided setup</Button>
+              <Button onClick={() => navigate("/courses")}>{t("dash.addFirstCourse")}</Button>
+              <Button variant="outline" onClick={() => navigate("/schedule")}>{t("dash.importIcs")}</Button>
+              <Button variant="outline" onClick={() => navigate("/onboarding")}>{t("dash.guidedSetup")}</Button>
               <Button variant="outline" onClick={loadDemo} disabled={demoLoading}>
-                {demoLoading ? "Loading demo…" : (<><Sparkles className="w-4 h-4 mr-2 text-primary" />Explore with demo data</>)}
+                {demoLoading ? t("dash.loadingDemo") : (<><Sparkles className="w-4 h-4 mr-2 text-primary" />{t("dash.exploreDemo")}</>)}
               </Button>
             </div>
           </div>
@@ -234,19 +245,20 @@ export default function Dashboard() {
 }
 
 function StickyTile({ notes, navigate }) {
+  const { t } = useI18n();
   const sticky = notes.slice(0, 3);
   return (
     <div className="relative overflow-hidden h-full rounded-xl void-surface p-4 flex flex-col">
       <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.02] via-transparent to-transparent" aria-hidden />
       <div className="relative flex items-center justify-between mb-3">
-        <span className="um-label">Sticky notes</span>
-        <button onClick={() => navigate("/stickies")} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Sticky wall →</button>
+        <span className="um-label">{t("dash.stickyNotes")}</span>
+        <button onClick={() => navigate("/stickies")} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{t("dash.stickyWall")}</button>
       </div>
       {sticky.length === 0 ? (
         <div className="relative flex-1 flex flex-col justify-center">
-          <p className="text-sm text-muted-foreground">Half-formed thoughts welcome — stick them before they escape.</p>
+          <p className="text-sm text-muted-foreground">{t("dash.stickyEmpty")}</p>
           <button onClick={() => navigate("/stickies")} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors self-start">
-            Add a sticky →
+            {t("dash.addSticky")}
           </button>
         </div>
       ) : (

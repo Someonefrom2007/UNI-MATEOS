@@ -1,4 +1,12 @@
 // Formatting helpers for UNI·MATE — consistent across the app.
+//
+// The relative-date helpers are localized. They read the language at call time
+// rather than taking it as an argument, because every caller renders inside a
+// component that already subscribes with useI18n(); passing the language down
+// through each one would be noise. A component that renders these must
+// subscribe, or its text would keep the old language after a switch.
+
+import { translate, localeFor, getLang } from "@/lib/i18n";
 
 export const fmtDuration = (minutes) => {
   if (!minutes || minutes <= 0) return "0m";
@@ -45,31 +53,32 @@ export const daysSince = (dateStr) => {
 export const relativeDeadline = (dateStr) => {
   const n = daysUntil(dateStr);
   if (n === null) return "";
-  if (n < 0) return `Overdue ${Math.abs(n)}d`;
-  if (n === 0) return "Due today";
-  if (n === 1) return "Due tomorrow";
-  if (n <= 7) return `Due in ${n}d`;
-  return `Due ${new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+  if (n < 0) return translate("format.overdue", { n: Math.abs(n) });
+  if (n === 0) return translate("format.dueToday");
+  if (n === 1) return translate("format.dueTomorrow");
+  if (n <= 7) return translate("format.dueIn", { n });
+  const date = new Date(dateStr + "T00:00:00").toLocaleDateString(localeFor(getLang()), { month: "short", day: "numeric" });
+  return translate("format.dueOn", { date });
 };
 
 export const relativeExam = (dateStr) => {
   const n = daysUntil(dateStr);
   if (n === null) return "";
-  if (n < 0) return "Past";
-  if (n === 0) return "Today";
-  if (n === 1) return "Tomorrow";
-  return `In ${n}d`;
+  if (n < 0) return translate("format.past");
+  if (n === 0) return translate("format.today");
+  if (n === 1) return translate("format.tomorrow");
+  return translate("format.inDays", { n });
 };
 
 export const greeting = () => {
   const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 19) return "Good afternoon";
-  return "Good evening";
+  if (h < 12) return translate("format.greeting.morning");
+  if (h < 19) return translate("format.greeting.afternoon");
+  return translate("format.greeting.evening");
 };
 
 export const longDate = () =>
-  new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  new Date().toLocaleDateString(localeFor(getLang()), { weekday: "long", month: "long", day: "numeric" });
 
 export const fmtTime = (t) => {
   if (!t) return "";

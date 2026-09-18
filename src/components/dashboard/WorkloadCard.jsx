@@ -4,6 +4,7 @@ import { Clock, Plus, CalendarDays } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { fmtDuration, courseColor } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 
 const LEVEL_STYLE = {
   low: { cls: "chip-hud-cyan", dot: "bg-hud-cyan" },
@@ -16,6 +17,7 @@ const LEVEL_STYLE = {
 // Overdrive) from the workloadEngine estimate + recorded focus.
 export default function WorkloadCard({ wl, radar }) {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const hasRadar = radar && (radar.workloadMinutes > 0 || radar.focusMinutes > 0);
   const radarMeta = LEVEL_STYLE[radar?.level] || LEVEL_STYLE.low;
 
@@ -24,26 +26,26 @@ export default function WorkloadCard({ wl, radar }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-primary" />
-          <h2 className="um-label">Workload this week</h2>
+          <h2 className="um-label">{t("dash.workloadThisWeek")}</h2>
         </div>
-        <button onClick={() => navigate("/workload")} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Details →</button>
+        <button onClick={() => navigate("/workload")} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{t("dash.details")}</button>
       </div>
       {wl.total === 0 && !hasRadar ? (
         <div>
-          <p className="text-sm text-muted-foreground">No estimated work this week yet. Add a task or import your calendar to see your load.</p>
+          <p className="text-sm text-muted-foreground">{t("dash.noWork")}</p>
           <div className="flex flex-wrap gap-2 mt-4">
             <Button size="sm" variant="outline" onClick={() => navigate("/tasks")}>
-              <Plus className="w-3.5 h-3.5 mr-1.5" />Add a task
+              <Plus className="w-3.5 h-3.5 mr-1.5" />{t("dash.addTask")}
             </Button>
             <Button size="sm" variant="outline" onClick={() => navigate("/schedule")}>
-              <CalendarDays className="w-3.5 h-3.5 mr-1.5" />Import ICS
+              <CalendarDays className="w-3.5 h-3.5 mr-1.5" />{t("dash.importIcs")}
             </Button>
           </div>
         </div>
       ) : (
         <>
           <div className="font-display text-2xl font-semibold mb-4">
-            {fmtDuration(wl.total)} <span className="text-sm font-normal text-muted-foreground">estimated</span>
+            {fmtDuration(wl.total)} <span className="text-sm font-normal text-muted-foreground">{t("dash.estimated")}</span>
           </div>
           <div className="space-y-3">
             {wl.breakdown.slice(0, 4).map((b, i) => {
@@ -52,7 +54,7 @@ export default function WorkloadCard({ wl, radar }) {
               return (
                 <div key={b.course_id}>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${cc.dot}`} />{b.course?.name || "Other"}</span>
+                    <span className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${cc.dot}`} />{b.course?.name || t("dash.other")}</span>
                     <span className="text-muted-foreground">{fmtDuration(b.minutes)}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
@@ -71,8 +73,8 @@ export default function WorkloadCard({ wl, radar }) {
           {hasRadar && (
             <div className="mt-5 pt-4 border-t border-border/60">
               <div className="flex items-center justify-between text-xs mb-2">
-                <span className="text-muted-foreground">Load radar</span>
-                <span className="font-medium text-muted-foreground">{radar.totalHours}h estimated + focused</span>
+                <span className="text-muted-foreground">{t("dash.loadRadar")}</span>
+                <span className="font-medium text-muted-foreground">{t("dash.radarSummary", { hours: radar.totalHours })}</span>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 {["low", "balanced", "overdrive"].map((lvl) => {
@@ -86,7 +88,7 @@ export default function WorkloadCard({ wl, radar }) {
                       }`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${active ? st.dot : "bg-muted-foreground/40"}`} />
-                      {lvl}
+                      {t(`dash.intensity.${lvl}`)}
                     </div>
                   );
                 })}

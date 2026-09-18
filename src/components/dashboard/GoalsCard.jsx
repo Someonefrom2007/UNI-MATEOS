@@ -2,13 +2,15 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Target } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useI18n } from "@/lib/i18n";
 
 export default function GoalsCard({ goals }) {
+  const { t } = useI18n();
   return (
     <Card className="p-5 h-full">
       <div className="flex items-center gap-2 mb-4">
         <Target className="w-4 h-4 text-hud-emerald" />
-        <h2 className="um-label">Goals</h2>
+        <h2 className="um-label">{t("dash.goals")}</h2>
       </div>
       <div className="space-y-3">
         {goals.slice(0, 3).map((g, i) => {

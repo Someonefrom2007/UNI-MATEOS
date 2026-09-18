@@ -1,4 +1,5 @@
 import { greeting, longDate, fmtGrade } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 import { Reveal } from "@/components/motion/Reveal";
 
 function Vital({ label, value, hint }) {
@@ -14,6 +15,7 @@ function Vital({ label, value, hint }) {
 // The establishing shot — a layered dark-void hero: who you are, when it is,
 // and where you stand. Subtle hairlines and low-opacity white layers only.
 export default function HeroGreeting({ user, gpa, ects, streak }) {
+  const { t } = useI18n();
   const name = user?.full_name?.trim().split(/\s+/)[0] || user?.email?.split("@")[0] || "there";
   return (
     <Reveal>
@@ -34,20 +36,20 @@ export default function HeroGreeting({ user, gpa, ects, streak }) {
           <path d="M0 80 L0 52 h40 v-12 h20 v14 h30 v-24 h15 v-8 h15 v22 h45 v16 h35 v-24 h20 v12 h40 v-22 h25 v29 h35 v-13 h45 v20 h35 v-28 h25 v16 h45 v12 h35 v-18 h25 v14 h45 v-8 h30 v12 h45 v-14 h25 v20 h40 v-16 h35 v12 h40 v16 Z" />
         </svg>
         <div className="relative flex items-center gap-2 flex-wrap mb-4">
-          <span className="cyber-tag"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />Online</span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">uni·mate // semester console</span>
+          <span className="cyber-tag"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />{t("dash.online")}</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{t("dash.semesterConsole")}</span>
         </div>
         <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl sm:text-5xl font-semibold tracking-tight leading-tight">
               {greeting()}, <span className="text-primary">{name}.</span>
             </h1>
-            <p className="text-sm text-muted-foreground mt-1.5">{longDate()} · your university, organized around you.</p>
+            <p className="text-sm text-muted-foreground mt-1.5">{t("dash.heroLine", { date: longDate() })}</p>
           </div>
           <div className="flex items-center gap-6 sm:gap-8 pb-1">
-            <Vital label="Grade average" value={gpa !== null && gpa !== undefined ? fmtGrade(gpa) : "—"} hint={gpa !== null && gpa !== undefined ? "out of 10" : "no grades yet"} />
-            <Vital label="ECTS" value={ects} hint="this semester" />
-            <Vital label="Focus streak" value={`${streak}d`} hint="keep it alive" />
+            <Vital label={t("dash.gradeAverage")} value={gpa !== null && gpa !== undefined ? fmtGrade(gpa) : "—"} hint={gpa !== null && gpa !== undefined ? t("dash.outOf10") : t("dash.noGradesYet")} />
+            <Vital label={t("dash.ects")} value={ects} hint={t("dash.thisSemester")} />
+            <Vital label={t("dash.focusStreak")} value={`${streak}d`} hint={t("dash.keepItAlive")} />
           </div>
         </div>
       </div>

@@ -5,25 +5,17 @@ import { Gauge, ArrowRight, Flame, Activity, CalendarCheck, Play } from "lucide-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { fmtDuration } from "@/lib/format";
-import { INTENSITY } from "@/lib/burnout";
+import { useI18n } from "@/lib/i18n";
 
 const INTENSITY_META = {
-  low: {
-    cls: "chip-hud-cyan",
-    note: "Easy pace — space to push.",
-  },
-  balanced: {
-    cls: "chip-hud-emerald",
-    note: "Sustainable flow — keep it there.",
-  },
-  overdrive: {
-    cls: "chip-hud-rose",
-    note: "High output — protect recovery.",
-  },
+  low: { cls: "chip-hud-cyan", note: "dash.intensity.note.low" },
+  balanced: { cls: "chip-hud-emerald", note: "dash.intensity.note.balanced" },
+  overdrive: { cls: "chip-hud-rose", note: "dash.intensity.note.overdrive" },
 };
 
 export default function VelocityCard({ velocity }) {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const meta = INTENSITY_META[velocity?.intensity] || INTENSITY_META.low;
   const { focusHoursWeek, completionsWeek, focus, completions, score } = velocity;
   const hasData = velocity.focusMinWeek > 0 || completionsWeek > 0;
@@ -32,16 +24,16 @@ export default function VelocityCard({ velocity }) {
     <Card className="p-5 h-full">
       <div className="flex items-center gap-2 mb-4">
         <Gauge className="w-4 h-4 text-hud-cyan" />
-        <h2 className="um-label">Velocity &amp; burnout risk</h2>
+        <h2 className="um-label">{t("dash.velocity")}</h2>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1"><Flame className="w-3 h-3" /> Focus this week</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1"><Flame className="w-3 h-3" /> {t("dash.focusThisWeek")}</div>
           <div className="font-display text-xl font-semibold mt-0.5">{fmtDuration(Math.round(focusHoursWeek * 60))}</div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1"><CalendarCheck className="w-3 h-3" /> Tasks completed</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1"><CalendarCheck className="w-3 h-3" /> {t("dash.tasksCompleted")}</div>
           <div className="font-display text-xl font-semibold mt-0.5">{completionsWeek}</div>
         </div>
       </div>
@@ -55,12 +47,12 @@ export default function VelocityCard({ velocity }) {
         ))}
       </div>
       <div className="flex justify-between text-[10px] text-muted-foreground mb-4">
-        <span>mon</span><span>wed</span><span>fri</span><span>today</span>
+        <span>{t("dow.mon").toLowerCase()}</span><span>{t("dow.wed").toLowerCase()}</span><span>{t("dow.fri").toLowerCase()}</span><span>{t("dash.today").toLowerCase()}</span>
       </div>
 
       <div className="mb-3">
         <div className="flex items-center justify-between text-xs mb-1.5">
-          <span className="text-muted-foreground">Load intensity</span>
+          <span className="text-muted-foreground">{t("dash.loadIntensity")}</span>
           <span className="font-medium">{score}/100</span>
         </div>
         <div className="h-1.5 rounded-full bg-muted overflow-hidden">
@@ -74,18 +66,18 @@ export default function VelocityCard({ velocity }) {
       </div>
 
       <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold ${meta.cls}`}>
-        <Activity className="w-3.5 h-3.5" /> {INTENSITY[velocity.intensity]?.label || "Balanced"}
-        <span className="font-normal opacity-80 text-[11px]">{meta.note}</span>
+        <Activity className="w-3.5 h-3.5" /> {t(`dash.intensity.${velocity.intensity in INTENSITY_META ? velocity.intensity : "balanced"}`)}
+        <span className="font-normal opacity-80 text-[11px]">{t(meta.note)}</span>
       </div>
 
       {!hasData && (
         <Button size="sm" variant="outline" className="mt-4" onClick={() => navigate("/focus", { state: { autostart: true } })}>
-          <Play className="w-3.5 h-3.5 mr-1.5" />Start a focus session
+          <Play className="w-3.5 h-3.5 mr-1.5" />{t("dash.startSession")}
         </Button>
       )}
 
       <Link to="/workload" className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors mt-4">
-        Workload breakdown <ArrowRight className="w-3 h-3 ml-1" />
+        {t("dash.workloadBreakdown")} <ArrowRight className="w-3 h-3 ml-1" />
       </Link>
     </Card>
   );

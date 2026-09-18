@@ -1,4 +1,5 @@
 import { Clock, AlertTriangle, Activity, CheckCircle2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 const VARIANTS = {
   upcoming: { icon: Clock, text: "text-hud-cyan", chip: "chip-hud-cyan", dot: "bg-hud-cyan" },
@@ -10,6 +11,7 @@ const VARIANTS = {
 // Layered dark-void status bar (#07080D + hairline highlight, no scanlines):
 // one contextual line that answers "what is happening right now?" at a glance.
 export default function HeroStatusBanner({ banner }) {
+  const { t } = useI18n();
   const meta = VARIANTS[banner?.variant] || VARIANTS.clear;
   const Icon = meta.icon;
   return (
@@ -21,10 +23,10 @@ export default function HeroStatusBanner({ banner }) {
       <div className="relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4">
         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border self-start sm:self-auto ${meta.chip}`}>
           <Icon className={`w-4 h-4 ${meta.text}`} />
-          <span className={`text-xs font-semibold ${meta.text}`}>Live</span>
+          <span className={`text-xs font-semibold ${meta.text}`}>{t("dash.live")}</span>
         </div>
         <div className="min-w-0">
-          <p className="font-display text-sm sm:text-base font-semibold tracking-tight truncate">{banner?.title || "All clear for today"}</p>
+          <p className="font-display text-sm sm:text-base font-semibold tracking-tight truncate">{banner?.title || t("dash.allClearToday")}</p>
           {banner?.detail && <p className="text-xs text-muted-foreground truncate mt-0.5">{banner.detail}</p>}
         </div>
         <span className={`hidden sm:block w-1.5 h-1.5 rounded-full ml-auto shrink-0 ${meta.dot}`} aria-hidden />
