@@ -4,7 +4,7 @@ import { useUserData } from "@/lib/useUserData";
 import { useDeskMode } from "@/hooks/use-desk-mode";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
-import { courseColor } from "@/lib/format";
+import { courseColor, notePreview } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { FileText, Plus, Pin, Search } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
@@ -23,7 +23,7 @@ export default function Notes() {
     let list = data.Note.filter((n) => !n.archived);
     if (q.trim()) {
       const nq = q.toLowerCase();
-      list = list.filter((n) => n.title.toLowerCase().includes(nq) || (n.content || "").toLowerCase().includes(nq));
+      list = list.filter((n) => n.title.toLowerCase().includes(nq) || notePreview(n.content).toLowerCase().includes(nq));
     }
     return list.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.updated_date || "").localeCompare(a.updated_date || ""));
   }, [data, q]);
@@ -73,7 +73,7 @@ export default function Notes() {
                     <h3 className="font-medium text-sm leading-tight">{n.title}</h3>
                     {n.pinned && <Pin className="w-3.5 h-3.5 text-hud-cyan shrink-0 drop-shadow-[0_0_6px_rgba(34,211,238,0.8)]" />}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 line-clamp-3">{(n.content || "").replace(/[#*>]/g, "").slice(0, 140)}</p>
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-3">{notePreview(n.content)}</p>
                   {course && (
                     <div className="mt-3 chip border-border/70 bg-muted/40 text-muted-foreground">
                       <span className={`w-1.5 h-1.5 rounded-full ${cc.dot}`} />

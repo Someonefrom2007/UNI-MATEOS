@@ -96,3 +96,30 @@ export const PRIORITY_META = {
   medium: { label: "Medium", cls: "text-hud-cyan bg-hud-cyan/10 border-hud-cyan/30" },
   low: { label: "Low", cls: "text-muted-foreground bg-muted border-border" },
 };
+
+// Notes are authored in a rich-text editor, so `content` holds HTML. Anything
+// that shows a one-line preview (list cards, course workspace, search results)
+// has to render readable text instead of tags and entities.
+const ENTITIES = {
+  "&nbsp;": " ",
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#39;": "'",
+  "&apos;": "'",
+};
+
+export const notePreview = (html, max = 140) => {
+  if (!html) return "";
+  const text = String(html)
+    // Close tags become spaces so adjacent blocks don't fuse into one word.
+    .replace(/<\/(p|div|li|h[1-6]|blockquote)>/gi, " ")
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&[a-z]+;/gi, (m) => ENTITIES[m.toLowerCase()] ?? m)
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
+};

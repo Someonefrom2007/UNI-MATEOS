@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useUserData } from "@/lib/useUserData";
-import { courseColor, fmtGrade, fmtDuration, relativeDeadline, PRIORITY_META } from "@/lib/format";
+import { courseColor, fmtGrade, fmtDuration, relativeDeadline, PRIORITY_META, notePreview } from "@/lib/format";
 import { courseGrade, requiredGrade } from "@/lib/gradeEngine";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -245,7 +245,7 @@ export default function CourseDetail() {
                 <Link key={n.id} to={`/notes/${n.id}`}>
                   <Card className="p-4 hover:border-primary/40 transition-colors">
                     <div className="text-sm font-medium">{n.title}</div>
-                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{(n.content || "").replace(/[#*]/g, "").slice(0, 100)}</div>
+                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{notePreview(n.content, 100)}</div>
                   </Card>
                 </Link>
               ))}

@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useUserData } from "@/lib/useUserData";
-import { supabase } from "@/lib/supabase";
-import { isLocalWorkspace } from "@/lib/repo/select";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ReactQuill from "react-quill-new";
@@ -11,6 +9,7 @@ import { ArrowLeft, Pin, Trash2 } from "lucide-react";
 
 import { useToast } from "@/components/ui/use-toast";
 import ErrorState from "@/components/ErrorState";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function NoteDetail() {
   const { id } = useParams();
@@ -25,6 +24,7 @@ export default function NoteDetail() {
   const [pinned, setPinned] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("Saved");
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const saveTimer = useRef(null);
 
   useEffect(() => {
@@ -45,11 +45,7 @@ export default function NoteDetail() {
       setSaving(true);
       try {
         const patch = { title, content, course_id: courseId === "none" ? null : courseId, pinned };
-        if (isLocalWorkspace()) {
-          await mutate("Note", "update", id, patch);
-        } else {
-          await supabase.from("notes").update(patch).eq("id", id);
-        }
+        await mutate("Note", "update", id, patch);
         setStatus("Saved");
       } catch {
         setStatus("Save failed");
@@ -68,7 +64,6 @@ export default function NoteDetail() {
   const courses = data.Course || [];
 
   const del = async () => {
-    if (!confirm("Delete this note?")) return;
     await mutate("Note", "delete", id);
     toast({ title: "Note deleted" });
     navigate("/notes");
@@ -81,7 +76,7 @@ export default function NoteDetail() {
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">{status}</span>
           <button onClick={() => setPinned(!pinned)} aria-label={pinned ? "Unpin note" : "Pin note"} className={`p-2 rounded-lg hover:bg-muted ${pinned ? "text-primary" : "text-muted-foreground"}`}><Pin className="w-4 h-4" /></button>
-          <button onClick={del} aria-label="Delete note" className="p-2 rounded-lg hover:bg-muted text-destructive"><Trash2 className="w-4 h-4" /></button>
+          <button onClick={() => setConfirmOpen(true)} aria-label="Delete note" className="p-2 rounded-lg hover:bg-muted text-destructive"><Trash2 className="w-4 h-4" /></button>
         </div>
       </div>
 
@@ -97,6 +92,15 @@ export default function NoteDetail() {
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <ReactQuill theme="snow" value={content} onChange={setContent} placeholder="Start writing…" className="um-quill" />
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Delete this note?"
+        description="The note and its content will be removed. This can't be undone."
+        confirmLabel="Delete note"
+        onConfirm={del}
+      />
 
       <style>{`
         .um-quill .ql-toolbar { border: none; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--muted)/0.3); }
