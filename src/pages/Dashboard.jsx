@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, Sparkles, PanelsTopLeft } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { loadDemoData } from "@/lib/demoData";
+import { isOnboardingDone } from "@/lib/onboarding";
 import { activeTasks } from "@/lib/taskEdit";
 import ErrorState from "@/components/ErrorState";
 import { Reveal } from "@/components/motion/Reveal";
@@ -167,7 +168,9 @@ export default function Dashboard() {
             <div className="relative flex flex-wrap gap-3">
               <Button onClick={() => navigate("/courses")}>{t("dash.addFirstCourse")}</Button>
               <Button variant="outline" onClick={() => navigate("/schedule")}>{t("dash.importIcs")}</Button>
-              <Button variant="outline" onClick={() => navigate("/onboarding")}>{t("dash.guidedSetup")}</Button>
+              {!isOnboardingDone() && (
+                <Button variant="outline" onClick={() => navigate("/onboarding")}>{t("dash.guidedSetup")}</Button>
+              )}
               <Button variant="outline" onClick={loadDemo} disabled={demoLoading}>
                 {demoLoading ? t("dash.loadingDemo") : (<><Sparkles className="w-4 h-4 mr-2 text-primary" />{t("dash.exploreDemo")}</>)}
               </Button>

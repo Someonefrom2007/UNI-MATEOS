@@ -207,6 +207,14 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 - **Honesty:** the function still states plainly that it uses only the supplied data and will say when data is insufficient; the added context is real rows, scoped by `user_id` under RLS as before.
 - **Evidence:** typecheck 0 · lint 0 · tests 41 files / 624 pass · build ✅; the Edge Function transpiles cleanly (`esbuild`). Deploying it to the hosted project is the remaining step — it needs project credentials, so it is recorded as blocked, not faked.
 
+### Mission 26 — Onboarding translated, with a completion state (§41/§51) — DONE
+- **Objective (§41/§51):** onboarding is journey #1 in the directive and was entirely English — the first screen a Catalan or Spanish student ever sees, in the wrong language. §41 also asks for an explicit onboarding completion state.
+- **Files:** `src/lib/onboarding.js` (NEW: `isOnboardingDone`, `markOnboardingDone`, `onboardingProfile`), `src/pages/Onboarding.jsx` (fully translated), `src/pages/Dashboard.jsx` (the "guided setup" invitation is hidden once onboarding is complete), `src/lib/i18n.js` (46 keys × 3), `src/__tests__/onboarding.test.js` (NEW, 6 tests).
+- **Completion state, scoped honestly:** the audit found onboarding is *never* shown automatically — it is an opt-in route reached only from the dashboard, so the "repeatedly shows onboarding to completed users" failure §41 warns about cannot occur here. The flag therefore does one real job: the dashboard stops inviting a student who has already been through it. Adding a forced redirect would have invented a behaviour the app did not have.
+- **Stored goal values stay canonical:** the goals step stores `"Exams"`, not the translated label, so a student who picks goals in Catalan and later switches to English still has a readable, language-independent profile. The step's copy is keyed, the payload is not.
+- **Test detail:** the module is exercised under vitest's `node` environment with a small in-memory `localStorage`, including the storage-blocked path — the flag must never throw in a browser with storage disabled.
+- **Evidence:** typecheck 0 · lint 0 · tests 42 files / 630 pass · build ✅ 75 precache entries (1595.01 KiB). Runtime-verified end-to-end in Catalan: all six steps render Catalan including the interpolated "1r curs" and the eight goal chips; finishing persisted the created course (`Onboarding Verification Course`, with semester and academic year) and wrote `unimate-onboarding: done`; the dashboard then rendered entirely Catalan with the guided-setup button correctly absent.
+
 ---
 
 ## Cross-cutting reminders
