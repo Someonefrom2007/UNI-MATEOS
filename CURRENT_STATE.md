@@ -1,17 +1,17 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-18, after Missions 12–19: course-deletion integrity, tasks CRUD, record editors, notes fixes, attention centre, global search + Quick Add, attendance, Rescue my week, and repeatable demo seeding). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-18, after Missions 12–23: course-deletion integrity, tasks CRUD, record editors, notes fixes, attention centre, global search + Quick Add, attendance, Rescue my week, repeatable demo seeding, plans/entitlements, translated workload surfaces, the completed course workspace, and the AI service boundary). Do not treat this file as a spec — it records what actually exists.
 
 ## Baseline verification (all green)
 
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 36 files / 571 tests pass |
+| Tests | `npm test` (vitest run) | ✅ 40 files / 611 tests pass |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — no >500 kB chunks; entry 180 kB; PWA 72 precache entries (1540.48 KiB) |
+| Build | `npm run build` | ✅ PASS — no >500 kB chunks; PWA 74 precache entries (1562.10 KiB) |
 
-Runtime/browser verification IS available in this environment (a Vite dev server on the sandbox work host + a scripted browser). Missions 12–19 were each runtime-verified — see the per-mission evidence in ROADMAP.md. The gates remain the primary evidence; browser checks cover the journeys listed under "What actually works".
+Runtime/browser verification IS available in this environment (a Vite dev server on the sandbox work host + a scripted browser). Missions 12–23 were each runtime-verified — see the per-mission evidence in ROADMAP.md. The gates remain the primary evidence; browser checks cover the journeys listed under "What actually works".
 
 ## Critical defect found and fixed in Mission 17
 
@@ -97,14 +97,16 @@ Clearance is now scoped by fingerprint — the four demo course codes, the rows 
 6. **Grades (§15): MET (Mission 6).** Matrícula de Honor 10.0 is its own band (amber "Honors" label on the GPA card + per-course `MH` chip), layered in `src/lib/gradesim.js` on top of the pinned engine (which still owns 9.x–"Outstanding" and below); 0–10 clamping and ECTS weighted average verified by tests (236 total green).
 7. **Empty/loading/error states (§27–29): MET (Mission 7, 2026-09).** New `ErrorState` (what happened / what's preserved / what to do + Retry → `refresh()`), `PageSkeleton`, and `ErrorBoundary` primitives; boundary wired at app root and inside AppShell around the route outlet (keyed by pathname so a caught render error clears on navigation). All 17 `useUserData` pages now render an error gate with retry after their hooks and before their loading/empty branches; per-module explainer empty states + skeletons were previously in place.
 8. **Accessibility (§24) / responsive (§25): MET-pass for audit items (Mission 8, 2026-09).** Icon-only buttons across the app now carry `aria-label`s (NoteDetail, Goals, Habits, Schedule nav, Courses import, Tasks/Exams/CourseDetail toggles, PostCard like, ICSFeedDialog close, AIAssistant send, AppShell mobile controls + FAB); nav has `aria-current="page"`; StickyNoteCard edit is keyboard-operable (`tabIndex` + Enter/Space); unbound labels wired in Focus, Grades sim selects, Settings Language, Profile, Onboarding, QuickAdd (`Field` injects accessible names onto inputs and Radix `SelectTrigger`s), Notes/Community search, StickyWall, CommandPalette, NoteDetail, Courses import/sort, Exams mastery; `aria-live="polite"` on AI "Thinking…", CommandPalette no-results, Courses import warnings, WeekView/DayView conflict banners; reduced motion honored app-wide via `<MotionConfig reducedMotion="user">` + a `prefers-reduced-motion` CSS guard. Layout is already responsive (bottom nav, stacked grids, drawer) with no horizontal overflow observed at the source level. Full keyboard/focus-visual pass remains a manual browser step.
-9. **Cleanup (§31):** `export-report.json` (stale Base44 export diagnostic) and `coverage/` were gitignored in this checkpoint; `src/api/` no longer exists. Runtime verification screenshots of demo/verification data not possible here.
-10. **Plans (§30):** static pricing, PRO/ULTRA "Join Waitlist" disabled buttons (honest, but dead end). Stripe packages were unused and removed in Mission 9.
-11. **Global search (§28) / Quick Add (§29): MET (Mission 16, 2026-09-17).** Command palette over ten entity types plus nav/commands, archived rows excluded, rank-then-cap per entity, real destinations with `?highlight=` reveal; Quick Add creates persisted rows via the shared validators and broadcasts a data-change event. `CommunityPost`/`FocusSession` intentionally unindexed (no per-row destination) and asserted by test.
-12. **Notifications (§33): MET (Mission 15, 2026-09-17).** See the Attention centre entry above.
-13. **Data integrity on delete (§43/§44): MET (Mission 12, 2026-09-17).** Course deletion runs a pre-delete cascade plan the student confirms, with archive as the safer default; grades recompute from the surviving rows.
+9. **AI service boundary (§30/§31): MET (Mission 23, 2026-09-17).** All assistant traffic goes through `src/lib/aiService.js` — provider, request shape and failure classification live there, not in the page; the transport is injectable so the surrounding logic is tested for real. The page is translated, failures are classified (unavailable vs unreachable vs empty) instead of collapsed into one sentence, and no provider key is referenced client-side. Remaining: the Edge Function reads no notes/resources/goals, so the assistant's context is narrower than §30 lists; it is also unmetered, so no allowance is advertised.
 
-14. **Floating stickies (§31 post-launch):** anchor persistence lives in localStorage (compressed); no cloud sync of pinned positions yet. Drag/resize and minimize-to-corner work across all screens in both local and hosted modes (no Supabase dependency for pin state).
-15. **Light-mode typography (§24 contrast):** hardcoded pale accent text (cyan-300 family) replaced app-wide with theme-aware `hud` tokens (Mission 11) — readable in both themes. Marginal bright-text-on-bright-fills in decorative landing glows/gradients remain (non-typographic, kept intentionally).
+11. **Cleanup (§31):** `export-report.json` (stale Base44 export diagnostic) and `coverage/` were gitignored in this checkpoint; `src/api/` no longer exists. Runtime verification screenshots of demo/verification data not possible here.
+12. **Plans (§30/§35): DONE (Mission 20, 2026-09-17).** FREE/PRO/ULTIMATE now have real entitlement data (`src/lib/plans.js`); every workspace resolves to FREE because nothing is purchasable, and a stored plan id is refused rather than trusted. Only limits the app actually enforces are displayed — the rescue horizon reads from the entitlement, and an unmetered AI allowance was deliberately dropped from the UI rather than advertised. No billing, no fake transactions.
+13. **Global search (§28) / Quick Add (§29): MET (Mission 16, 2026-09-17).** Command palette over ten entity types plus nav/commands, archived rows excluded, rank-then-cap per entity, real destinations with `?highlight=` reveal; Quick Add creates persisted rows via the shared validators and broadcasts a data-change event. `CommunityPost`/`FocusSession` intentionally unindexed (no per-row destination) and asserted by test.
+14. **Notifications (§33): MET (Mission 15, 2026-09-17).** See the Attention centre entry above.
+15. **Data integrity on delete (§43/§44): MET (Mission 12, 2026-09-17).** Course deletion runs a pre-delete cascade plan the student confirms, with archive as the safer default; grades recompute from the surviving rows.
+
+16. **Floating stickies (§31 post-launch):** anchor persistence lives in localStorage (compressed); no cloud sync of pinned positions yet. Drag/resize and minimize-to-corner work across all screens in both local and hosted modes (no Supabase dependency for pin state).
+17. **Light-mode typography (§24 contrast):** hardcoded pale accent text (cyan-300 family) replaced app-wide with theme-aware `hud` tokens (Mission 11) — readable in both themes. Marginal bright-text-on-bright-fills in decorative landing glows/gradients remain (non-typographic, kept intentionally).
 
 ## Do NOT touch (verified working / pinned)
 
