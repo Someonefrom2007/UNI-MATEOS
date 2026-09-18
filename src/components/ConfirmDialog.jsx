@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 // One confirmation surface for destructive actions. Explains consequences
 // before the user commits, never after. Callers that can offer a safer route
@@ -13,13 +14,15 @@ export default function ConfirmDialog({
   title,
   description = null,
   details = null,
-  confirmLabel = "Delete",
+  confirmLabel = null,
   onConfirm,
   tone = "danger",
   alternatives = [],
   busy = false,
 }) {
+  const { t } = useI18n();
   const [pending, setPending] = useState(null);
+  const confirmText = confirmLabel ?? t("action.delete");
 
   const run = async (choice) => {
     setPending(choice?.key ?? "confirm");
@@ -44,7 +47,7 @@ export default function ConfirmDialog({
         {details && <div className="text-sm text-muted-foreground">{details}</div>}
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose} disabled={Boolean(pending)}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose} disabled={Boolean(pending)}>{t("action.cancel")}</Button>
           {alternatives.map((alt) => (
             <Button
               key={alt.key}
@@ -52,7 +55,7 @@ export default function ConfirmDialog({
               onClick={() => run(alt)}
               disabled={busy || Boolean(pending)}
             >
-              {pending === alt.key ? "Working…" : alt.label}
+              {pending === alt.key ? t("action.working") : alt.label}
             </Button>
           ))}
           <Button
@@ -60,7 +63,7 @@ export default function ConfirmDialog({
             onClick={() => run(null)}
             disabled={busy || Boolean(pending)}
           >
-            {pending === "confirm" ? "Working…" : confirmLabel}
+            {pending === "confirm" ? t("action.working") : confirmText}
           </Button>
         </div>
       </DialogContent>

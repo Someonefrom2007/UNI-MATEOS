@@ -9,10 +9,13 @@ import { buildRescuePlan } from "@/lib/rescuePlan";
 import { entitlementFor } from "@/lib/plans";
 import { fmtDuration, courseColor, longDate } from "@/lib/format";
 import { activeTasks } from "@/lib/taskEdit";
-import { DAY_SHORT } from "@/lib/scheduleEngine";
+import { useI18n } from "@/lib/i18n";
 import { LifeBuoy, CalendarPlus, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
 
 const dowOf = (dateStr) => new Date(dateStr + "T00:00:00").getDay();
+
+// Sunday-first, matching Date#getDay(), so the label lookup needs no arithmetic.
+const DOW_KEYS = ["dow.sun", "dow.mon", "dow.tue", "dow.wed", "dow.thu", "dow.fri", "dow.sat"];
 
 /**
  * Rescue My Week — reads the student's real tasks, exams and schedule, then
@@ -22,6 +25,7 @@ const dowOf = (dateStr) => new Date(dateStr + "T00:00:00").getDay();
  * *adds* sessions: existing commitments are never moved or deleted.
  */
 export default function RescueWeekPanel({ data, mutate, todayStr }) {
+  const { t } = useI18n();
   const { toast } = useToast();
   const [applying, setApplying] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -30,6 +34,8 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
   // The horizon is the tier's real limit, not a literal: FREE plans a week,
   // PRO a month. Widening it is what the paid tiers actually sell.
   const horizonDays = entitlementFor().limits.studyPlanHorizonDays;
+  const openTasks = activeTasks(data?.Task).length;
+  const upcomingExams = (data?.Exam || []).filter((e) => e.status !== "completed" && e.date).length;
 
   const plan = useMemo(() => {
     if (!data) return null;
@@ -63,11 +69,13 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
       }
       setApplied(count);
       toast({
-        title: count > 0 ? `Added ${count} study session${count === 1 ? "" : "s"} to your week` : "Nothing to add",
+        title: count > 0
+          ? t("rescue.toast.added", { count, word: t(count === 1 ? "rescue.session" : "rescue.sessions") })
+          : t("rescue.toast.nothing"),
       });
       setConfirming(false);
     } catch (err) {
-      toast({ title: "Couldn't add the sessions", description: err?.message || "Please try again." });
+      toast({ title: t("rescue.toast.failed"), description: err?.message || t("rescue.toast.retry") });
     } finally {
       setApplying(false);
     }
@@ -79,9 +87,9 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
     return (
       <EmptyState
         icon={LifeBuoy}
-        title="Nothing to rescue"
-        description="You have no outstanding work with a deadline. Add tasks or exams with dates and UNI·MATE can build you a study week."
-        actionLabel="Add Task"
+        title={t("rescue.empty.title")}
+        description={t("rescue.empty.body")}
+        actionLabel={t("rescue.empty.action")}
         actionTo="/tasks"
       />
     );
@@ -97,34 +105,36 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h3 className="um-label flex items-center gap-2">
-              <LifeBuoy className="w-4 h-4" /> Rescue my week
+              <LifeBuoy className="w-4 h-4" /> {t("rescue.title")}
             </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-prose">
-              Built from your {activeTasks(data.Task).length} open task{activeTasks(data.Task).length === 1 ? "" : "s"} and{" "}
-              {(data.Exam || []).filter((e) => e.status !== "completed" && e.date).length} upcoming exam
-              {(data.Exam || []).filter((e) => e.status !== "completed" && e.date).length === 1 ? "" : "s"},
-              fitted into the free time your schedule actually has. Nothing is moved — sessions are only added.
+              {t("rescue.built", {
+                tasks: openTasks,
+                taskWord: t(openTasks === 1 ? "rescue.task" : "rescue.tasks"),
+                exams: upcomingExams,
+                examWord: t(upcomingExams === 1 ? "rescue.exam" : "rescue.exams"),
+              })}
             </p>
           </div>
           {plan.sessions.length > 0 && (
             <Button size="sm" onClick={() => setConfirming(true)} disabled={applying}>
               <CalendarPlus className="w-3.5 h-3.5 mr-1.5" />
-              Add {plan.sessions.length} session{plan.sessions.length === 1 ? "" : "s"}
+              {t("rescue.add", { count: plan.sessions.length, word: t(plan.sessions.length === 1 ? "rescue.session" : "rescue.sessions") })}
             </Button>
           )}
         </div>
 
         <div className="grid grid-cols-3 gap-3 mt-5 pt-4 border-t border-border">
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Work to place</div>
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("rescue.demand")}</div>
             <div className="font-display text-2xl font-medium tabular-nums mt-0.5">{fmtDuration(plan.demandTotal)}</div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Free this week</div>
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("rescue.free")}</div>
             <div className="font-display text-2xl font-medium tabular-nums mt-0.5">{fmtDuration(plan.capacityTotal)}</div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Planned</div>
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("rescue.planned")}</div>
             <div className={`font-display text-2xl font-medium tabular-nums mt-0.5 ${plan.unplaced.length ? "text-hud-amber" : "text-hud-emerald"}`}>
               {fmtDuration(plan.placedTotal)}
             </div>
@@ -136,15 +146,14 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
             <p className="flex items-start gap-2 text-sm">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-hud-amber" />
               <span>
-                {fmtDuration(plan.unplaced.reduce((s, u) => s + u.remaining, 0))} of work does not fit in this week's free time.
-                {" "}That is a real overload, not a scheduling problem — the options below show what moving a deadline would buy.
+                {t("rescue.overflow", { duration: fmtDuration(plan.unplaced.reduce((s, u) => s + u.remaining, 0)) })}
               </span>
             </p>
           </div>
         ) : (
           <p className="mt-4 flex items-center gap-2 text-sm text-hud-emerald">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
-            Everything fits inside your free time this week.
+            {t("rescue.fits")}
           </p>
         )}
       </Card>
@@ -152,20 +161,20 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
       {applied > 0 && (
         <Card className="p-4 border-hud-emerald/30 bg-hud-emerald/5">
           <p className="text-sm">
-            Added {applied} study session{applied === 1 ? "" : "s"} to your schedule.{" "}
-            <Link to="/schedule" className="underline underline-offset-2">Open your week</Link> to adjust them.
+            {t("rescue.applied", { count: applied, word: t(applied === 1 ? "rescue.session" : "rescue.sessions") })}{" "}
+            <Link to="/schedule" className="underline underline-offset-2">{t("rescue.applied.link")}</Link> {t("rescue.applied.tail")}
           </p>
         </Card>
       )}
 
       {byDay.length > 0 && (
         <Card className="p-5">
-          <div className="um-label mb-3">Proposed week</div>
+          <div className="um-label mb-3">{t("rescue.proposed")}</div>
           <div className="space-y-4">
             {byDay.map(({ ds, sessions }) => (
               <div key={ds}>
                 <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="font-medium">{DAY_SHORT[dowOf(ds)]} · {ds}</span>
+                  <span className="font-medium">{t(DOW_KEYS[dowOf(ds)])} · {ds}</span>
                   <span className="text-muted-foreground tabular-nums">
                     {fmtDuration(sessions.reduce((s, x) => s + x.minutes, 0))}
                   </span>
@@ -183,7 +192,7 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
                         <span className="text-sm flex-1 min-w-0 truncate">{s.title}</span>
                         {s.overdue && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded border border-hud-rose/30 bg-rose-500/10 text-hud-rose shrink-0">
-                            overdue
+                            {t("rescue.overdue")}
                           </span>
                         )}
                         <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">{fmtDuration(s.minutes)}</span>
@@ -199,10 +208,9 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
 
       {plan.unplaced.length > 0 && (
         <Card className="p-5">
-          <div className="um-label mb-1">Won't fit</div>
+          <div className="um-label mb-1">{t("rescue.wontFit")}</div>
           <p className="text-xs text-muted-foreground mb-3">
-            Work with no room left before its deadline. Moving a deadline by the amount shown is what would make it fit —
-            UNI·MATE will not change it for you.
+            {t("rescue.wontFit.hint")}
           </p>
           <div className="space-y-2">
             {plan.unplaced.map((u) => {
@@ -213,13 +221,13 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
                   <Clock className="w-4 h-4 text-hud-amber shrink-0" />
                   <span className="text-sm flex-1 min-w-0 truncate">{u.title}</span>
                   {course && <span className="text-[10px] text-muted-foreground shrink-0">{course.code || course.name}</span>}
-                  <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">due {u.deadline}</span>
+                  <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">{t("rescue.due", { date: u.deadline })}</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded border border-hud-amber/30 bg-amber-500/10 text-hud-amber shrink-0 tabular-nums">
-                    {fmtDuration(u.remaining)} short
+                    {t("rescue.short", { duration: fmtDuration(u.remaining) })}
                   </span>
                   {deferral && (
                     <span className="text-[10px] text-muted-foreground shrink-0">
-                      needs ~{deferral.extendByDays}d more → {deferral.suggestedDeadline}
+                      {t("rescue.needs", { days: deferral.extendByDays, date: deferral.suggestedDeadline })}
                     </span>
                   )}
                 </div>
@@ -232,9 +240,9 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
       <ConfirmDialog
         open={confirming}
         onClose={() => setConfirming(false)}
-        title={`Add ${plan.sessions.length} study session${plan.sessions.length === 1 ? "" : "s"}?`}
-        description={`This adds ${fmtDuration(plan.placedTotal)} of study time to your schedule, starting ${longDate().toLowerCase()}. Your existing classes and events are not moved.`}
-        confirmLabel="Add sessions"
+        title={t("rescue.confirm.title", { count: plan.sessions.length, word: t(plan.sessions.length === 1 ? "rescue.session" : "rescue.sessions") })}
+        description={t("rescue.confirm.body", { duration: fmtDuration(plan.placedTotal), date: longDate().toLowerCase() })}
+        confirmLabel={t("rescue.confirm.action")}
         tone="amber"
         busy={applying}
         onConfirm={apply}

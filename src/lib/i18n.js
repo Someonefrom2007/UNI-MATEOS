@@ -110,6 +110,64 @@ const DICT = {
     "title.settings.subtitle": "Make UNI·MATE yours.",
     "title.plans.subtitle": "Free organizes. Pro understands. Ultimate connects.",
     "title.notifications.subtitle": "What actually needs you, derived from your own data.",
+    // Weekday initials (Mon-first, matching the schedule grid)
+    // Shared dialog chrome
+    "action.cancel": "Cancel",
+    "action.delete": "Delete",
+    "action.close": "Close",
+    "action.working": "Working…",
+    "dow.mon": "Mon",
+    "dow.tue": "Tue",
+    "dow.wed": "Wed",
+    "dow.thu": "Thu",
+    "dow.fri": "Fri",
+    "dow.sat": "Sat",
+    "dow.sun": "Sun",
+    // Workload & Rescue my week
+    "workload.high": "Your estimated workload this week is high.",
+    "workload.high.hint": "Consider starting earlier — {duration} across {count} courses.",
+    "workload.thisWeek": "This week",
+    "workload.estimated": "estimated work",
+    "workload.byDay": "By day",
+    "workload.byCourse": "By course",
+    "workload.none": "No estimated work this week.",
+    "workload.other": "Other",
+    "workload.empty.title": "No workload data yet",
+    "workload.empty.body": "Add tasks with due dates and estimated durations — UNI·MATE will calculate your weekly workload automatically.",
+    "rescue.title": "Rescue my week",
+    "rescue.built": "Built from your {tasks} open {taskWord} and {exams} upcoming {examWord}, fitted into the free time your schedule actually has. Nothing is moved — sessions are only added.",
+    "rescue.task": "task",
+    "rescue.tasks": "tasks",
+    "rescue.exam": "exam",
+    "rescue.exams": "exams",
+    "rescue.add": "Add {count} {word}",
+    "rescue.session": "session",
+    "rescue.sessions": "sessions",
+    "rescue.demand": "Work to place",
+    "rescue.free": "Free this week",
+    "rescue.planned": "Planned",
+    "rescue.overflow": "{duration} of work does not fit in this week's free time. That is a real overload, not a scheduling problem — the options below show what moving a deadline would buy.",
+    "rescue.fits": "Everything fits inside your free time this week.",
+    "rescue.applied": "Added {count} {word} to your schedule.",
+    "rescue.applied.link": "Open your week",
+    "rescue.applied.tail": "to adjust them.",
+    "rescue.toast.added": "Added {count} {word} to your week",
+    "rescue.toast.nothing": "Nothing to add",
+    "rescue.toast.failed": "Couldn't add the sessions",
+    "rescue.toast.retry": "Please try again.",
+    "rescue.proposed": "Proposed week",
+    "rescue.overdue": "overdue",
+    "rescue.wontFit": "Won't fit",
+    "rescue.wontFit.hint": "Work with no room left before its deadline. Moving a deadline by the amount shown is what would make it fit — UNI·MATE will not change it for you.",
+    "rescue.due": "due {date}",
+    "rescue.short": "{duration} short",
+    "rescue.needs": "needs ~{days}d more → {date}",
+    "rescue.confirm.title": "Add {count} {word}?",
+    "rescue.confirm.body": "This adds {duration} of study time to your schedule, starting {date}. Your existing classes and events are not moved.",
+    "rescue.confirm.action": "Add sessions",
+    "rescue.empty.title": "Nothing to rescue",
+    "rescue.empty.body": "You have no outstanding work with a deadline. Add tasks or exams with dates and UNI·MATE can build you a study week.",
+    "rescue.empty.action": "Add Task",
     // Empty states
     "empty.notifications.title": "Nothing needs you right now",
     "empty.notifications.description": "Deadlines, exams, schedule clashes and academic risk show up here as soon as there is something real to act on.",
@@ -209,6 +267,64 @@ const DICT = {
     "title.settings.subtitle": "Fes que UNI·MATE sigui teu.",
     "title.plans.subtitle": "Free organitza. Pro entén. Ultimate connecta.",
     "title.notifications.subtitle": "El que realment et reclama, derivat de les teves pròpies dades.",
+    // Weekday initials (Mon-first, matching the schedule grid)
+    // Shared dialog chrome
+    "action.cancel": "Cancel·la",
+    "action.delete": "Elimina",
+    "action.close": "Tanca",
+    "action.working": "Processant…",
+    "dow.mon": "Dl",
+    "dow.tue": "Dt",
+    "dow.wed": "Dc",
+    "dow.thu": "Dj",
+    "dow.fri": "Dv",
+    "dow.sat": "Ds",
+    "dow.sun": "Dg",
+    // Càrrega i Rescata la meva setmana
+    "workload.high": "La teva càrrega estimada aquesta setmana és alta.",
+    "workload.high.hint": "Considera començar abans — {duration} en {count} cursos.",
+    "workload.thisWeek": "Aquesta setmana",
+    "workload.estimated": "feina estimada",
+    "workload.byDay": "Per dia",
+    "workload.byCourse": "Per curs",
+    "workload.none": "Cap feina estimada aquesta setmana.",
+    "workload.other": "Altres",
+    "workload.empty.title": "Encara no hi ha dades de càrrega",
+    "workload.empty.body": "Afegeix tasques amb data límit i durada estimada — UNI·MATE calcularà automàticament la teva càrrega setmanal.",
+    "rescue.title": "Rescata la meva setmana",
+    "rescue.built": "Construït a partir de les teves {tasks} {taskWord} obertes i {exams} {examWord} propers, encaixat en el temps lliure que realment té el teu horari. No es mou res — només s'afegeixen sessions.",
+    "rescue.task": "tasca",
+    "rescue.tasks": "tasques",
+    "rescue.exam": "examen",
+    "rescue.exams": "exàmens",
+    "rescue.add": "Afegeix {count} {word}",
+    "rescue.session": "sessió",
+    "rescue.sessions": "sessions",
+    "rescue.demand": "Feina per col·locar",
+    "rescue.free": "Lliure aquesta setmana",
+    "rescue.planned": "Planificat",
+    "rescue.overflow": "{duration} de feina no cap al temps lliure d'aquesta setmana. És una sobrecàrrega real, no un problema d'horaris — les opcions de sota mostren què guanyaries movent una data límit.",
+    "rescue.fits": "Tot cap dins del teu temps lliure aquesta setmana.",
+    "rescue.applied": "Afegides {count} {word} al teu horari.",
+    "rescue.applied.link": "Obre la teva setmana",
+    "rescue.applied.tail": "per ajustar-les.",
+    "rescue.toast.added": "Afegides {count} {word} a la teva setmana",
+    "rescue.toast.nothing": "Res per afegir",
+    "rescue.toast.failed": "No s'han pogut afegir les sessions",
+    "rescue.toast.retry": "Torna-ho a provar.",
+    "rescue.proposed": "Setmana proposada",
+    "rescue.overdue": "endarrerit",
+    "rescue.wontFit": "No hi cap",
+    "rescue.wontFit.hint": "Feina sense marge abans de la data límit. Moure una data límit la quantitat indicada és el que la faria encaixar — UNI·MATE no la canviarà per tu.",
+    "rescue.due": "vence {date}",
+    "rescue.short": "{duration} de menys",
+    "rescue.needs": "calen ~{days}d més → {date}",
+    "rescue.confirm.title": "Afegir {count} {word}?",
+    "rescue.confirm.body": "Això afegeix {duration} de temps d'estudi al teu horari, començant {date}. Les teves classes i esdeveniments actuals no es mouen.",
+    "rescue.confirm.action": "Afegeix sessions",
+    "rescue.empty.title": "Res a rescatar",
+    "rescue.empty.body": "No tens feina pendent amb data límit. Afegeix tasques o exàmens amb dates i UNI·MATE et pot construir una setmana d'estudi.",
+    "rescue.empty.action": "Afegeix tasca",
     // Empty states
     "empty.notifications.title": "Ara mateix res no et reclama",
     "empty.notifications.description": "Els lliuraments, exàmens, xocs d'horari i risc acadèmic apareixen aquí tan bon punt hi ha alguna cosa real per fer.",
@@ -308,6 +424,64 @@ const DICT = {
     "title.settings.subtitle": "Haz que UNI·MATE sea tuyo.",
     "title.plans.subtitle": "Free organiza. Pro entiende. Ultimate conecta.",
     "title.notifications.subtitle": "Lo que de verdad te reclama, derivado de tus propios datos.",
+    // Weekday initials (Mon-first, matching the schedule grid)
+    // Shared dialog chrome
+    "action.cancel": "Cancelar",
+    "action.delete": "Eliminar",
+    "action.close": "Cerrar",
+    "action.working": "Procesando…",
+    "dow.mon": "Lu",
+    "dow.tue": "Ma",
+    "dow.wed": "Mi",
+    "dow.thu": "Ju",
+    "dow.fri": "Vi",
+    "dow.sat": "Sá",
+    "dow.sun": "Do",
+    // Carga y Rescata mi semana
+    "workload.high": "Tu carga estimada esta semana es alta.",
+    "workload.high.hint": "Considera empezar antes — {duration} en {count} cursos.",
+    "workload.thisWeek": "Esta semana",
+    "workload.estimated": "trabajo estimado",
+    "workload.byDay": "Por día",
+    "workload.byCourse": "Por curso",
+    "workload.none": "Sin trabajo estimado esta semana.",
+    "workload.other": "Otros",
+    "workload.empty.title": "Aún no hay datos de carga",
+    "workload.empty.body": "Añade tareas con fecha límite y duración estimada — UNI·MATE calculará tu carga semanal automáticamente.",
+    "rescue.title": "Rescata mi semana",
+    "rescue.built": "Construido a partir de tus {tasks} {taskWord} abiertas y {exams} {examWord} próximos, encajado en el tiempo libre que realmente tiene tu horario. No se mueve nada — solo se añaden sesiones.",
+    "rescue.task": "tarea",
+    "rescue.tasks": "tareas",
+    "rescue.exam": "examen",
+    "rescue.exams": "exámenes",
+    "rescue.add": "Añadir {count} {word}",
+    "rescue.session": "sesión",
+    "rescue.sessions": "sesiones",
+    "rescue.demand": "Trabajo por colocar",
+    "rescue.free": "Libre esta semana",
+    "rescue.planned": "Planificado",
+    "rescue.overflow": "{duration} de trabajo no cabe en el tiempo libre de esta semana. Es una sobrecarga real, no un problema de horarios — las opciones de abajo muestran qué ganarías moviendo una fecha límite.",
+    "rescue.fits": "Todo cabe dentro de tu tiempo libre esta semana.",
+    "rescue.applied": "Añadidas {count} {word} a tu horario.",
+    "rescue.applied.link": "Abre tu semana",
+    "rescue.applied.tail": "para ajustarlas.",
+    "rescue.toast.added": "Añadidas {count} {word} a tu semana",
+    "rescue.toast.nothing": "Nada que añadir",
+    "rescue.toast.failed": "No se pudieron añadir las sesiones",
+    "rescue.toast.retry": "Inténtalo de nuevo.",
+    "rescue.proposed": "Semana propuesta",
+    "rescue.overdue": "atrasado",
+    "rescue.wontFit": "No cabe",
+    "rescue.wontFit.hint": "Trabajo sin margen antes de su fecha límite. Mover una fecha límite la cantidad indicada es lo que lo haría encajar — UNI·MATE no la cambiará por ti.",
+    "rescue.due": "vence {date}",
+    "rescue.short": "{duration} de menos",
+    "rescue.needs": "necesita ~{days}d más → {date}",
+    "rescue.confirm.title": "¿Añadir {count} {word}?",
+    "rescue.confirm.body": "Esto añade {duration} de tiempo de estudio a tu horario, empezando {date}. Tus clases y eventos actuales no se mueven.",
+    "rescue.confirm.action": "Añadir sesiones",
+    "rescue.empty.title": "Nada que rescatar",
+    "rescue.empty.body": "No tienes trabajo pendiente con fecha límite. Añade tareas o exámenes con fechas y UNI·MATE puede construirte una semana de estudio.",
+    "rescue.empty.action": "Añadir tarea",
     // Empty states
     "empty.notifications.title": "Ahora mismo nada te reclama",
     "empty.notifications.description": "Los entregables, exámenes, choques de horario y riesgo académico aparecen aquí en cuanto hay algo real que hacer.",
@@ -315,6 +489,11 @@ const DICT = {
 };
 
 const isValid = (c) => LANGUAGES.some((l) => l.code === c);
+
+// Exposed so a test can assert the three dictionaries stay in step. A missing
+// key silently falls back to English, which is how a translated UI ends up
+// half-translated without anyone noticing.
+export const dictionaryFor = (code) => DICT[isValid(code) ? code : "en"];
 
 // Module-level cache so getLang() mirrors document state across effect runs.
 let current = null;
@@ -365,11 +544,19 @@ export const useI18n = () => {
     return () => window.removeEventListener(EVENT, onLang);
   }, [lang]);
 
-  const t = (key) => {
+  // `t(key)` returns the string; `t(key, params)` fills `{name}` placeholders.
+  // Substitution is deliberately simple — no pluralisation rules, because the
+  // three supported languages need only the count-aware wording the callers
+  // already pass in via their own {word} keys.
+  const t = (key, params) => {
     const table = DICT[lang];
-    if (table && table[key] !== undefined) return table[key];
-    const fallback = DICT.en;
-    return (fallback[key] !== undefined ? fallback[key] : key);
+    const raw = table && table[key] !== undefined
+      ? table[key]
+      : (DICT.en[key] !== undefined ? DICT.en[key] : key);
+    if (!params) return raw;
+    return raw.replace(/\{(\w+)\}/g, (match, name) =>
+      params[name] === undefined || params[name] === null ? match : String(params[name]),
+    );
   };
 
   return { lang, setLang, t, LANGUAGES };

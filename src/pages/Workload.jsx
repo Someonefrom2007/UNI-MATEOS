@@ -11,7 +11,7 @@ import { useI18n } from "@/lib/i18n";
 import ErrorState from "@/components/ErrorState";
 import RescueWeekPanel from "@/components/RescueWeekPanel";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAY_KEYS = ["dow.mon", "dow.tue", "dow.wed", "dow.thu", "dow.fri", "dow.sat", "dow.sun"];
 
 export default function Workload() {
   const { data, loading, error, refresh, mutate } = useUserData();
@@ -50,7 +50,7 @@ export default function Workload() {
     return (
       <>
         <PageHeader title={t("title.workload")} subtitle={t("title.workload.subtitle")} />
-        <EmptyState icon={Gauge} title="No workload data yet" description="Add tasks with due dates and estimated durations — UNI·MATE will calculate your weekly workload automatically." actionLabel="Add Task" actionTo="/tasks" />
+        <EmptyState icon={Gauge} title={t("workload.empty.title")} description={t("workload.empty.body")} actionLabel={t("rescue.empty.action")} actionTo="/tasks" />
       </>
     );
   }
@@ -63,28 +63,28 @@ export default function Workload() {
         <Card className="p-4 mb-4 border-hud-amber/30 bg-hud-amber/5">
           <div className="flex items-center gap-2 mb-1">
             <AlertTriangle className="w-4 h-4 text-hud-amber" />
-            <span className="text-sm font-medium">Your estimated workload this week is high.</span>
+            <span className="text-sm font-medium">{t("workload.high")}</span>
           </div>
-          <p className="text-xs text-muted-foreground">Consider starting earlier — {fmtDuration(wl.total)} across {wl.breakdown.length} courses.</p>
+          <p className="text-xs text-muted-foreground">{t("workload.high.hint", { duration: fmtDuration(wl.total), count: wl.breakdown.length })}</p>
         </Card>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Card className="p-5">
-          <div className="um-label mb-2">This week</div>
+          <div className="um-label mb-2">{t("workload.thisWeek")}</div>
           <div className="font-display text-4xl font-semibold">{fmtDuration(wl.total)}</div>
-          <p className="text-xs text-muted-foreground mt-1">estimated work</p>
+          <p className="text-xs text-muted-foreground mt-1">{t("workload.estimated")}</p>
         </Card>
 
         <Card className="lg:col-span-2 p-5">
-          <div className="um-label mb-4">By day</div>
+          <div className="um-label mb-4">{t("workload.byDay")}</div>
           <div className="flex items-end justify-between gap-2 h-40">
             {byDay.map((mins, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-2">
                 <div className="w-full bg-muted rounded-t-lg flex items-end" style={{ height: "100%" }}>
                   <div className="w-full bg-gradient-to-t from-primary to-amber-400 rounded-t-lg transition-all" style={{ height: `${(mins / maxDay) * 100}%`, minHeight: mins > 0 ? "8px" : "0" }} title={fmtDuration(mins)} />
                 </div>
-                <span className="text-[10px] text-muted-foreground">{DAYS[i]}</span>
+                <span className="text-[10px] text-muted-foreground">{t(DAY_KEYS[i])}</span>
               </div>
             ))}
           </div>
@@ -92,9 +92,9 @@ export default function Workload() {
       </div>
 
       <Card className="p-5 mt-5">
-        <div className="um-label mb-4">By course</div>
+        <div className="um-label mb-4">{t("workload.byCourse")}</div>
         {wl.breakdown.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No estimated work this week.</p>
+          <p className="text-sm text-muted-foreground">{t("workload.none")}</p>
         ) : (
           <div className="space-y-3">
             {wl.breakdown.map((b) => {
@@ -102,7 +102,7 @@ export default function Workload() {
               return (
                 <div key={b.course_id}>
                   <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${cc.dot}`} />{b.course?.name || "Other"}</span>
+                    <span className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${cc.dot}`} />{b.course?.name || t("workload.other")}</span>
                     <span className="text-muted-foreground">{fmtDuration(b.minutes)}</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
