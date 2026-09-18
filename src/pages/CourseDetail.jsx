@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useUserData } from "@/lib/useUserData";
-import { courseColor, fmtGrade, fmtDuration, relativeDeadline, PRIORITY_META, notePreview } from "@/lib/format";
+import { courseColor, fmtGrade, fmtDuration, daysSince, relativeDeadline, PRIORITY_META, notePreview } from "@/lib/format";
 import { courseGrade, requiredGrade } from "@/lib/gradeEngine";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, GraduationCap, Timer, CheckSquare, FileText, BookOpen, Archive } from "lucide-react";
+import { ArrowLeft, GraduationCap, Timer, CheckSquare, FileText, BookOpen, Archive, FolderOpen, ExternalLink } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
@@ -16,10 +16,12 @@ import { courseDependents, planCourseDelete, dependentSummary } from "@/lib/cour
 import { activeTasks } from "@/lib/taskEdit";
 import AttendancePanel from "@/components/AttendancePanel";
 import { summarizeCourse } from "@/lib/attendance";
+import { useI18n } from "@/lib/i18n";
 
 export default function CourseDetail() {
   const { id } = useParams();
   const { data, loading, error, mutate, mutateBatch, refresh } = useUserData();
+  const { t } = useI18n();
   const [tab, setTab] = useState("overview");
   const [qaOpen, setQaOpen] = useState(false);
   const [qaPreset, setQaPreset] = useState(null);
@@ -47,7 +49,12 @@ export default function CourseDetail() {
     const req = requiredGrade(assessments, c.target_grade);
     const focusTotal = focus.reduce((s, f) => s + f.duration, 0);
     const completedTasks = tasks.filter((t) => t.status === "completed").length;
-    return { grades, exams, tasks, notes, resources, focus, attendance, grade, req, focusTotal, completedTasks };
+    const lastFocus = focus
+      .map((f) => f.date || f.created_at)
+      .filter(Boolean)
+      .sort()
+      .pop() || null;
+    return { grades, exams, tasks, notes, resources, focus, attendance, grade, req, focusTotal, completedTasks, lastFocus };
   }, [data, c, id]);
 
   const dependents = useMemo(() => (data && c ? courseDependents(data, c.id) : {}), [data, c]);
@@ -56,16 +63,25 @@ export default function CourseDetail() {
   // Attendance at a glance: the rate against the course's own requirement, or an
   // honest "not logged" rather than a misleading 0%.
   const attendanceGlance = useMemo(() => {
-    if (!c || !derived) return "Not logged";
+    if (!c || !derived) return t("course.notLogged");
     const s = summarizeCourse(c, derived.attendance);
-    if (s.rate === null) return "Not logged";
+    if (s.rate === null) return t("course.notLogged");
     return `${s.rate.toFixed(1)}% · min ${s.target}%`;
   }, [c, derived]);
+
+  const lastStudied = (() => {
+    if (!derived?.lastFocus) return t("course.study.never");
+    const n = daysSince(derived.lastFocus);
+    if (n === null) return t("course.study.never");
+    if (n <= 0) return t("course.study.today");
+    if (n === 1) return t("course.study.yesterday");
+    return t("course.study.daysAgo", { n });
+  })();
 
   if (error) return <ErrorState onRetry={refresh} />;
 
   if (loading) return <div className="h-64 bg-muted rounded-xl animate-pulse" />;
-  if (!c) return <EmptyState title="Course not found" description="It may have been removed." actionLabel="Back to courses" actionTo="/courses" />;
+  if (!c) return <EmptyState title={t("course.notFound")} description={t("course.notFound.body")} actionLabel={t("course.notFound.action")} actionTo="/courses" />;
 
   const cc = courseColor(c.color);
 
@@ -119,7 +135,7 @@ export default function CourseDetail() {
 
   return (
     <div className="space-y-6">
-      <Link to="/courses" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4 mr-1.5" />Courses</Link>
+      <Link to="/courses" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="w-4 h-4 mr-1.5" />{t("course.back")}</Link>
 
       {/* Header */}
       <div className={`rounded-xl border p-6 ${cc.ring} bg-gradient-to-br from-card to-transparent`}>
@@ -133,55 +149,83 @@ export default function CourseDetail() {
             {c.professor && <p className="text-sm text-muted-foreground mt-1">{c.professor} · {c.ects} ECTS · {c.academic_year}</p>}
           </div>
           <div className="grid grid-cols-4 gap-4">
-            <Stat label="Current" value={derived.grade !== null ? fmtGrade(derived.grade) : "—"} />
-            <Stat label="Target" value={fmtGrade(c.target_grade)} />
-            <Stat label="Needed" value={derived.req !== null ? fmtGrade(derived.req) : "—"} />
-            <Stat label="Focus" value={fmtDuration(derived.focusTotal)} />
+            <Stat label={t("course.stat.current")} value={derived.grade !== null ? fmtGrade(derived.grade) : "—"} />
+            <Stat label={t("course.stat.target")} value={fmtGrade(c.target_grade)} />
+            <Stat label={t("course.stat.needed")} value={derived.req !== null ? fmtGrade(derived.req) : "—"} />
+            <Stat label={t("course.stat.focus")} value={fmtDuration(derived.focusTotal)} />
           </div>
         </div>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="exams">Exams</TabsTrigger>
-          <TabsTrigger value="grades">Grades</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="overview">{t("course.tab.overview")}</TabsTrigger>
+          <TabsTrigger value="tasks">{t("course.tab.tasks")}</TabsTrigger>
+          <TabsTrigger value="exams">{t("course.tab.exams")}</TabsTrigger>
+          <TabsTrigger value="grades">{t("course.tab.grades")}</TabsTrigger>
+          <TabsTrigger value="attendance">{t("course.tab.attendance")}</TabsTrigger>
+          <TabsTrigger value="notes">{t("course.tab.notes")}</TabsTrigger>
+          <TabsTrigger value="resources">{t("course.tab.resources")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card className="p-5">
-              <h3 className="um-label mb-3">At a glance</h3>
+              <h3 className="um-label mb-3">{t("course.atAGlance")}</h3>
               <div className="space-y-2 text-sm">
-                <Row label="Current grade" value={derived.grade !== null ? fmtGrade(derived.grade) : "No grades yet"} />
-                <Row label="Target grade" value={fmtGrade(c.target_grade)} />
-                <Row label="Required on remaining" value={derived.req !== null ? fmtGrade(derived.req) : "—"} />
-                <Row label="Tasks completed" value={`${derived.completedTasks} / ${derived.tasks.length}`} />
-                <Row label="Focus time" value={fmtDuration(derived.focusTotal)} />
-                <Row label="Attendance" value={attendanceGlance} />
+                <Row label={t("course.currentGrade")} value={derived.grade !== null ? fmtGrade(derived.grade) : t("course.noGrades")} />
+                <Row label={t("course.targetGrade")} value={fmtGrade(c.target_grade)} />
+                <Row label={t("course.required")} value={derived.req !== null ? fmtGrade(derived.req) : "—"} />
+                <Row label={t("course.tasksCompleted")} value={`${derived.completedTasks} / ${derived.tasks.length}`} />
+                <Row label={t("course.focusTime")} value={fmtDuration(derived.focusTotal)} />
+                <Row label={t("course.tab.attendance")} value={attendanceGlance} />
               </div>
             </Card>
             <Card className="p-5">
-              <h3 className="um-label mb-3">Quick actions</h3>
+              <h3 className="um-label mb-3">{t("course.quickActions")}</h3>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => openQA("task")}><CheckSquare className="w-3.5 h-3.5 mr-1.5" />Add task</Button>
-                <Button size="sm" variant="outline" onClick={() => openQA("exam")}><GraduationCap className="w-3.5 h-3.5 mr-1.5" />Add exam</Button>
-                <Button size="sm" variant="outline" onClick={() => openQA("grade")}><FileText className="w-3.5 h-3.5 mr-1.5" />Add grade</Button>
-                <Button size="sm" variant="outline" onClick={() => openQA("note")}><BookOpen className="w-3.5 h-3.5 mr-1.5" />Add note</Button>
-                <Button size="sm" variant="outline" onClick={() => navigate("/focus")}><Timer className="w-3.5 h-3.5 mr-1.5" />Start focus</Button>
+                <Button size="sm" variant="outline" onClick={() => openQA("task")}><CheckSquare className="w-3.5 h-3.5 mr-1.5" />{t("course.addTask")}</Button>
+                <Button size="sm" variant="outline" onClick={() => openQA("exam")}><GraduationCap className="w-3.5 h-3.5 mr-1.5" />{t("course.addExam")}</Button>
+                <Button size="sm" variant="outline" onClick={() => openQA("grade")}><FileText className="w-3.5 h-3.5 mr-1.5" />{t("course.addGrade")}</Button>
+                <Button size="sm" variant="outline" onClick={() => openQA("note")}><BookOpen className="w-3.5 h-3.5 mr-1.5" />{t("course.addNote")}</Button>
+                <Button size="sm" variant="outline" onClick={() => navigate("/focus")}><Timer className="w-3.5 h-3.5 mr-1.5" />{t("course.study.startFocus")}</Button>
               </div>
               <div className="mt-6 pt-4 border-t border-border space-y-2">
                 <Button size="sm" variant="outline" className="w-full justify-start" onClick={archiveCourse} disabled={busy}>
-                  <Archive className="w-3.5 h-3.5 mr-1.5" />Archive course
+                  <Archive className="w-3.5 h-3.5 mr-1.5" />{t("course.archive")}
                 </Button>
-                <p className="text-xs text-muted-foreground">Hides it from your semester without deleting anything.</p>
-                <Button size="sm" variant="ghost" className="w-full justify-start text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)} disabled={busy}>Delete course</Button>
+                <p className="text-xs text-muted-foreground">{t("course.archive.hint")}</p>
+                <Button size="sm" variant="ghost" className="w-full justify-start text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)} disabled={busy}>{t("course.delete")}</Button>
               </div>
             </Card>
           </div>
+
+          <Card className="p-5 mt-4">
+            <h3 className="um-label mb-3">{t("course.studyActivity")}</h3>
+            {derived.focus.length === 0 ? (
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <p className="text-sm text-muted-foreground">{t("course.study.empty")}</p>
+                <Button size="sm" variant="outline" onClick={() => navigate("/focus")}>
+                  <Timer className="w-3.5 h-3.5 mr-1.5" />{t("course.study.start")}
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("course.study.sessions")}</div>
+                  <div className="font-display text-2xl font-medium tabular-nums mt-0.5">{derived.focus.length}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("course.study.total")}</div>
+                  <div className="font-display text-2xl font-medium tabular-nums mt-0.5">{fmtDuration(derived.focusTotal)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("course.study.last")}</div>
+                  <div className="text-sm font-medium mt-1.5">{lastStudied}</div>
+                </div>
+              </div>
+            )}
+          </Card>
         </TabsContent>
 
         <TabsContent value="tasks" className="mt-4">
@@ -254,6 +298,35 @@ export default function CourseDetail() {
 
         <TabsContent value="attendance" className="mt-4">
           <AttendancePanel course={c} rows={derived.attendance} mutate={mutate} />
+        </TabsContent>
+
+        <TabsContent value="resources" className="mt-4">
+          {derived.resources.length === 0 ? (
+            <EmptyState
+              icon={FolderOpen}
+              title={t("course.resources.empty.title")}
+              description={t("course.resources.empty.body")}
+              actionLabel={t("course.resources.empty.action")}
+              onAction={() => openQA("resource")}
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {derived.resources.map((r) => (
+                <Card key={r.id} className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-sm font-medium truncate">{r.name}</div>
+                    <span className="chip border-border/70 bg-muted/40 text-muted-foreground shrink-0">{r.type}</span>
+                  </div>
+                  {r.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.description}</p>}
+                  {r.url && (
+                    <a href={r.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary mt-2 hover:underline">
+                      {t("action.open")} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="notes" className="mt-4">

@@ -165,6 +165,19 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 - **Files:** `src/lib/demoData.js`, `src/__tests__/demoData.test.js` (NEW, 7 tests), confirmation copy in `Settings.jsx` / `Dashboard.jsx` now describes what actually happens.
 - **Evidence:** typecheck 0 · lint 0 · tests 36 files / 571 pass · build ✅. Mutation-checked: disabling the clear step fails 5 of the 7 new tests. Runtime-verified against the already-duplicated workspace — re-seeding collapsed courses 8→4, tasks 10→5, exams 6→3, stickies 10→5, and the Schedule page's conflict warnings disappeared entirely.
 
+### Mission 20 — Plans and entitlement architecture (§35) — DONE
+- **Objective (§35):** The Plans page listed FREE/PRO/ULTRA from hardcoded arrays with nothing behind them, so no part of the app could ask what a workspace was entitled to. The directive fixes the names as FREE/PRO/ULTIMATE and maps them to ORGANIZE/UNDERSTAND/CONNECT.
+- **Files:** `src/lib/plans.js` (NEW: `PLANS`, `PLAN_IDS`, `PLAN_FEATURES`, `planById`, `isPlanId`, `entitlementFor`), `src/pages/Plans.jsx`, `src/lib/i18n.js` (Ultra → Ultimate in all three languages), `src/__tests__/plans.test.js` (NEW, 15 tests).
+- **Security posture:** nothing is purchasable, so every workspace resolves to FREE and a *stored* plan id is refused rather than trusted. A client-side value must not be able to grant a paid tier.
+- **Honesty rule applied (§52/§65):** only limits the app enforces are displayed. The rescue planner now reads its horizon from `entitlementFor().limits.studyPlanHorizonDays` instead of a literal 7, which makes that limit real. An AI message allowance was dropped from the UI because the assistant does not meter usage yet. The gated capability is named *AI syllabus parsing*, not bulk import, because CSV/JSON import has always worked on FREE and gating it would be a false upsell. Both facts are asserted by test.
+- **Evidence:** typecheck 0 · lint 0 · tests 37 files / 587 pass · build ✅. Runtime-verified `/plans` renders FREE (Active) / PRO (Coming) / ULTIMATE (Coming) with real limits, and the rescue panel still plans a week from the entitlement.
+
+### Mission 21 — Workload, rescue and dialog surfaces translated — DONE
+- **Objective (§34/§54):** The app ships English, Catalan and Spanish, but Workload, Rescue my week and the shared confirm dialog rendered hardcoded English beside translated page chrome — a Spanish student saw the two languages interleaved. The dialog chrome lived in the shadcn primitives, so it was English for all ten callers, and the weekday row read Mon–Sun in every language.
+- **Files:** `src/lib/i18n.js` (`t(key, params)` gained `{name}` interpolation for count-bearing sentences; ~55 new keys across the three dictionaries; `dictionaryFor` exported for testing), `src/pages/Workload.jsx`, `src/components/RescueWeekPanel.jsx`, `src/components/ConfirmDialog.jsx` (`confirmLabel` default is now the translated `action.delete` rather than an English literal), `src/components/ui/dialog.jsx` + `src/components/ui/sheet.jsx` (localised the `sr-only` close label), `src/__tests__/i18n.test.js` (NEW, 9 tests).
+- **Why a test:** `t()` falls back to English for a missing key, so a half-translated UI fails silently. The new test asserts the three dictionaries have identical key sets, that multi-word values are actually translated rather than copied, and that `{placeholder}` names match across languages. Mutation-checked: deleting a key, reverting a translation and dropping a placeholder each fail the suite.
+- **Evidence:** typecheck 0 · lint 0 · tests 38 files / 596 pass · build ✅ 73 precache entries (1549.99 KiB). Runtime-verified in Spanish: the workload page, the rescue panel, the stat labels, the weekday row and the confirm dialog all read Spanish; the only English left is the student's own course and task titles, which is correct.
+
 ---
 
 ## Cross-cutting reminders

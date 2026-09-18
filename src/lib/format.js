@@ -32,6 +32,16 @@ export const daysUntil = (dateStr) => {
   return Math.round((d.getTime() - today.getTime()) / 86400000);
 };
 
+// How long ago something happened. Mirrors daysUntil so past-dated records
+// ("last studied") never render with deadline wording.
+export const daysSince = (dateStr) => {
+  const n = daysUntil(dateStr);
+  if (n === null) return null;
+  // Negating zero yields -0, which is a different value to Object.is and
+  // renders oddly through arithmetic downstream. Today is 0 days ago.
+  return n === 0 ? 0 : -n;
+};
+
 export const relativeDeadline = (dateStr) => {
   const n = daysUntil(dateStr);
   if (n === null) return "";
