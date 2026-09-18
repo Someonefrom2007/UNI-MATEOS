@@ -7,11 +7,21 @@ Evidence-based snapshot from repository inspection + green-gate baseline (2026-0
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 32 files / 483 tests pass |
+| Tests | `npm test` (vitest run) | ✅ 34 files / 529 tests pass |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
 | Build | `npm run build` | ✅ PASS — no >500 kB chunks; entry 182 kB; PWA 66 precache entries (1515.08 KiB) |
 
 Runtime/browser verification IS available in this environment (a Vite dev server on the sandbox work host + a scripted browser). Missions 12–16 were each runtime-verified — see the per-mission evidence in ROADMAP.md. The gates remain the primary evidence; browser checks cover the journeys listed under "What actually works".
+
+## Critical defect found and fixed in Mission 17
+
+`useUserData.mutate` destructured its variadic arguments as `[id, payload]` for **all three** operations, but every caller passes a create's row as the *first* argument. On `create`, the row was therefore bound to `id` and `payload` was `undefined`, so each insert persisted only the metadata the repo injects (`id`, `user_id`, `created_at`, `updated_at`).
+
+This silently broke every create in the app - all fifteen call sites across courses, tasks, exams, grades, notes, resources, sticky notes, habit logs, focus sessions, schedule events and attendance. The failure mode was misleading: the row appeared in the list as soon as the hook reloaded and then rendered blank, which looks like a rendering bug rather than a write bug. It was present in the grafted baseline (`git show 9e487fc:src/lib/useUserData.js`, line 191) and no test exercised `mutate` directly, so it survived Missions 12-16.
+
+Fixed by extracting `resolveMutationArgs` (`src/lib/mutationArgs.js`) - one tested mapping of each operation's real arity - and routing `mutate` through it. Regression tests in `src/__tests__/mutationArgs.test.js`. Runtime-verified: a task created from Quick Add and an attendance session logged from a course workspace both persist with their real fields.
+
+**Lesson for future missions:** the create path is the highest-traffic code in the app and was covered only indirectly. Prefer a test that asserts a created row *carries its fields* over one that asserts the list grew by one.
 
 ## Stack (verified in package.json / configs)
 
