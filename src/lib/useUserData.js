@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { TABLE, getTable } from "@/lib/tables";
 import { createLocalRepo } from "@/lib/repo/localRepo";
 import { isLocalWorkspace } from "@/lib/repo/select";
-import { resolveMutationArgs } from "@/lib/mutationArgs";
+import { resolveMutationArgs, applyRepoMutation } from "@/lib/mutationArgs";
 
 const FETCH_ENTITIES = [
   "Course", "ScheduleEvent", "Task", "Exam", "Grade", "Note", "Resource",
@@ -196,10 +196,9 @@ export const useUserData = () => {
     let result = null;
     try {
       if (repo) {
-        if (op === "create") result = repo.create(table, toSnakeCase(payload || {}));
-        else if (op === "update") result = repo.update(table, id, toSnakeCase(payload || {}));
-        else if (op === "delete") result = repo.delete(table, id);
-        else throw new Error(`Unknown op: ${op}`);
+        if (op === "create" || op === "update" || op === "delete") {
+          result = applyRepoMutation(repo, table, op, args, toSnakeCase);
+        } else throw new Error(`Unknown op: ${op}`);
       } else if (op === "create") {
         const { data: rows, error } = await supabase.from(table).insert(toSnakeCase(payload || {})).select();
         if (error) throw error;
