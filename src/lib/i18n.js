@@ -108,7 +108,7 @@ const DICT = {
     "title.ai.subtitle": "Your academic copilot — grounded in your real UNI·MATE data.",
     "title.profile.subtitle": "Your academic identity and preferences.",
     "title.settings.subtitle": "Make UNI·MATE yours.",
-    "title.plans.subtitle": "Free organizes. Pro helps. Ultra works with you.",
+    "title.plans.subtitle": "Free organizes. Pro understands. Ultimate connects.",
     "title.notifications.subtitle": "What actually needs you, derived from your own data.",
     // Empty states
     "empty.notifications.title": "Nothing needs you right now",
@@ -207,7 +207,7 @@ const DICT = {
     "title.ai.subtitle": "El teu copilot acadèmic — basat en les teves dades reals d'UNI·MATE.",
     "title.profile.subtitle": "La teva identitat acadèmica i preferències.",
     "title.settings.subtitle": "Fes que UNI·MATE sigui teu.",
-    "title.plans.subtitle": "Free organitza. Pro ajuda. Ultra treballa amb tu.",
+    "title.plans.subtitle": "Free organitza. Pro entén. Ultimate connecta.",
     "title.notifications.subtitle": "El que realment et reclama, derivat de les teves pròpies dades.",
     // Empty states
     "empty.notifications.title": "Ara mateix res no et reclama",
@@ -306,7 +306,7 @@ const DICT = {
     "title.ai.subtitle": "Tu copiloto académico — basado en tus datos reales de UNI·MATE.",
     "title.profile.subtitle": "Tu identidad académica y preferencias.",
     "title.settings.subtitle": "Haz que UNI·MATE sea tuyo.",
-    "title.plans.subtitle": "Free organiza. Pro ayuda. Ultra trabaja contigo.",
+    "title.plans.subtitle": "Free organiza. Pro entiende. Ultimate conecta.",
     "title.notifications.subtitle": "Lo que de verdad te reclama, derivado de tus propios datos.",
     // Empty states
     "empty.notifications.title": "Ahora mismo nada te reclama",

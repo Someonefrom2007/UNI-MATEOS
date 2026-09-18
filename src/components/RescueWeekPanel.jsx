@@ -6,6 +6,7 @@ import EmptyState from "@/components/EmptyState";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { buildRescuePlan } from "@/lib/rescuePlan";
+import { entitlementFor } from "@/lib/plans";
 import { fmtDuration, courseColor, longDate } from "@/lib/format";
 import { activeTasks } from "@/lib/taskEdit";
 import { DAY_SHORT } from "@/lib/scheduleEngine";
@@ -26,6 +27,10 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
   const [confirming, setConfirming] = useState(false);
   const [applied, setApplied] = useState(0);
 
+  // The horizon is the tier's real limit, not a literal: FREE plans a week,
+  // PRO a month. Widening it is what the paid tiers actually sell.
+  const horizonDays = entitlementFor().limits.studyPlanHorizonDays;
+
   const plan = useMemo(() => {
     if (!data) return null;
     return buildRescuePlan({
@@ -34,9 +39,9 @@ export default function RescueWeekPanel({ data, mutate, todayStr }) {
       events: data.ScheduleEvent || [],
       courses: (data.Course || []).filter((c) => !c.archived),
       todayStr,
-      days: 7,
+      days: horizonDays,
     });
-  }, [data, todayStr]);
+  }, [data, todayStr, horizonDays]);
 
   const apply = async () => {
     setApplying(true);
