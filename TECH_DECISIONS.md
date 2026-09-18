@@ -51,3 +51,14 @@ Workload assistance produces a *proposal* the student reviews and confirms; it n
 
 ## 14. Sample data must be refreshable, and scoped (Mission 19, §43)
 Demo seeding is repeatable: it clears the rows it owns (identified by fingerprint) before inserting, so re-running it refreshes the sample semester instead of duplicating it. Clearance is deliberately *not* a table wipe — a student's own courses and their tasks/notes/stickies must survive. Any future seedable dataset follows the same rule: own your rows, fingerprint them, never clear a table you share with the user.
+
+## 15. Localize wording outside pinned engines (Mission 24, §34/§54)
+Pinned engines own decisions, not presentation. The insight engine both selects observations and phrases them in English, so re-rendering its sentences was done in a separate display lens (`src/lib/insightText.js`) keyed off the ids the engine actually emitted — the selection thresholds stay pinned, the wording follows the language. The lens recomputes the few numbers a sentence needs from the same inputs, and a test asserts those numbers match the engine's own English text (read back out of it, not restated) so the two cannot drift.
+
+`translate()` and `localeFor()` are exported from `i18n.js` so pure modules can localize without being a component. Anything that renders their output must subscribe with `useI18n()`, and any memo whose result contains localized text must depend on `lang` — otherwise a language switch updates the nav while the content stays stale behind the memo.
+
+## 16. The i18n store is the only writer of the language (Mission 24, §34)
+`setLang` persists the choice, updates `<html lang>` and notifies subscribers. Writing the storage key directly — which the Settings page used to do — bypasses all three, so the UI keeps the old language until a reload. Pages must call the store; the signed-in path keeps account metadata as the source of truth and falls back to the current language.
+
+## 17. Assistant context stays bounded (Mission 25, §30)
+The copilot's prompt carries real rows only, scoped by `user_id` under RLS. When adding a data source, prefer the identifier over the payload: note *titles* and resource names/types (capped at 25 each, with the owning course) let the assistant point at the right material without letting one long note swamp the context. Full note bodies would trade accuracy for bulk.
