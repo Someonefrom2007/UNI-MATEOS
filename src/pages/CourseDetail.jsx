@@ -14,6 +14,8 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { courseDependents, planCourseDelete, dependentSummary } from "@/lib/courseLifecycle";
 import { activeTasks } from "@/lib/taskEdit";
+import AttendancePanel from "@/components/AttendancePanel";
+import { summarizeCourse } from "@/lib/attendance";
 
 export default function CourseDetail() {
   const { id } = useParams();
@@ -36,6 +38,7 @@ export default function CourseDetail() {
     const notes = data.Note.filter((n) => n.course_id === id);
     const resources = data.Resource.filter((r) => r.course_id === id);
     const focus = data.FocusSession.filter((f) => f.course_id === id);
+    const attendance = (data.Attendance || []).filter((a) => a.course_id === id);
     const assessments = [
       ...grades.map((g) => ({ grade: g.grade, weight: g.weight })),
       ...exams.filter((e) => e.grade !== null && e.grade !== undefined).map((e) => ({ grade: e.grade, weight: e.weight })),
@@ -44,11 +47,20 @@ export default function CourseDetail() {
     const req = requiredGrade(assessments, c.target_grade);
     const focusTotal = focus.reduce((s, f) => s + f.duration, 0);
     const completedTasks = tasks.filter((t) => t.status === "completed").length;
-    return { grades, exams, tasks, notes, resources, focus, grade, req, focusTotal, completedTasks };
+    return { grades, exams, tasks, notes, resources, focus, attendance, grade, req, focusTotal, completedTasks };
   }, [data, c, id]);
 
   const dependents = useMemo(() => (data && c ? courseDependents(data, c.id) : {}), [data, c]);
   const summary = useMemo(() => dependentSummary(dependents), [dependents]);
+
+  // Attendance at a glance: the rate against the course's own requirement, or an
+  // honest "not logged" rather than a misleading 0%.
+  const attendanceGlance = useMemo(() => {
+    if (!c || !derived) return "Not logged";
+    const s = summarizeCourse(c, derived.attendance);
+    if (s.rate === null) return "Not logged";
+    return `${s.rate.toFixed(1)}% · min ${s.target}%`;
+  }, [c, derived]);
 
   if (error) return <ErrorState onRetry={refresh} />;
 
@@ -135,6 +147,7 @@ export default function CourseDetail() {
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="exams">Exams</TabsTrigger>
           <TabsTrigger value="grades">Grades</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
@@ -148,6 +161,7 @@ export default function CourseDetail() {
                 <Row label="Required on remaining" value={derived.req !== null ? fmtGrade(derived.req) : "—"} />
                 <Row label="Tasks completed" value={`${derived.completedTasks} / ${derived.tasks.length}`} />
                 <Row label="Focus time" value={fmtDuration(derived.focusTotal)} />
+                <Row label="Attendance" value={attendanceGlance} />
               </div>
             </Card>
             <Card className="p-5">
@@ -236,6 +250,10 @@ export default function CourseDetail() {
               </table>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="attendance" className="mt-4">
+          <AttendancePanel course={c} rows={derived.attendance} mutate={mutate} />
         </TabsContent>
 
         <TabsContent value="notes" className="mt-4">

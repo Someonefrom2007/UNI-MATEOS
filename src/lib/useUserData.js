@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { TABLE, getTable } from "@/lib/tables";
 import { createLocalRepo } from "@/lib/repo/localRepo";
 import { isLocalWorkspace } from "@/lib/repo/select";
+import { resolveMutationArgs } from "@/lib/mutationArgs";
 
 const FETCH_ENTITIES = [
   "Course", "ScheduleEvent", "Task", "Exam", "Grade", "Note", "Resource",
@@ -188,7 +189,10 @@ export const useUserData = () => {
   const mutate = useCallback(async (entityName, op, ...args) => {
     const table = getTable(entityName);
     if (!table) throw new Error(`Unknown entity: ${entityName}`);
-    const [id, payload] = args;
+    // Arity differs per op: create takes just the row, update takes id then a
+    // patch, delete takes an id. Reading `[id, payload]` for all three dropped
+    // every field on create, so the mapping lives in one tested helper.
+    const { id, payload } = resolveMutationArgs(op, args);
     let result = null;
     try {
       if (repo) {

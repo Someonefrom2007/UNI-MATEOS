@@ -10,6 +10,8 @@
 // carries a stable `key` so "dismiss" and "seen" survive re-derivation.
 
 import { daysUntil } from "./format";
+import { courseGrade } from "./gradeEngine";
+import { summarizeCourse } from "./attendance";
 
 export const SEVERITY = {
   critical: 3,
@@ -171,6 +173,32 @@ export const riskItems = (courses = [], { gradeFor } = {}) => {
   return items;
 };
 
+// Attendance risk: a course the student is attending less than its own stated
+// requirement. Same principle as grades — only fires when there is a real
+// record, so a course with nothing logged is never reported as at risk.
+/** @param {Array<object>} courses @param {{ attendanceFor?: (course: any) => {rate:number|null, target:number} }} [opts] */
+export const attendanceItems = (courses = [], { attendanceFor } = {}) => {
+  const items = [];
+  if (!attendanceFor) return items;
+  for (const c of courses) {
+    if (c.archived) continue;
+    const s = attendanceFor(c);
+    if (!s || s.rate === null || s.rate === undefined) continue;
+    if (s.rate >= s.target) continue;
+    const gap = s.target - s.rate;
+    items.push({
+      key: `risk:attendance:${c.id}`,
+      category: "risk",
+      severity: "warning",
+      title: `${c.code || c.name} attendance is below ${s.target}%`,
+      detail: `At ${s.rate.toFixed(1)}% · ${gap.toFixed(1)} points short of your requirement`,
+      courseId: c.id,
+      to: `/courses/${c.id}`,
+    });
+  }
+  return items;
+};
+
 // Wellbeing: sustained focus with no recorded breaks reads as burnout risk.
 // Only fires once there is enough history to mean something.
 /** @param {{ focusSessions?: Array<object>, todayStr?: string }} [opts] */
@@ -206,7 +234,9 @@ const SEVERITY_RANK = { critical: 0, warning: 1, info: 2 };
  * @param {{
  *   tasks?: Array<object>, exams?: Array<object>, courses?: Array<object>,
  *   conflicts?: Array<object>, focusSessions?: Array<object>,
- *   gradeFor?: (course: any) => number|null, todayStr?: string,
+ *   gradeFor?: (course: any) => number|null,
+ *   attendanceFor?: (course: any) => {rate:number|null, target:number},
+ *   todayStr?: string,
  *   horizon?: number, examHorizon?: number,
  * }} [input]
  */
@@ -217,6 +247,7 @@ export const buildNotifications = ({
   conflicts = [],
   focusSessions = [],
   gradeFor,
+  attendanceFor,
   todayStr,
   horizon = 7,
   examHorizon = 14,
@@ -226,6 +257,7 @@ export const buildNotifications = ({
     ...examItems(exams, { horizon: examHorizon }),
     ...conflictItems(conflicts),
     ...riskItems(courses, { gradeFor }),
+    ...attendanceItems(courses, { attendanceFor }),
     ...wellbeingItems({ focusSessions, todayStr }),
   ];
 
@@ -245,6 +277,62 @@ export const countBySeverity = (items = []) => ({
   info: items.filter((i) => i.severity === "info").length,
   total: items.length,
 });
+
+// Build the whole inbox from the raw data bundle. The bell and the attention
+// page both read from here, so the badge and the page cannot drift apart, and
+// the per-course signals (grades, attendance) are computed once in a place that
+// is covered by tests rather than re-derived inside each component.
+/**
+ * @param {Record<string, Array<object>>} data rows keyed by entity name
+ * @param {{ todayStr?: string, conflictDays?: number, detectConflicts?: Function }} [opts]
+ */
+export const deriveNotifications = (data, { todayStr, conflictDays = 14, detectConflicts } = {}) => {
+  const rows = data || {};
+  const courses = (rows.Course || []).filter((c) => !c.archived);
+  const exams = rows.Exam || [];
+  const grades = rows.Grade || [];
+
+  const gradeFor = (c) => {
+    const cGrades = grades.filter((g) => g.course_id === c.id);
+    const examGrades = exams.filter((e) => e.course_id === c.id && e.grade !== null && e.grade !== undefined);
+    return courseGrade([
+      ...cGrades.map((g) => ({ grade: g.grade, weight: g.weight })),
+      ...examGrades.map((e) => ({ grade: e.grade, weight: e.weight })),
+    ]);
+  };
+
+  // Attendance is summarised from rows the data layer already loads. A course
+  // with nothing logged yields rate null and is skipped by attendanceItems.
+  const attendanceFor = (c) =>
+    summarizeCourse(c, (rows.Attendance || []).filter((a) => a.course_id === c.id));
+
+  // Conflicts only matter on the days ahead, so the scan looks forward.
+  const conflicts = [];
+  if (detectConflicts && todayStr) {
+    const base = new Date(`${todayStr}T00:00:00`);
+    for (let i = 0; i < conflictDays; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      conflicts.push(...detectConflicts(rows.ScheduleEvent || [], isoLocal(d)));
+    }
+  }
+
+  const all = buildNotifications({
+    tasks: rows.Task || [],
+    exams,
+    courses,
+    conflicts,
+    focusSessions: rows.FocusSession || [],
+    gradeFor,
+    attendanceFor,
+    todayStr,
+  });
+
+  return { all, courses, todayStr };
+};
+
+const isoLocal = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 // Group for display, keeping category order stable and skipping empty groups.
 export const groupNotifications = (items = []) =>

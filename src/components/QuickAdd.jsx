@@ -161,6 +161,8 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
           color: form.color || "amber",
           semester: "1",
           academic_year: "2025/26",
+          // The student's own requirement, not an invented university rule.
+          attendance_required: Number(form.attendance_required) || 80,
           archived: false,
         });
         onDone("Course added", "/courses");
@@ -274,6 +276,9 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{["amber", "cyan", "purple", "green", "rose", "blue"].map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
             </Select>
+          </Field>
+          <Field label="Attendance requirement %">
+            <Input type="number" min="0" max="100" value={form.attendance_required ?? ""} onChange={(e) => set("attendance_required", e.target.value)} placeholder="80" />
           </Field>
         </>
       )}

@@ -2,9 +2,8 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useUserData } from "@/lib/useUserData";
 import { Bell, AlertTriangle, AlertCircle, Info, Check } from "lucide-react";
-import { courseGrade } from "@/lib/gradeEngine";
 import { detectConflicts } from "@/lib/scheduleEngine";
-import { buildNotifications, applyDismissed, countBySeverity } from "@/lib/notifications";
+import { deriveNotifications, applyDismissed, countBySeverity } from "@/lib/notifications";
 import {
   loadDismissed, dismissItem, loadPrefs, applyPrefs, markSeen, unseenCount, NOTIF_CHANGED_EVENT,
 } from "@/lib/notificationStore";
@@ -16,7 +15,6 @@ const SEVERITY_CLS = {
   info: "text-hud-cyan bg-hud-cyan/10 border-hud-cyan/30",
 };
 
-const CONFLICT_DAYS = 14;
 const PREVIEW_LIMIT = 6;
 
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -34,31 +32,7 @@ export default function NotificationBell() {
 
   const items = useMemo(() => {
     if (!data) return [];
-    const tasks = data.Task || [];
-    const exams = data.Exam || [];
-    const courses = (data.Course || []).filter((c) => !c.archived);
-    const grades = data.Grade || [];
-    const events = data.ScheduleEvent || [];
-    const focusSessions = data.FocusSession || [];
-    const today = new Date();
-
-    const conflicts = [];
-    for (let i = 0; i < CONFLICT_DAYS; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
-      conflicts.push(...detectConflicts(events, isoLocal(d)));
-    }
-
-    const gradeFor = (c) => {
-      const cGrades = grades.filter((g) => g.course_id === c.id);
-      const examGrades = exams.filter((e) => e.course_id === c.id && e.grade !== null && e.grade !== undefined);
-      return courseGrade([
-        ...cGrades.map((g) => ({ grade: g.grade, weight: g.weight })),
-        ...examGrades.map((e) => ({ grade: e.grade, weight: e.weight })),
-      ]);
-    };
-
-    const all = buildNotifications({ tasks, exams, courses, conflicts, focusSessions, gradeFor, todayStr: isoLocal(today) });
+    const all = deriveNotifications(data, { todayStr: isoLocal(new Date()), detectConflicts }).all;
     return applyPrefs(applyDismissed(all, dismissed), prefs);
   }, [data, dismissed, prefs]);
 

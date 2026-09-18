@@ -9,10 +9,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Bell, X, RotateCcw, AlertTriangle, AlertCircle, Info } from "lucide-react";
 import { courseColor } from "@/lib/format";
-import { courseGrade } from "@/lib/gradeEngine";
 import { detectConflicts } from "@/lib/scheduleEngine";
 import {
-  buildNotifications, applyDismissed, pruneDismissed, groupNotifications, countBySeverity, CATEGORY_META,
+  deriveNotifications, applyDismissed, pruneDismissed, groupNotifications, countBySeverity, CATEGORY_META,
 } from "@/lib/notifications";
 import {
   loadDismissed, dismissItem, clearDismissed, saveDismissed, loadPrefs, savePrefs, applyPrefs, DEFAULT_PREFS,
@@ -29,7 +28,6 @@ const SEVERITY_CLS = {
 
 // Conflicts only matter on days the student is about to live through, so the
 // scan window looks forward rather than across the whole semester.
-const CONFLICT_DAYS = 14;
 
 export default function Notifications() {
   const { data, loading, error, refresh } = useUserData();
@@ -46,34 +44,10 @@ export default function Notifications() {
 
   const derived = useMemo(() => {
     if (!data) return null;
-    const tasks = data.Task || [];
-    const exams = data.Exam || [];
-    const courses = (data.Course || []).filter((c) => !c.archived);
-    const grades = data.Grade || [];
-    const events = data.ScheduleEvent || [];
-    const focusSessions = data.FocusSession || [];
-
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-
-    const conflicts = [];
-    for (let i = 0; i < CONFLICT_DAYS; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
-      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      conflicts.push(...detectConflicts(events, ds));
-    }
-
-    const gradeFor = (c) => {
-      const cGrades = grades.filter((g) => g.course_id === c.id);
-      const examGrades = exams.filter((e) => e.course_id === c.id && e.grade !== null && e.grade !== undefined);
-      return courseGrade([
-        ...cGrades.map((g) => ({ grade: g.grade, weight: g.weight })),
-        ...examGrades.map((e) => ({ grade: e.grade, weight: e.weight })),
-      ]);
-    };
-
-    const all = buildNotifications({ tasks, exams, courses, conflicts, focusSessions, gradeFor, todayStr });
+    // One shared derivation so the bell badge and this page can never disagree.
+    const { all, courses } = deriveNotifications(data, { todayStr, detectConflicts });
     return { all, todayStr, courses };
   }, [data]);
 

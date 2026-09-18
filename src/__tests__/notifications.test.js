@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   buildNotifications, deadlineItems, examItems, conflictItems, riskItems,
   wellbeingItems, groupNotifications, countBySeverity, applyDismissed,
-  pruneDismissed, SEVERITY,
+  pruneDismissed, SEVERITY, attendanceItems, deriveNotifications,
 } from "@/lib/notifications";
 
 // Dates are relative to "now" because the engine classifies by proximity.
@@ -216,5 +216,92 @@ describe("dismissal bookkeeping", () => {
   it("prunes keys whose condition no longer exists", () => {
     const items = [{ key: "a" }];
     expect(pruneDismissed(["a", "stale"], items)).toEqual(["a"]);
+  });
+});
+
+describe("attendanceItems", () => {
+  it("fires only for a course below its own requirement", () => {
+    const courses = [{ id: "c1", name: "Algebra" }, { id: "c2", name: "Biology" }];
+    const attendanceFor = (c) => (c.id === "c1" ? { rate: 55, target: 80 } : { rate: 90, target: 80 });
+    const items = attendanceItems(courses, { attendanceFor });
+    expect(items).toHaveLength(1);
+    expect(items[0].key).toBe("risk:attendance:c1");
+    expect(items[0].detail).toContain("25.0 points short");
+  });
+
+  it("never reports a course with no attendance record as at risk", () => {
+    // rate null means "nothing logged", which is not a risk signal.
+    const items = attendanceItems([{ id: "c1", name: "Algebra" }], {
+      attendanceFor: () => ({ rate: null, target: 80 }),
+    });
+    expect(items).toEqual([]);
+  });
+
+  it("skips archived courses", () => {
+    const items = attendanceItems([{ id: "c1", name: "Algebra", archived: true }], {
+      attendanceFor: () => ({ rate: 10, target: 80 }),
+    });
+    expect(items).toEqual([]);
+  });
+
+  it("does nothing without a summarizer", () => {
+    expect(attendanceItems([{ id: "c1" }], {})).toEqual([]);
+  });
+});
+
+describe("deriveNotifications", () => {
+  const data = {
+    Course: [
+      { id: "c1", name: "Algebra", code: "MATH1", target_grade: 7, attendance_required: 80 },
+      { id: "c2", name: "Archived", archived: true },
+    ],
+    Task: [{ id: "t1", title: "Essay", due_date: TODAY, status: "todo", priority: "high" }],
+    Exam: [],
+    Grade: [],
+    Attendance: [
+      { id: "a1", course_id: "c1", status: "present" },
+      { id: "a2", course_id: "c1", status: "absent" },
+      { id: "a3", course_id: "c1", status: "absent" },
+    ],
+    FocusSession: [],
+    ScheduleEvent: [],
+  };
+
+  it("derives a full inbox from the raw data bundle in one call", () => {
+    const { all, courses } = deriveNotifications(data, { todayStr: TODAY });
+    // Archived courses are excluded from the course list passed to the engine.
+    expect(courses.map((c) => c.id)).toEqual(["c1"]);
+    expect(all.some((i) => i.key === "deadline:soon:t1")).toBe(true);
+  });
+
+  it("raises the attendance risk from real rows via the shared path", () => {
+    const { all } = deriveNotifications(data, { todayStr: TODAY });
+    const att = all.find((i) => i.key === "risk:attendance:c1");
+    expect(att).toBeTruthy();
+    // 1 present of 3 judged = 33.3% against the course's own 80%.
+    expect(att.detail).toContain("33.3%");
+  });
+
+  it("tolerates a missing data bundle", () => {
+    const { all, courses } = deriveNotifications(undefined, { todayStr: TODAY });
+    expect(all).toEqual([]);
+    expect(courses).toEqual([]);
+  });
+
+  it("adds schedule conflicts only when a detector is supplied", () => {
+    const withConflicts = deriveNotifications(
+      { ...data, ScheduleEvent: [{ id: "e1", date: TODAY, start_time: "09:00", end_time: "10:00" }] },
+      {
+        todayStr: TODAY,
+        conflictDays: 1,
+        detectConflicts: () => [
+          { a: { id: "e1", title: "A", start_time: "09:00" }, b: { id: "e2", title: "B", start_time: "09:30" }, dateStr: TODAY },
+        ],
+      }
+    );
+    expect(withConflicts.all.some((i) => i.category === "schedule")).toBe(true);
+
+    const without = deriveNotifications(data, { todayStr: TODAY });
+    expect(without.all.some((i) => i.category === "schedule")).toBe(false);
   });
 });
