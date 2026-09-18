@@ -36,6 +36,7 @@ const DICT = {
     "nav.focus": "Focus",
     "nav.goals": "Goals",
     "nav.habits": "Habits",
+    "nav.notifications": "Attention",
     "nav.workload": "Workload",
     "nav.insights": "Insights",
     "nav.ai": "AI Assistant",
@@ -87,6 +88,7 @@ const DICT = {
     "title.profile": "Profile",
     "title.settings": "Settings",
     "title.plans": "Plans",
+    "title.notifications": "Attention",
     // Section subtitles
     "title.courses.subtitle": "Everything you're studying this semester.",
     "title.schedule.subtitle": "Your time, three ways to see it.",
@@ -107,6 +109,10 @@ const DICT = {
     "title.profile.subtitle": "Your academic identity and preferences.",
     "title.settings.subtitle": "Make UNI·MATE yours.",
     "title.plans.subtitle": "Free organizes. Pro helps. Ultra works with you.",
+    "title.notifications.subtitle": "What actually needs you, derived from your own data.",
+    // Empty states
+    "empty.notifications.title": "Nothing needs you right now",
+    "empty.notifications.description": "Deadlines, exams, schedule clashes and academic risk show up here as soon as there is something real to act on.",
   },
   ca: {
     // Navigation sections
@@ -129,6 +135,7 @@ const DICT = {
     "nav.focus": "Focus",
     "nav.goals": "Objectius",
     "nav.habits": "Hàbits",
+    "nav.notifications": "Atenció",
     "nav.workload": "Càrrega",
     "nav.insights": "Perspectives",
     "nav.ai": "Assistent IA",
@@ -180,6 +187,7 @@ const DICT = {
     "title.profile": "Perfil",
     "title.settings": "Configuració",
     "title.plans": "Plans",
+    "title.notifications": "Atenció",
     // Section subtitles
     "title.courses.subtitle": "Tot el que estudies aquest semestre.",
     "title.schedule.subtitle": "El teu temps, de tres maneres.",
@@ -200,6 +208,10 @@ const DICT = {
     "title.profile.subtitle": "La teva identitat acadèmica i preferències.",
     "title.settings.subtitle": "Fes que UNI·MATE sigui teu.",
     "title.plans.subtitle": "Free organitza. Pro ajuda. Ultra treballa amb tu.",
+    "title.notifications.subtitle": "El que realment et reclama, derivat de les teves pròpies dades.",
+    // Empty states
+    "empty.notifications.title": "Ara mateix res no et reclama",
+    "empty.notifications.description": "Els lliuraments, exàmens, xocs d'horari i risc acadèmic apareixen aquí tan bon punt hi ha alguna cosa real per fer.",
   },
   es: {
     // Navigation sections
@@ -222,6 +234,7 @@ const DICT = {
     "nav.focus": "Enfoque",
     "nav.goals": "Objetivos",
     "nav.habits": "Hábitos",
+    "nav.notifications": "Atención",
     "nav.workload": "Carga",
     "nav.insights": "Perspectivas",
     "nav.ai": "Asistente IA",
@@ -273,6 +286,7 @@ const DICT = {
     "title.profile": "Perfil",
     "title.settings": "Configuración",
     "title.plans": "Planes",
+    "title.notifications": "Atención",
     // Section subtitles
     "title.courses.subtitle": "Todo lo que estás estudiando este semestre.",
     "title.schedule.subtitle": "Tu tiempo, de tres formas.",
@@ -293,6 +307,10 @@ const DICT = {
     "title.profile.subtitle": "Tu identidad académica y preferencias.",
     "title.settings.subtitle": "Haz que UNI·MATE sea tuyo.",
     "title.plans.subtitle": "Free organiza. Pro ayuda. Ultra trabaja contigo.",
+    "title.notifications.subtitle": "Lo que de verdad te reclama, derivado de tus propios datos.",
+    // Empty states
+    "empty.notifications.title": "Ahora mismo nada te reclama",
+    "empty.notifications.description": "Los entregables, exámenes, choques de horario y riesgo académico aparecen aquí en cuanto hay algo real que hacer.",
   },
 };
 

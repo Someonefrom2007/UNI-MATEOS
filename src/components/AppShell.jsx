@@ -6,13 +6,14 @@ import { useI18n, LANGUAGES } from "@/lib/i18n";
 import {
   LayoutDashboard, BookOpen, CalendarDays, CheckSquare, GraduationCap, FileText,
   FolderOpen, Timer, Target, Repeat, Gauge, Sparkles, BrainCircuit,
-  User, Settings, CreditCard, Plus, Search, Menu, X, LogOut, StickyNote, Users,
+  User, Settings, CreditCard, Plus, Search, Menu, X, LogOut, StickyNote, Users, Bell,
 } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import CommandPalette from "@/components/CommandPalette";
 import FloatingStickiesLayer from "@/components/FloatingStickiesLayer";
 import Logo from "@/components/Logo";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import NotificationBell from "@/components/NotificationBell";
 
 const NAV = [
   { sectionKey: "nav.overview", items: [{ labelKey: "nav.dashboard", to: "/dashboard", icon: LayoutDashboard }] },
@@ -35,6 +36,7 @@ const NAV = [
       { labelKey: "nav.focus", to: "/focus", icon: Timer },
       { labelKey: "nav.goals", to: "/goals", icon: Target },
       { labelKey: "nav.habits", to: "/habits", icon: Repeat },
+      { labelKey: "nav.notifications", to: "/notifications", icon: Bell },
     ],
   },
   {
@@ -197,6 +199,7 @@ export default function AppShell() {
         </Link>
         <div className="flex items-center gap-1">
           <button onClick={togglePalette} aria-label="Search" className="p-2 rounded-lg hover:bg-muted"><Search className="w-5 h-5" /></button>
+          <NotificationBell />
           <button onClick={() => setQuickAddOpen(true)} aria-label="Quick add" className="p-2 rounded-lg hover:bg-muted"><Plus className="w-5 h-5" /></button>
           <button onClick={() => setMobileMenu(true)} aria-label="Open menu" className="p-2 rounded-lg hover:bg-muted"><Menu className="w-5 h-5" /></button>
         </div>
@@ -246,6 +249,7 @@ export default function AppShell() {
             <kbd className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-muted border border-border font-mono">⌘K</kbd>
           </button>
           <div className="flex items-center gap-1">
+            <NotificationBell />
             <button onClick={() => setQuickAddOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
               <Plus className="w-4 h-4" /> {t("shell.quickAdd")}
             </button>

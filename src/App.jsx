@@ -29,6 +29,7 @@ const Tasks         = React.lazy(() => import("@/pages/Tasks"));
 const Exams         = React.lazy(() => import("@/pages/Exams"));
 const Grades        = React.lazy(() => import("@/pages/Grades"));
 const Notes         = React.lazy(() => import("@/pages/Notes"));
+const Notifications = React.lazy(() => import("@/pages/Notifications"));
 const NoteDetail    = React.lazy(() => import("@/pages/NoteDetail"));
 const Resources     = React.lazy(() => import("@/pages/Resources"));
 const Focus         = React.lazy(() => import("@/pages/Focus"));
@@ -74,6 +75,7 @@ const AuthenticatedApp = () => {
             <Route path="/exams/:id" element={<Exams />} />
             <Route path="/grades" element={<Grades />} />
             <Route path="/notes" element={<Notes />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="/notes/:id" element={<NoteDetail />} />
             <Route path="/stickies" element={<StickyWall />} />
             <Route path="/resources" element={<Resources />} />
