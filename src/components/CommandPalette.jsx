@@ -3,14 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ArrowRight, CheckSquare, FilePlus, Timer, CornerDownLeft } from "lucide-react";
+import {
+  Search, ArrowRight, CheckSquare, FilePlus, Timer, CornerDownLeft,
+  BookOpen, GraduationCap, CalendarDays, Link2,
+} from "lucide-react";
 import { useUserData } from "@/lib/useUserData";
-import { activeTasks } from "@/lib/taskEdit";
 import { useToast } from "@/components/ui/use-toast";
 import { todayISO } from "@/lib/format";
-import { norm, filterCommandPalette, isPaletteShortcut } from "@/lib/paletteSearch";
+import { filterCommandPalette, isPaletteShortcut } from "@/lib/paletteSearch";
+import { buildSearchRows, capPerType } from "@/lib/searchIndex";
+import QuickAdd from "@/components/QuickAdd";
 
 const COMMANDS = [
+  { label: "Go to Attention", to: "/notifications", type: "Go to" },
   { label: "Go to Dashboard", to: "/dashboard", type: "Go to" },
   { label: "Go to Community", to: "/community", type: "Go to" },
   { label: "Go to Courses", to: "/courses", type: "Go to" },
@@ -29,10 +34,17 @@ const COMMANDS = [
   { label: "Go to Settings", to: "/settings", type: "Go to" },
 ];
 
+// Inline captures are for the two things worth typing in one line. Everything
+// else opens the full quick-add sheet, because a course or an exam has fields
+// that a single input cannot honestly collect.
 const ACTIONS = [
   { label: "Quick Add Task", sub: "capture a task instantly", icon: CheckSquare, action: "task", type: "Action" },
   { label: "New Note", sub: "a fresh page for a raw thought", icon: FilePlus, action: "note", type: "Action" },
   { label: "Start Focus Session", sub: "deep-work timer, armed", icon: Timer, action: "focus", type: "Action" },
+  { label: "New Course", sub: "add a course to this semester", icon: BookOpen, sheet: "course", type: "Action" },
+  { label: "New Exam", sub: "schedule an assessment", icon: GraduationCap, sheet: "exam", type: "Action" },
+  { label: "New Event", sub: "block time in your schedule", icon: CalendarDays, sheet: "event", type: "Action" },
+  { label: "New Resource", sub: "save a link or document", icon: Link2, sheet: "resource", type: "Action" },
 ];
 
 const HEADERS = {
@@ -48,6 +60,7 @@ export default function CommandPalette() {
   const [capture, setCapture] = useState(null);
   const [captureVal, setCaptureVal] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sheetType, setSheetType] = useState(null);
   const navigate = useNavigate();
   const inputRef = useRef(null);
   const captureRef = useRef(null);
@@ -90,19 +103,11 @@ export default function CommandPalette() {
 
   const all = useMemo(() => {
     if (!open) return [];
-    const nq = norm(q).trim();
-    const dataRows = [];
-    if (data && nq) {
-      const push = (items, type, label, sub, to) => {
-        items.forEach((x) => dataRows.push({ type, label: label(x), sub: sub ? sub(x) : "", to: to(x) }));
-      };
-      push(data.Course || [], "Course", (c) => c.name, (c) => c.code, (c) => `/courses/${c.id}`);
-      push(activeTasks(data.Task), "Task", (t) => t.title, (t) => t.due_date, () => "/tasks");
-      push(data.Note || [], "Note", (n) => n.title, null, (n) => `/notes/${n.id}`);
-      push(data.Exam || [], "Exam", (e) => e.name, (e) => e.date, (e) => `/exams/${e.id}`);
-      push(data.Resource || [], "Resource", (r) => r.name, (r) => r.type, () => "/resources");
-    }
-    return filterCommandPalette({ query: q, actions: ACTIONS, commands: COMMANDS, dataRows });
+    // Score first, then cap: an entity with many rows must contribute its best
+    // matches, not merely its first ones.
+    const dataRows = data ? buildSearchRows(data, { query: q }) : [];
+    const ranked = filterCommandPalette({ query: q, actions: ACTIONS, commands: COMMANDS, dataRows });
+    return capPerType(ranked);
   }, [open, q, data]);
 
   useEffect(() => {
@@ -141,6 +146,24 @@ export default function CommandPalette() {
     }
   };
 
+  const runItem = (item) => {
+    if (!item) return;
+    if (item.sheet) {
+      // The sheet has its own fields; the palette closes behind it.
+      setSheetType(item.sheet);
+      close();
+      return;
+    }
+    if (item.action) {
+      setCapture(item);
+      setCaptureVal("");
+      setTimeout(() => captureRef.current?.focus(), 30);
+      return;
+    }
+    navigate(item.to);
+    close();
+  };
+
   const onKey = (e) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -150,16 +173,7 @@ export default function CommandPalette() {
       setSel((s) => Math.max(s - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const item = all[sel];
-      if (!item) return;
-      if (item.action) {
-        setCapture(item);
-        setCaptureVal("");
-        setTimeout(() => captureRef.current?.focus(), 30);
-      } else {
-        navigate(item.to);
-        close();
-      }
+      runItem(all[sel]);
     }
   };
 
@@ -231,16 +245,7 @@ export default function CommandPalette() {
                     )}
                     <button
                       onMouseEnter={() => setSel(i)}
-                      onClick={() => {
-                        if (item.action) {
-                          setCapture(item);
-                          setCaptureVal("");
-                          setTimeout(() => captureRef.current?.focus(), 30);
-                        } else {
-                          navigate(item.to);
-                          close();
-                        }
-                      }}
+                      onClick={() => runItem(item)}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${i === sel ? "bg-accent/10 ring-1 ring-accent/30" : "hover:bg-muted"}`}
                     >
                       {item.icon && <item.icon className="w-4 h-4 text-hud-cyan shrink-0" />}
@@ -248,7 +253,7 @@ export default function CommandPalette() {
                         <div className="text-sm font-medium truncate">{item.label}</div>
                         {item.sub && <div className="text-xs text-muted-foreground truncate">{item.sub}</div>}
                       </div>
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{item.type || item.group}</span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">{item.typeLabel || item.type || item.group}</span>
                       <ArrowRight className="w-4 h-4 text-muted-foreground" />
                     </button>
                   </div>
@@ -261,6 +266,11 @@ export default function CommandPalette() {
           </>
         )}
       </DialogContent>
+      <QuickAdd
+        open={Boolean(sheetType)}
+        preset={sheetType ? { typeKey: sheetType } : null}
+        onClose={() => setSheetType(null)}
+      />
     </Dialog>
   );
 }

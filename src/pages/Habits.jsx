@@ -3,6 +3,7 @@ import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { Card } from "@/components/ui/card";
+import { useHighlightRow, highlightRing } from "@/lib/useHighlightRow";
 import { Repeat, Plus, Trash2, Flame, Check } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 
@@ -15,6 +16,7 @@ const DAY_MS = 86400000;
 export default function Habits() {
   const { data, loading, error, mutate, refresh } = useUserData();
   const [qaOpen, setQaOpen] = useState(false);
+  const { highlightId, register } = useHighlightRow();
   const { toast } = useToast();
   const { t } = useI18n();
 
@@ -97,7 +99,7 @@ export default function Habits() {
           const s = streak(h.id);
           const weekDone = last7.filter((d) => logs.some((l) => l.habit_id === h.id && l.date === d && l.completed)).length;
           return (
-            <Card key={h.id} className="p-4 group glow-hover">
+            <Card key={h.id} ref={register(h.id)} className={`p-4 group glow-hover ${highlightRing(highlightId === h.id)}`}>
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">

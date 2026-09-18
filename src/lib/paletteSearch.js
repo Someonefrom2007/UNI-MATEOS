@@ -45,7 +45,9 @@ export const filterCommandPalette = ({ query, actions = [], commands = [], dataR
   out.push(...scored);
   dataRows.forEach((r) => {
     const score = fuzzy(r.label, nq) || fuzzy(r.sub || "", nq);
-    if (score > 0) out.push({ group: "data", type: r.type, label: r.label, sub: r.sub || "", to: r.to, _score: score });
+    // Spread the row so callers keep their own fields (id, typeLabel,
+    // destination) instead of only the ones this component happens to render.
+    if (score > 0) out.push({ ...r, sub: r.sub || "", group: "data", _score: score });
   });
   if (nq) out.sort((a, b) => (b._score || 0) - (a._score || 0) || (a.group === "nav" ? -1 : 0));
   return out;

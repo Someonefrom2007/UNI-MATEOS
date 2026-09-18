@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
+import { useHighlightRow, highlightRing } from "@/lib/useHighlightRow";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Target, Plus, Trash2 } from "lucide-react";
@@ -16,6 +17,7 @@ const CATS = ["academic", "productivity", "study", "personal"];
 export default function Goals() {
   const { data, loading, error, mutate, refresh } = useUserData();
   const [qaOpen, setQaOpen] = useState(false);
+  const { highlightId, register } = useHighlightRow();
   const { toast } = useToast();
   const { t } = useI18n();
 
@@ -69,7 +71,7 @@ export default function Goals() {
         {goals.map((g) => {
           const pct = g.target ? Math.min(100, Math.round((g.current / g.target) * 100)) : 0;
           return (
-            <Card key={g.id} className="p-5 group glow-hover">
+            <Card key={g.id} ref={register(g.id)} className={`p-5 group glow-hover ${highlightRing(highlightId === g.id)}`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

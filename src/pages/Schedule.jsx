@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useUserData } from "@/lib/useUserData";
 import EventEditor from "@/components/EventEditor";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -44,12 +45,33 @@ export default function Schedule() {
   const [editing, setEditing] = useState(null);
   const [toDelete, setToDelete] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const events = data?.ScheduleEvent || [];
   const courses = useMemo(() => (data?.Course || []).filter((c) => !c.archived), [data]);
   const tasks = useMemo(() => activeTasks(data?.Task), [data]);
   const exams = data?.Exam || [];
   const todayStr = toLocalISO(new Date());
+
+  const highlightId = searchParams.get("highlight");
+  useEffect(() => {
+    if (!highlightId || !data) return;
+    const event = (data.ScheduleEvent || []).find((e) => e.id === highlightId);
+    if (!event) return;
+    if (event.date) {
+      const d = new Date(`${event.date}T00:00:00`);
+      if (!Number.isNaN(d.getTime())) {
+        d.setHours(0, 0, 0, 0);
+        setAnchor(d);
+      }
+    }
+    setEditing(event);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("highlight");
+      return next;
+    }, { replace: true });
+  }, [highlightId, data, setSearchParams]);
 
   useEffect(() => {
     if (!data) return;

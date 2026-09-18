@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Anchor, Pin, PinOff, Trash2 } from "lucide-react";
 import { COLOR_KEYS, STICKY_BG, STICKY_DOT } from "./stickyColors";
 
-export default function StickyNoteCard({ note, onSave, onColor, onTogglePin, onDelete, floating, onFloat }) {
+export default function StickyNoteCard({ note, onSave, onColor, onTogglePin, onDelete, floating, onFloat, highlighted, cardRef }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(note.content);
 
@@ -14,7 +14,8 @@ export default function StickyNoteCard({ note, onSave, onColor, onTogglePin, onD
 
   return (
     <div
-      className={`mb-4 break-inside-avoid rounded-lg p-4 pt-3 shadow-lg shadow-black/20 ${STICKY_BG[note.color] || STICKY_BG.amber}`}
+      ref={cardRef}
+      className={`mb-4 break-inside-avoid rounded-lg p-4 pt-3 shadow-lg shadow-black/20 ${STICKY_BG[note.color] || STICKY_BG.amber} ${highlighted ? "ring-2 ring-primary/70" : ""}`}
       style={{ transform: `rotate(${note.rotation || 0}deg)` }}
     >
       <div className="flex items-center justify-between mb-1.5 opacity-50 hover:opacity-100 transition-opacity">

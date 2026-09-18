@@ -97,6 +97,20 @@ export const formToTaskPatch = (form = {}) => ({
 export const archivePatch = () => ({ archived: true });
 export const restorePatch = () => ({ archived: false });
 
+// Which Tasks tab can actually show a given task. A search result deep-links to
+// `?highlight=<id>`; the default "today" tab hides anything not due today, so
+// landing there would show an empty list and a highlight the student cannot
+// see. Ordering matters: archived first, then the status/deadline buckets.
+export const taskViews = ["today", "upcoming", "overdue", "all", "completed", "archived"];
+
+export const viewForTask = (task, todayStr) => {
+  if (!task) return null;
+  if (isArchived(task)) return "archived";
+  if (isCompleted(task)) return "completed";
+  if (task.due_date && task.due_date < todayStr) return "overdue";
+  return "upcoming";
+};
+
 // A patch is only valid if it still has a title — the one required field.
 export const validateTaskForm = (form = {}) =>
   String(form.title || "").trim() ? null : "A task needs a title.";

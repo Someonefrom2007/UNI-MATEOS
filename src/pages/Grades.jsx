@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
@@ -6,6 +6,7 @@ import { fmtGrade, courseColor } from "@/lib/format";
 import { courseGrade, ectsAverage, requiredGrade, projectedGrade } from "@/lib/gradeEngine";
 import { clampGrade, updateTargets, targetFeasibility, gradeBandExtended, MATRICULA_DE_HONOR } from "@/lib/gradesim";
 import { Card } from "@/components/ui/card";
+import { useHighlightRow, highlightRing } from "@/lib/useHighlightRow";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -25,6 +26,7 @@ export default function Grades() {
   const [toDelete, setToDelete] = useState(null);
   const [busy, setBusy] = useState(false);
   const [openCourse, setOpenCourse] = useState(null);
+  const { highlightId, register } = useHighlightRow();
   const { toast } = useToast();
   const exams = data?.Exam || [];
   const [simCourse, setSimCourse] = useState("");
@@ -44,6 +46,14 @@ export default function Grades() {
       return { ...c, grade: courseGrade(assessments), assessments, grades };
     });
   }, [data, courses]);
+
+  // A grade lives inside a collapsed course, so a search hit has to open its
+  // parent card before the row can be seen or scrolled to.
+  useEffect(() => {
+    if (!highlightId || !data) return;
+    const parent = courseGrades.find((c) => c.grades.some((g) => g.id === highlightId));
+    if (parent) setOpenCourse(parent.id);
+  }, [highlightId, data, courseGrades]);
 
   const gpa = ectsAverage(courseGrades.filter((c) => c.grade !== null));
   const gpaBand = gpa !== null ? gradeBandExtended(gpa) : null;
@@ -202,7 +212,7 @@ export default function Grades() {
                         ) : (
                           <ul className="space-y-1.5">
                             {c.grades.map((g) => (
-                              <li key={g.id} className="flex items-center gap-3 text-xs group">
+                              <li key={g.id} ref={register(g.id)} className={`flex items-center gap-3 text-xs group rounded px-1 -mx-1 ${highlightRing(highlightId === g.id)}`}>
                                 <span className="font-medium text-foreground">{g.name}</span>
                                 <span className="text-muted-foreground capitalize">{g.type}</span>
                                 {g.weight > 0 && <span className="text-muted-foreground">{g.weight}%</span>}

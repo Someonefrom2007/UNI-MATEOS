@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
@@ -13,9 +13,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import ErrorState from "@/components/ErrorState";
-import { isActive, isArchived } from "@/lib/taskEdit";
+import { isActive, isArchived, viewForTask, taskViews } from "@/lib/taskEdit";
+import { useHighlightRow, highlightRing } from "@/lib/useHighlightRow";
 
-const VIEWS = ["today", "upcoming", "overdue", "all", "completed", "archived"];
 const PRIORITY_GLOW = {
   urgent: "shadow-[0_0_12px_rgba(244,63,94,0.35)]",
   high: "shadow-[0_0_10px_rgba(245,158,11,0.28)]",
@@ -31,6 +31,7 @@ export default function Tasks() {
   const [editing, setEditing] = useState(null);   // task row or {} for create
   const [toDelete, setToDelete] = useState(null);
   const [busy, setBusy] = useState(false);
+  const { highlightId, register } = useHighlightRow();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { t } = useI18n();
@@ -43,6 +44,16 @@ export default function Tasks() {
   // triage all read this same filtered set so archiving a task actually removes
   // it from the numbers, not just the list.
   const visible = useMemo(() => (data ? data.Task.filter((t) => !isArchived(t)) : []), [data]);
+
+  // A task opened from search must be on screen when the page lands. The
+  // default "today" view hides anything not due today, which would drop the
+  // user on an empty list next to a highlight they cannot see. Flipping to the
+  // view that actually contains the task keeps the deep link honest.
+  useEffect(() => {
+    if (!highlightId || !data) return;
+    const target = viewForTask(data.Task.find((t) => t.id === highlightId), todayStr);
+    if (target) setView(target);
+  }, [highlightId, data, todayStr]);
 
   const tasks = useMemo(() => {
     if (!data) return [];
@@ -192,7 +203,7 @@ export default function Tasks() {
       ) : (
         <>
           <div className="flex gap-1 mb-4 overflow-x-auto pb-1">
-            {VIEWS.map((v) => (
+            {taskViews.map((v) => (
               <button key={v} onClick={() => setView(v)} className={`px-3 py-1.5 rounded-lg text-sm capitalize whitespace-nowrap transition-all duration-200 ${view === v ? "bg-primary text-primary-foreground shadow-[0_0_14px_rgba(99,102,241,0.35)]" : "text-muted-foreground hover:bg-muted glow-hover"}`}>
                 {t(`tasks.views.${v}`)}
               </button>
@@ -211,7 +222,7 @@ export default function Tasks() {
                 const cc = course ? courseColor(course.color) : null;
                 const overdue = t.due_date && t.due_date < todayStr && t.status !== "completed";
                 return (
-                  <Card key={t.id} className="p-3 flex items-center gap-3 group glow-hover">
+                  <Card key={t.id} ref={register(t.id)} className={`p-3 flex items-center gap-3 group glow-hover ${highlightRing(highlightId === t.id)}`}>
 <button onClick={() => toggle(t)} aria-label={t.status === "completed" ? `Mark ${t.title} as not done` : `Mark ${t.title} as done`} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${t.status === "completed" ? "bg-emerald-500 border-emerald-500" : "border-border hover:border-primary"}`}>
                       {t.status === "completed" && <span className="text-[10px] text-white">✓</span>}
                     </button>

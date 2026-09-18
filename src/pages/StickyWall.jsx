@@ -7,6 +7,7 @@ import useAnchoredStickies from "@/hooks/useAnchoredStickies";
 import { Plus, StickyNote as StickyNoteIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import ErrorState from "@/components/ErrorState";
+import { useHighlightRow } from "@/lib/useHighlightRow";
 
 export default function StickyWall() {
   const { data, loading, error, mutate, refresh } = useUserData();
@@ -16,6 +17,7 @@ export default function StickyWall() {
   const [draft, setDraft] = useState("");
   const [color, setColor] = useState("amber");
   const [saving, setSaving] = useState(false);
+  const { highlightId, register } = useHighlightRow();
 
   const notes = useMemo(() => {
     const list = data?.StickyNote || [];
@@ -111,6 +113,8 @@ export default function StickyWall() {
               onDelete={handleDelete}
               floating={anchoredIds.has(n.id)}
               onFloat={toggleFloat}
+              highlighted={highlightId === n.id}
+              cardRef={register(n.id)}
             />
           ))}
         </div>

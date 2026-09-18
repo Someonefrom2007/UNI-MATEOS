@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
+import { useHighlightRow, highlightRing } from "@/lib/useHighlightRow";
 import { courseColor } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { FolderOpen, Plus, ExternalLink, FileText, Link as LinkIcon, Video, Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
@@ -17,6 +18,7 @@ export default function Resources() {
   const { data, error, mutate, refresh } = useUserData();
   const { t } = useI18n();
   const [qaOpen, setQaOpen] = useState(false);
+  const { highlightId, register } = useHighlightRow();
   const [editing, setEditing] = useState(null);
   const [toDelete, setToDelete] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -74,7 +76,7 @@ export default function Resources() {
           const course = courses.find((c) => c.id === r.course_id);
           const cc = course ? courseColor(course.color) : null;
           return (
-            <Card key={r.id} className="p-4 group glow-hover">
+            <Card key={r.id} ref={register(r.id)} className={`p-4 group glow-hover ${highlightRing(highlightId === r.id)}`}>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border/60">
                   <Icon className="w-5 h-5 text-muted-foreground" />

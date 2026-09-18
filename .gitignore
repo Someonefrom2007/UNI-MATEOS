@@ -42,3 +42,6 @@ export-report.json
 .env
 .vite
 base44/.app.jsonc
+
+# Sandbox-only Vite config used for headless runtime verification.
+vite.verify.config.js

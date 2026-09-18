@@ -3,6 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { isLocalWorkspace } from "@/lib/repo/select";
 import { createLocalRepo } from "@/lib/repo/localRepo";
+import { notifyDataChanged } from "@/lib/useUserData";
 
 const LOCAL = isLocalWorkspace();
 const localRepo = LOCAL ? createLocalRepo() : null;
@@ -107,6 +108,11 @@ export const loadDemoData = async () => {
     { course_id: cs.id, duration: 50, date: inDays(-4), completed: true, mode: "50_10", label: "Calculator refactor" },
     { course_id: math.id, duration: 25, date: inDays(-5), completed: true, mode: "25_5" },
   ]);
+
+  // Seeding bypasses `mutate`, so mounted hooks (the command palette in the
+  // header, for one) would otherwise keep showing an empty semester until a
+  // manual reload.
+  notifyDataChanged();
 
   return { courses: courses.length, classes: 6, tasks: 5, exams: 3, grades: 4, notes: 2, stickies: 5, habits: habits.length };
 };

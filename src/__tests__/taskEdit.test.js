@@ -13,6 +13,8 @@ import {
   taskToForm,
   formToTaskPatch,
   validateTaskForm,
+  taskViews,
+  viewForTask,
 } from "@/lib/taskEdit";
 
 describe("task status helpers", () => {
@@ -147,5 +149,48 @@ describe("validateTaskForm", () => {
     expect(validateTaskForm({ title: "   " })).toBeTruthy();
     expect(validateTaskForm({})).toBeTruthy();
     expect(validateTaskForm({ title: "Essay" })).toBeNull();
+  });
+});
+
+describe("viewForTask", () => {
+  const today = "2026-09-20";
+
+  it("routes each task to a tab that actually lists it", () => {
+    expect(viewForTask({ status: "todo", due_date: "2026-09-25" }, today)).toBe("upcoming");
+    expect(viewForTask({ status: "todo", due_date: "2026-09-18" }, today)).toBe("overdue");
+    expect(viewForTask({ status: "completed", due_date: "2026-09-25" }, today)).toBe("completed");
+    expect(viewForTask({ status: "todo", archived: true }, today)).toBe("archived");
+  });
+
+  it("prefers archived over every other bucket, since archived tabs exclude the rest", () => {
+    expect(viewForTask({ status: "completed", archived: true, due_date: "2026-01-01" }, today)).toBe("archived");
+  });
+
+  it("sends an undated open task to upcoming, which includes today or later", () => {
+    expect(viewForTask({ status: "todo", due_date: null }, today)).toBe("upcoming");
+    expect(viewForTask({ status: "todo" }, today)).toBe("upcoming");
+  });
+
+  it("treats a task due today as upcoming rather than overdue", () => {
+    expect(viewForTask({ status: "todo", due_date: today }, today)).toBe("upcoming");
+  });
+
+  it("returns null when the row is missing so callers leave the view alone", () => {
+    expect(viewForTask(undefined, today)).toBeNull();
+    expect(viewForTask(null, today)).toBeNull();
+  });
+
+  it("only ever names a real tab, so a deep link can never point at a view that does not exist", () => {
+    const sample = [
+      { status: "todo", due_date: "2026-09-25" },
+      { status: "todo", due_date: "2026-09-18" },
+      { status: "todo", due_date: null },
+      { status: "in_progress", due_date: today },
+      { status: "completed" },
+      { status: "todo", archived: true },
+    ];
+    sample.forEach((task) => {
+      expect(taskViews).toContain(viewForTask(task, today));
+    });
   });
 });
