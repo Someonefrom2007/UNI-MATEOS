@@ -45,3 +45,9 @@ Never surface raw technical errors. Messages state: what happened, what was pres
 
 ## 12. Atomic missions (§32–33)
 Work ships as one mission at a time: OBJECTIVE / SCOPE / FILES / IMPLEMENTATION / TESTS / ACCEPTANCE. Each ends with typecheck+test+lint+build. Error budget: 1 failure → investigate; 2 related → reduce scope; 3+ cascading → STOP and report.
+
+## 13. Plans only, never move (Mission 18, §12)
+Workload assistance produces a *proposal* the student reviews and confirms; it never silently rewrites commitments. Rescue my week only adds study sessions to free time, states its inputs and the hours involved, and reports work it could not place with a concrete extension suggestion instead of compressing the day. Anything that would move a class, deadline or event is out of scope by design.
+
+## 14. Sample data must be refreshable, and scoped (Mission 19, §43)
+Demo seeding is repeatable: it clears the rows it owns (identified by fingerprint) before inserting, so re-running it refreshes the sample semester instead of duplicating it. Clearance is deliberately *not* a table wipe — a student's own courses and their tasks/notes/stickies must survive. Any future seedable dataset follows the same rule: own your rows, fingerprint them, never clear a table you share with the user.

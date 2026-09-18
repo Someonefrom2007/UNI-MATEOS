@@ -1,17 +1,17 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-17, after Missions 12–16: course-deletion integrity, tasks CRUD, record editors, notes fixes, attention centre, and global search + Quick Add). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-18, after Missions 12–19: course-deletion integrity, tasks CRUD, record editors, notes fixes, attention centre, global search + Quick Add, attendance, Rescue my week, and repeatable demo seeding). Do not treat this file as a spec — it records what actually exists.
 
 ## Baseline verification (all green)
 
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 34 files / 529 tests pass |
+| Tests | `npm test` (vitest run) | ✅ 36 files / 571 tests pass |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — no >500 kB chunks; entry 182 kB; PWA 66 precache entries (1515.08 KiB) |
+| Build | `npm run build` | ✅ PASS — no >500 kB chunks; entry 180 kB; PWA 72 precache entries (1540.48 KiB) |
 
-Runtime/browser verification IS available in this environment (a Vite dev server on the sandbox work host + a scripted browser). Missions 12–16 were each runtime-verified — see the per-mission evidence in ROADMAP.md. The gates remain the primary evidence; browser checks cover the journeys listed under "What actually works".
+Runtime/browser verification IS available in this environment (a Vite dev server on the sandbox work host + a scripted browser). Missions 12–19 were each runtime-verified — see the per-mission evidence in ROADMAP.md. The gates remain the primary evidence; browser checks cover the journeys listed under "What actually works".
 
 ## Critical defect found and fixed in Mission 17
 
@@ -22,6 +22,12 @@ This silently broke every create in the app - all fifteen call sites across cour
 Fixed by extracting `resolveMutationArgs` (`src/lib/mutationArgs.js`) - one tested mapping of each operation's real arity - and routing `mutate` through it. Regression tests in `src/__tests__/mutationArgs.test.js`. Runtime-verified: a task created from Quick Add and an attendance session logged from a course workspace both persist with their real fields.
 
 **Lesson for future missions:** the create path is the highest-traffic code in the app and was covered only indirectly. Prefer a test that asserts a created row *carries its fields* over one that asserts the list grew by one.
+
+## Defect found and fixed in Mission 19
+
+`loadDemoData` inserted without clearing, so running "Load demo data" twice left two of every entity. On a workspace that had seeded twice this showed up as each class conflicting with a duplicate of itself (`Linear Algebra — Lecture (10:00–11:30) overlaps with Linear Algebra — Lecture (10:00–11:30)`), which reads as a bug in the conflict detector but was actually duplicated data.
+
+Clearance is now scoped by fingerprint — the four demo course codes, the rows linked to them, the demo sticky texts, habit names and goal name — so a re-seed refreshes the sample semester and leaves the student's own work alone. Runtime-verified: re-seeding the already-duplicated workspace collapsed courses 8→4, tasks 10→5, exams 6→3, stickies 10→5 and cleared every schedule conflict warning.
 
 ## Stack (verified in package.json / configs)
 

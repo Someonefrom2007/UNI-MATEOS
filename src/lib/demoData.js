@@ -26,7 +26,83 @@ const insert = async (table, rows) => {
   return data || [];
 };
 
+// Fingerprints identifying rows this seeder owns. Seeding must be repeatable,
+// and the previous version appended blindly: loading the sample semester twice
+// left two of every course, which surfaced as a schedule where each class
+// overlapped a duplicate of itself. Clearance below is scoped to these
+// fingerprints so a student's own work is never swept up with the sample data.
+const DEMO_COURSE_CODES = ["MATH201", "CS101", "PSY101", "HUM105"];
+const DEMO_STICKY_CONTENTS = [
+  "ask Ferrer about repeated eigenvalues before the midterm!!",
+  "psych quiz is 20% of the grade — do NOT leave it for the night before",
+  "group project: pick the terminal app, it's the least painful",
+  "coffee before 9am lectures is non-negotiable ☕",
+  "start essay drafts earlier this time. earlier. EARLIER.",
+];
+const DEMO_HABIT_NAMES = ["Read 30 minutes", "Gym"];
+const DEMO_GOAL_NAMES = ["Finish the semester with an 8 average"];
+
+// Tables whose sample rows all hang off a demo course.
+const DEMO_COURSE_LINKED = {
+  schedule_events: "course_id",
+  tasks: "course_id",
+  exams: "course_id",
+  grades: "course_id",
+  notes: "course_id",
+  focus_sessions: "course_id",
+};
+
+const listRows = async (table) => {
+  if (LOCAL) return localRepo.list(table);
+  const { data, error } = await supabase.from(table).select("*");
+  if (error) throw new Error(`Reading "${table}" failed: ${error.message}`);
+  return data || [];
+};
+
+const removeIds = async (table, ids) => {
+  if (!ids.length) return;
+  if (LOCAL) {
+    const set = new Set(ids.map(String));
+    localRepo.deleteWhere(table, (r) => set.has(String(r.id)));
+    return;
+  }
+  const { error } = await supabase.from(table).delete().in("id", ids);
+  if (error) throw new Error(`Clearing "${table}" failed: ${error.message}`);
+};
+
+// Remove only the rows a previous run of this seeder created. Anything the
+// student added that is not tied to a demo course survives.
+const clearDemoData = async () => {
+  const courses = await listRows("courses");
+  const demoCourses = courses.filter((c) => DEMO_COURSE_CODES.includes(c.code));
+  const demoCourseIds = new Set(demoCourses.map((c) => String(c.id)));
+
+  for (const [table, column] of Object.entries(DEMO_COURSE_LINKED)) {
+    const rows = await listRows(table);
+    await removeIds(table, rows.filter((r) => demoCourseIds.has(String(r[column]))).map((r) => r.id));
+  }
+  await removeIds("courses", demoCourses.map((c) => c.id));
+
+  const stickies = await listRows("sticky_notes");
+  await removeIds(
+    "sticky_notes",
+    stickies.filter((r) => DEMO_STICKY_CONTENTS.includes(r.content)).map((r) => r.id),
+  );
+
+  const habits = await listRows("habits");
+  const demoHabits = habits.filter((h) => DEMO_HABIT_NAMES.includes(h.name));
+  const demoHabitIds = new Set(demoHabits.map((h) => String(h.id)));
+  const logs = await listRows("habit_logs");
+  await removeIds("habit_logs", logs.filter((l) => demoHabitIds.has(String(l.habit_id))).map((l) => l.id));
+  await removeIds("habits", demoHabits.map((h) => h.id));
+
+  const goals = await listRows("goals");
+  await removeIds("goals", goals.filter((g) => DEMO_GOAL_NAMES.includes(g.name)).map((g) => g.id));
+};
+
 export const loadDemoData = async () => {
+  await clearDemoData();
+
   const courses = await insert("courses", [
     { name: "Linear Algebra", code: "MATH201", professor: "Dr. Ferrer", ects: 6, semester: "1", target_grade: 7, color: "amber", archived: false },
     { name: "Programming Fundamentals", code: "CS101", professor: "Prof. Núñez", ects: 6, semester: "1", target_grade: 8, color: "cyan", archived: false },

@@ -95,7 +95,7 @@ export default function Settings() {
   };
 
   const loadDemo = async () => {
-    if (!confirm("This adds a full sample semester (courses, classes, tasks, exams, grades, sticky notes) to your workspace. Continue?")) return;
+    if (!confirm("This loads a full sample semester (courses, classes, tasks, exams, grades, notes, stickies, habits, goals). Running it again refreshes that sample rather than duplicating it. Your own courses are left alone. Continue?")) return;
     setDemoLoading(true);
     try {
       await loadDemoData();

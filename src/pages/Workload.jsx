@@ -2,23 +2,26 @@ import { useMemo } from "react";
 import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
-import { fmtDuration, courseColor } from "@/lib/format";
+import { fmtDuration, courseColor, todayISO } from "@/lib/format";
 import { weekWorkload } from "@/lib/workloadEngine";
 import { activeTasks } from "@/lib/taskEdit";
 import { Card } from "@/components/ui/card";
 import { Gauge, AlertTriangle } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import ErrorState from "@/components/ErrorState";
+import RescueWeekPanel from "@/components/RescueWeekPanel";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function Workload() {
-  const { data, loading, error, refresh } = useUserData();
+  const { data, loading, error, refresh, mutate } = useUserData();
   const { t } = useI18n();
 
   const weekStart = useMemo(() => {
     const d = new Date(); d.setDate(d.getDate() - d.getDay()); d.setHours(0, 0, 0, 0);
-    return d.toISOString().slice(0, 10);
+    // Local date, not UTC — `toISOString` shifts the week by a day for students
+    // west of UTC and put Monday's work in the previous week's bucket.
+    return todayISO(d);
   }, []);
 
   const wl = useMemo(() => {
@@ -111,6 +114,10 @@ export default function Workload() {
           </div>
         )}
       </Card>
+
+      <div className="mt-6">
+        <RescueWeekPanel data={data} mutate={mutate} todayStr={todayISO()} />
+      </div>
     </>
   );
 }

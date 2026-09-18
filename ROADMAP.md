@@ -150,9 +150,24 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 - **Also fixed:** the attendance editor dropped the course it was opened with, so `validateAttendanceForm` rejected every submit from a course workspace with "Pick the course this session belongs to." The course is now locked and displayed when opened from a workspace, and the record's own course wins when editing.
 - **Evidence:** typecheck 0 · lint 0 · tests 34 files / 529 pass · build ✅. Runtime-verified in the browser against a real course: the dialog opened with the course prefilled, submitting wrote a row carrying `course_id`/`date`/`status` (checked in `localStorage`), and the course glance then read `Attendance 100.0% · min 80%` with the panel showing the 80% mark and edit/delete controls. A row created *before* the fix (metadata only) is still visibly empty, which is the correct behaviour — the fix prevents new corruption rather than inventing data for old rows.
 
+### Mission 18 — Rescue my week (§12) — DONE
+- **Objective (§12):** `/workload` reported that the week was overloaded but offered nothing to do about it. Rescue my week turns the warning into an explicit, reviewable plan.
+- **Files:** `src/lib/rescuePlan.js` (NEW: `collectWork` gathers open tasks plus a per-exam preparation requirement; `sittingsFor` splits long work into study-sized sittings with a ~15 min floor so a block is never a 6-minute stub; `planDays` builds the horizon; `buildRescuePlan` fits work into real free time using `freeBlocks` from `scheduleEngine`, in deadline order, returning `sessions`, `unplaced` and a concrete `extendByDays` suggestion), `src/components/RescueWeekPanel.jsx` (NEW), `src/pages/Workload.jsx`.
+- **Deliberate design:** nothing is moved. Sessions are only *added*, and the student confirms before anything is written. The panel states its inputs ("your 10 open tasks and 6 upcoming exams") and where the hours come from, so the plan is explainable rather than authoritative.
+- **Fixes made while verifying:** (1) headroom was applied by shrinking each block instead of as a per-day budget, which quietly over-booked every day; (2) a day's first free block was skipped, wasting the 08:00 pocket; (3) `capacityByDay` was referenced after being renamed to `budgetByDay`; (4) sessions were emitted out of order — now chronological.
+- **Evidence:** typecheck 0 · lint 0 · tests 35 files / 563 pass (30 new in `rescuePlan.test.js`). Runtime-verified end to end: the panel proposed 20 sessions / 29h 18m against 59h 36m of free time, the confirm dialog stated the exact scope, applying wrote study events that render on `/schedule`, and nothing pre-existing moved.
+
+### Mission 19 — Repeatable demo seeding (data integrity) — DONE
+- **Objective (§43/§52):** Runtime verification of Mission 18 surfaced schedule entries "conflicting with themselves" — `Linear Algebra — Lecture (10:00–11:30) overlaps with Linear Algebra — Lecture (10:00–11:30)`. The conflict detector was right; the data was wrong.
+- **Root cause:** `loadDemoData` appended without clearing. `localStorage` showed the seeder had run twice (14:13 and 14:26), leaving 8 courses, 10 tasks, 6 exams, 10 stickies and 12 duplicate classes. Every "self-conflict" was a demo row overlapping its own twin.
+- **Fix:** `clearDemoData` now removes only rows this seeder owns, identified by fingerprint (the four demo course codes, their course-linked rows, the five sticky texts, the two habit names, the goal name). A student's own courses and their tasks/notes/stickies survive a re-seed, and the sample semester can be refreshed instead of accumulating.
+- **Rejected approach:** an earlier draft cleared the demo tables wholesale. That was simpler but destructive — it would have deleted a student's real courses. Scoping by fingerprint keeps the fix safe, which is the whole point of the mission.
+- **Files:** `src/lib/demoData.js`, `src/__tests__/demoData.test.js` (NEW, 7 tests), confirmation copy in `Settings.jsx` / `Dashboard.jsx` now describes what actually happens.
+- **Evidence:** typecheck 0 · lint 0 · tests 36 files / 571 pass · build ✅. Mutation-checked: disabling the clear step fails 5 of the 7 new tests. Runtime-verified against the already-duplicated workspace — re-seeding collapsed courses 8→4, tasks 10→5, exams 6→3, stickies 10→5, and the Schedule page's conflict warnings disappeared entirely.
+
 ---
 
 ## Cross-cutting reminders
 - Every mission: TYPECHECK → TEST → LINT → BUILD, then record evidence here.
 - Never modify pinned engines or their tests. Never commit `.env.local` or new secrets. Keep changes recoverable (git checkpoint per mission).
-- Runtime verification is not available in this environment; use the documented gates + targeted test additions as evidence, and call out where browser verification is still needed.
+- Runtime verification IS available (Vite dev server on the sandbox work host + scripted browser). Use it for journeys, not just gates; missions 12–19 were each runtime-verified. Note the dev server needs `server.allowedHosts` for the work host — start it with a throwaway config rather than editing `vite.config.js`.
