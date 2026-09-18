@@ -22,6 +22,15 @@ const FETCH_ENTITIES = [
 
 const REALTIME_TABLES = ["tasks", "courses", "focus_sessions", "exams", "habit_logs", "sticky_notes"];
 
+// Writes that don't go through `mutate` (the quick-add sheet talks to the repo
+// directly) still have to refresh every mounted hook. One broadcast event keeps
+// pages from showing a stale list right after the user added something.
+export const DATA_CHANGED_EVENT = "unimate:data-changed";
+
+export const notifyDataChanged = () => {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(DATA_CHANGED_EVENT));
+};
+
 // Each hook lifecycle gets its own channel instance: React StrictMode and
 // hot-reload re-run effects, and reusing a fixed channel name can collide with
 // a previous instance that is still in the SUBSCRIBED state.
@@ -106,6 +115,13 @@ export const useUserData = () => {
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onChange = () => load();
+    window.addEventListener(DATA_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(DATA_CHANGED_EVENT, onChange);
   }, [load]);
 
   // Realtime is a hosted-backend feature: local mode owns its storage and has

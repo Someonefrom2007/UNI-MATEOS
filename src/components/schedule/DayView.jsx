@@ -6,7 +6,7 @@ import { AlertTriangle, GraduationCap, CheckSquare } from "lucide-react";
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 8:00 - 21:00
 const ROW_H = 56; // px per hour
 
-export default function DayView({ date, events, courses, tasks, exams, todayStr }) {
+export default function DayView({ date, events, courses, tasks, exams, todayStr, onSelectEvent }) {
   const ds = date.toISOString().slice(0, 10);
   const dayEvents = eventsForDate(events, ds)
     .filter((e) => e.start_time)
@@ -37,9 +37,12 @@ export default function DayView({ date, events, courses, tasks, exams, todayStr 
             const dur = e.end_time ? durationMin(e.start_time, e.end_time) : 60;
             const heightPx = Math.max(30, (dur / 60) * ROW_H - 4);
             return (
-              <div
+              <button
+                type="button"
                 key={e.id}
-                className={`absolute rounded-lg px-2.5 py-1.5 border overflow-hidden ${cc ? `${cc.soft} ${cc.text} ${cc.ring}` : "bg-muted text-foreground border-border"}`}
+                onClick={() => onSelectEvent?.(e)}
+                aria-label={`Edit ${e.title}`}
+                className={`absolute text-left rounded-lg px-2.5 py-1.5 border overflow-hidden transition-shadow hover:ring-2 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${cc ? `${cc.soft} ${cc.text} ${cc.ring}` : "bg-muted text-foreground border-border"}`}
                 style={{ top: topFor(e.start_time) + 2, height: `${heightPx}px`, left: "3.75rem", right: "0.25rem" }}
               >
                 <div className="text-sm font-semibold truncate">{e.title}</div>
@@ -47,7 +50,7 @@ export default function DayView({ date, events, courses, tasks, exams, todayStr 
                   {fmtTimeShort(e.start_time)} – {fmtTimeShort(e.end_time)}{e.room ? ` · ${e.room}` : ""}
                 </div>
                 {course && heightPx > 60 && <div className="text-[11px] opacity-70 truncate">{course.name}</div>}
-              </div>
+              </button>
             );
           })}
           {dayEvents.length === 0 && (

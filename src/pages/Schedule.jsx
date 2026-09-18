@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useUserData } from "@/lib/useUserData";
+import EventEditor from "@/components/EventEditor";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { fetchICSFeed, toScheduleEventRows, diffICS, expandForImport } from "@/lib/calendarSync";
 import { urgentExamsWithin, pickFreeBlock, addMinutes } from "@/lib/planner";
-import { loadFeeds } from "@/lib/feedsStore";
+import { loadFeeds, loadSuppressed, suppressEvent } from "@/lib/feedsStore";
 import { supabase } from "@/lib/supabase";
 import { isLocalWorkspace } from "@/lib/repo/select";
 import { createLocalRepo } from "@/lib/repo/localRepo";
@@ -39,9 +41,12 @@ export default function Schedule() {
   const [qaOpen, setQaOpen] = useState(false);
   const [icsOpen, setIcsOpen] = useState(false);
   const [scheduling, setScheduling] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [toDelete, setToDelete] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   const events = data?.ScheduleEvent || [];
-  const courses = data?.Course || [];
+  const courses = useMemo(() => (data?.Course || []).filter((c) => !c.archived), [data]);
   const tasks = useMemo(() => activeTasks(data?.Task), [data]);
   const exams = data?.Exam || [];
   const todayStr = toLocalISO(new Date());
@@ -58,7 +63,7 @@ export default function Schedule() {
           const parsed = await fetchICSFeed(f.url);
           const expanded = expandForImport(parsed.events);
           const { rows } = toScheduleEventRows(expanded, f.url);
-          const { toCreate } = diffICS(data.ScheduleEvent || [], rows);
+          const { toCreate } = diffICS(data.ScheduleEvent || [], rows, loadSuppressed());
           if (toCreate.length) {
             if (LOCAL) {
               for (const row of toCreate) localRepo.create("schedule_events", row);
@@ -148,6 +153,34 @@ export default function Schedule() {
     return `${ws.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${end.toLocaleDateString(undefined, { month: sameMonth ? undefined : "short", day: "numeric" })}`;
   };
 
+  const saveEvent = async (patch) => {
+    if (editing?.id) {
+      await mutate("ScheduleEvent", "update", editing.id, patch);
+      toast({ title: "Event updated" });
+    } else {
+      await mutate("ScheduleEvent", "create", patch);
+      toast({ title: "Event added" });
+    }
+  };
+
+  const deleteEvent = async (choice) => {
+    if (!toDelete) return;
+    setBusy(true);
+    try {
+      if (choice?.key === "and-google" && toDelete.google_event_id) {
+        // Remember the id so the next feed sync doesn't recreate it.
+        suppressEvent(toDelete.google_event_id);
+      }
+      await mutate("ScheduleEvent", "delete", toDelete.id);
+      toast({ title: "Event deleted" });
+      setToDelete(null);
+    } catch {
+      toast({ title: "Couldn't delete the event. Please try again." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (error) return <ErrorState onRetry={refresh} />;
 
   return (
@@ -218,13 +251,24 @@ export default function Schedule() {
         />
       ) : (
         <>
-          {view === "week" && <WeekView anchor={anchor} events={events} courses={courses} todayStr={todayStr} />}
-          {view === "day" && <DayView date={anchor} events={events} courses={courses} tasks={tasks} exams={exams} todayStr={todayStr} />}
+          {view === "week" && <WeekView anchor={anchor} events={events} courses={courses} todayStr={todayStr} onSelectEvent={setEditing} />}
+          {view === "day" && <DayView date={anchor} events={events} courses={courses} tasks={tasks} exams={exams} todayStr={todayStr} onSelectEvent={setEditing} />}
           {view === "month" && <MonthView anchor={anchor} events={events} courses={courses} todayStr={todayStr} onPickDay={(d) => { setAnchor(d); chooseView("day"); }} />}
         </>
       )}
       <QuickAdd open={qaOpen} onClose={() => setQaOpen(false)} />
       <ICSFeedDialog open={icsOpen} onClose={() => setIcsOpen(false)} data={data} onImported={refresh} />
+      <EventEditor open={editing !== null} event={editing?.id ? editing : null} courses={courses} onSave={saveEvent} onClose={() => setEditing(null)} />
+      <ConfirmDialog
+        open={Boolean(toDelete)}
+        onClose={() => setToDelete(null)}
+        title="Delete this event?"
+        description="It disappears from your timetable. Events imported from a calendar feed may reappear on the next sync."
+        confirmLabel="Delete event"
+        busy={busy}
+        alternatives={toDelete?.google_event_id ? [{ key: "and-google", label: "Also block this imported event", variant: "outline" }] : []}
+        onConfirm={deleteEvent}
+      />
     </>
   );
 }

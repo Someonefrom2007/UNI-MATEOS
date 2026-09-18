@@ -170,18 +170,26 @@ export const toScheduleEventRows = (events, feedUrl) => {
 
 // Diff: skip occurrences whose source key is already present locally. Returns
 // the rows to create and how many were already on the calendar.
-export const diffICS = (existingRows, incomingRows) => {
+export const diffICS = (existingRows, incomingRows, suppressed = []) => {
   const seen = new Set((existingRows || []).map((r) => r.google_event_id).filter(Boolean));
+  const blocked = new Set((suppressed || []).filter(Boolean));
   const toCreate = [];
   let skipped = 0;
+  let suppressedCount = 0;
   (incomingRows || []).forEach((row) => {
+    // A suppressed id is one the user deleted on purpose; re-creating it would
+    // undo their action, so it stays out and is reported separately.
+    if (blocked.has(row.google_event_id)) {
+      suppressedCount++;
+      return;
+    }
     if (seen.has(row.google_event_id)) skipped++;
     else {
       seen.add(row.google_event_id);
       toCreate.push(row);
     }
   });
-  return { toCreate, skipped };
+  return { toCreate, skipped, suppressed: suppressedCount };
 };
 
 // Fetch a remote .ics feed (CORS-permitting public calendars).

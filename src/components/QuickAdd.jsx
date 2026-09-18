@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckSquare, BookOpen, GraduationCap, CalendarDays, FileText, Target, Repeat, Award, Link2 } from "lucide-react";
 
 import { todayISO } from "@/lib/format";
+import { formToExamPatch, formToGradePatch, formToResourcePatch, validateExamForm, validateGradeForm, validateResourceForm } from "@/lib/recordForms";
 import { useToast } from "@/components/ui/use-toast";
 import { isLocalWorkspace } from "@/lib/repo/select";
 import { createLocalRepo } from "@/lib/repo/localRepo";
+import { notifyDataChanged } from "@/lib/useUserData";
 
 const LOCAL = isLocalWorkspace();
 const localRepo = LOCAL ? createLocalRepo() : null;
@@ -21,10 +23,12 @@ const localRepo = LOCAL ? createLocalRepo() : null;
 const insert = async (table, payload) => {
   if (LOCAL) {
     localRepo.create(table, payload);
+    notifyDataChanged();
     return;
   }
   const { error } = await supabase.from(table).insert(payload);
   if (error) throw error;
+  notifyDataChanged();
 };
 
 const OPTIONS = [
@@ -127,12 +131,14 @@ function Field({ label, children }) {
 
 function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
   const [form, setForm] = useState(/** @type {Record<string, any>} */ ({ course_id: presetCourseId || null }));
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async (e) => {
     e.preventDefault();
+    setFormError(null);
     setSaving(true);
     try {
       if (type.key === "task") {
@@ -159,15 +165,12 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
         });
         onDone("Course added", "/courses");
       } else if (type.key === "exam") {
-        await insert("exams", {
-          name: form.name,
-          course_id: form.course_id,
-          date: form.date,
-          weight: Number(form.weight) || 0,
-          type: form.type || "exam",
-          status: "upcoming",
-          topics: [],
-        });
+        const invalid = validateExamForm(form);
+        if (invalid) {
+          setFormError(invalid);
+          return;
+        }
+        await insert("exams", { ...formToExamPatch(form), status: "upcoming", topics: [] });
         onDone("Exam added", "/exams");
       } else if (type.key === "event") {
         await insert("schedule_events", {
@@ -208,22 +211,23 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
         });
         onDone("Habit created", "/habits");
       } else if (type.key === "grade") {
-        await insert("grades", {
-          name: form.name,
-          course_id: form.course_id,
-          grade: Number(form.grade),
-          weight: Number(form.weight) || 0,
-          date: form.date || todayISO(),
-          type: form.type || "assignment",
-        });
+        // A grade outside 0–10 would silently poison every average it touches.
+        const invalid = validateGradeForm(form);
+        if (invalid) {
+          setFormError(invalid);
+          return;
+        }
+        await insert("grades", { ...formToGradePatch(form), date: form.date || todayISO() });
         onDone("Grade added", "/grades");
       } else if (type.key === "resource") {
-        await insert("resources", {
-          name: form.name,
-          type: form.type || "link",
-          url: form.url || "",
-          course_id: form.course_id || null,
-        });
+        // Same validation the full editor applies — an unsafe URL must not slip
+        // in just because it was added from the quick-add sheet.
+        const invalid = validateResourceForm(form);
+        if (invalid) {
+          setFormError(invalid);
+          return;
+        }
+        await insert("resources", formToResourcePatch(form));
         onDone("Resource added", "/resources");
       }
     } catch (err) {
@@ -356,6 +360,8 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
           </div>
         </>
       )}
+      {formError && <p className="text-xs text-destructive" role="alert">{formError}</p>}
+
       {type.key === "resource" && (
         <>
           <Field label="Name"><Input autoFocus required value={form.name || ""} onChange={(e) => set("name", e.target.value)} placeholder="Lecture slides" /></Field>

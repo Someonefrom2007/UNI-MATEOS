@@ -6,7 +6,7 @@ import { AlertTriangle } from "lucide-react";
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 8:00 - 21:00
 
-export default function WeekView({ anchor, events, courses, todayStr }) {
+export default function WeekView({ anchor, events, courses, todayStr, onSelectEvent }) {
   const weekStart = useMemo(() => {
     const d = new Date(anchor);
     d.setDate(d.getDate() - d.getDay());
@@ -59,14 +59,14 @@ export default function WeekView({ anchor, events, courses, todayStr }) {
         })}
 
         {HOURS.map((h) => (
-          <DayRow key={h} hour={h} weekDays={weekDays} events={events} courses={courses} todayStr={todayStr} />
+          <DayRow key={h} hour={h} weekDays={weekDays} events={events} courses={courses} todayStr={todayStr} onSelectEvent={onSelectEvent} />
         ))}
       </div>
     </>
   );
 }
 
-function DayRow({ hour, weekDays, events, courses, todayStr }) {
+function DayRow({ hour, weekDays, events, courses, todayStr, onSelectEvent }) {
   return (
     <>
       <div className="text-[10px] text-muted-foreground text-right pr-1 pt-1 font-mono">{hour}:00</div>
@@ -86,10 +86,10 @@ function DayRow({ hour, weekDays, events, courses, todayStr }) {
               const dur = e.end_time ? durationMin(e.start_time, e.end_time) : 30;
               const heightPx = Math.max(44, (dur / 60) * 44);
               return (
-                <div key={e.id} className={`absolute inset-x-0.5 top-0.5 rounded px-1.5 py-1 text-[10px] leading-tight overflow-hidden ${cc ? `${cc.soft} ${cc.text} border ${cc.ring}` : "bg-muted border border-border"}`} style={{ height: `${heightPx}px` }}>
+                <button type="button" onClick={() => onSelectEvent?.(e)} aria-label={`Edit ${e.title}`} key={e.id} className={`absolute inset-x-0.5 top-0.5 text-left rounded px-1.5 py-1 text-[10px] leading-tight overflow-hidden transition-shadow hover:ring-2 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${cc ? `${cc.soft} ${cc.text} border ${cc.ring}` : "bg-muted border border-border"}`} style={{ height: `${heightPx}px` }}>
                   <div className="font-medium truncate">{e.title}</div>
                   <div className="opacity-70 truncate">{fmtTimeShort(e.start_time)}</div>
-                </div>
+                </button>
               );
             })}
           </div>
