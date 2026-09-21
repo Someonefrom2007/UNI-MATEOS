@@ -55,6 +55,14 @@ const DICT = {
     "shell.menu": "Menu",
     "shell.logout": "Log out",
     "shell.student": "Student",
+    // Notifications center
+    "notify.title": "Notifications",
+    "notify.markAll": "Mark all read",
+    "notify.empty": "You're all caught up",
+    "notify.emptySub": "Alerts from your real classes, deadlines, and progress show up here.",
+    "notify.group.academic": "Academic",
+    "notify.group.milestone": "Milestones",
+    "notify.group.community": "Community",
     // Desk mode
     "desk.tidy": "Tidy desk",
     "desk.chaos": "Chaos mode",
@@ -162,6 +170,14 @@ const DICT = {
     "shell.menu": "Menú",
     "shell.logout": "Tanca sessió",
     "shell.student": "Estudiant",
+    // Notifications center
+    "notify.title": "Notificacions",
+    "notify.markAll": "Marca-ho tot com a llegit",
+    "notify.empty": "Estàs al dia",
+    "notify.emptySub": "Aquí hi apareixen els avisos reals de classes, terminis i progressos.",
+    "notify.group.academic": "Acadèmic",
+    "notify.group.milestone": "Fites",
+    "notify.group.community": "Comunitat",
     // Desk mode
     "desk.tidy": "Escriptori net",
     "desk.chaos": "Mode caos",
@@ -269,6 +285,14 @@ const DICT = {
     "shell.menu": "Menú",
     "shell.logout": "Cerrar sesión",
     "shell.student": "Estudiante",
+    // Notifications center
+    "notify.title": "Notificaciones",
+    "notify.markAll": "Marcar todo como leído",
+    "notify.empty": "Estás al día",
+    "notify.emptySub": "Aquí aparecen los avisos reales de clases, plazos y progreso.",
+    "notify.group.academic": "Académico",
+    "notify.group.milestone": "Hitos",
+    "notify.group.community": "Comunidad",
     // Desk mode
     "desk.tidy": "Escritorio limpio",
     "desk.chaos": "Modo caos",

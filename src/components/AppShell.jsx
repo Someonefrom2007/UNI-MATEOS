@@ -12,6 +12,7 @@ import {
 import QuickAdd from "@/components/QuickAdd";
 import CommandPalette from "@/components/CommandPalette";
 import FloatingStickiesLayer from "@/components/FloatingStickiesLayer";
+import NotificationCenter, { NotificationBell, useNotifications } from "@/components/notify/NotificationCenter";
 import Logo from "@/components/Logo";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -120,6 +121,8 @@ export default function AppShell() {
   const { lang, setLang, t } = useI18n();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const { notifs, readIds, unread, markOne, markAll } = useNotifications();
 
   const togglePalette = () => window.dispatchEvent(new CustomEvent("unimate:palette"));
 
@@ -203,6 +206,7 @@ export default function AppShell() {
         </Link>
         <div className="flex items-center gap-1">
           <button onClick={togglePalette} aria-label="Search" className="p-2 rounded-lg hover:bg-muted"><Search className="w-5 h-5" /></button>
+          <NotificationBell unread={unread} onClick={() => setNotifOpen(true)} />
           <button onClick={() => setQuickAddOpen(true)} aria-label="Quick add" className="p-2 rounded-lg hover:bg-muted"><Plus className="w-5 h-5" /></button>
           <button onClick={() => setMobileMenu(true)} aria-label="Open menu" className="p-2 rounded-lg hover:bg-muted"><Menu className="w-5 h-5" /></button>
         </div>
@@ -252,6 +256,7 @@ export default function AppShell() {
             <kbd className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-muted border border-border font-mono">⌘K</kbd>
           </button>
           <div className="flex items-center gap-1">
+            <NotificationBell unread={unread} onClick={() => setNotifOpen(true)} />
             <button onClick={() => setQuickAddOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
               <Plus className="w-4 h-4" /> {t("shell.quickAdd")}
             </button>
@@ -297,6 +302,14 @@ export default function AppShell() {
       <QuickAdd open={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
       <CommandPalette />
       <FloatingStickiesLayer />
+      <NotificationCenter
+        open={notifOpen}
+        onOpenChange={setNotifOpen}
+        notifs={notifs}
+        readIds={readIds}
+        onMarkOne={markOne}
+        onMarkAll={markAll}
+      />
     </div>
   );
 }
