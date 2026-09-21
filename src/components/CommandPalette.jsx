@@ -24,8 +24,12 @@ const COMMANDS = [
   { label: "Go to Workload", to: "/workload", type: "Go to" },
   { label: "Go to Insights", to: "/insights", type: "Go to" },
   { label: "Go to AI Assistant", to: "/ai", type: "Go to" },
+  { label: "Go to Flashcards", to: "/flashcards", type: "Go to" },
+  { label: "Go to Study Planner", to: "/study-plan", type: "Go to" },
+  { label: "Go to Analytics", to: "/analytics", type: "Go to" },
   { label: "Go to Profile", to: "/profile", type: "Go to" },
   { label: "Go to Settings", to: "/settings", type: "Go to" },
+  { label: "Go to Integrations", to: "/integrations", type: "Go to" },
 ];
 
 const ACTIONS = [

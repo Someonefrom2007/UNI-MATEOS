@@ -24,19 +24,27 @@ const isMissingRow = (error) =>
 
 const rowsOf = (res) => res.data ?? [];
 
+/**
+ * Hosted repository adapter over a supabase-js client.
+ * @param {object} [options={}]
+ * @param {object} [options.client] - supabase-js client
+ * @param {string|(() => Promise<?string>)} [options.userId] - row owner id (RLS
+ *   scope) or a resolver for it; resolved on first use so the shared repo can
+ *   stay valid across session restore. Unknown owners omit user_id and let the
+ *   database default auth.uid().
+ * @param {() => string} [options.now]       - timestamp factory
+ * @param {() => string} [options.idFactory] - row id factory
+ */
 export const createSupabaseRepo = ({
   client,
   userId = "supabase-user",
   now = () => new Date().toISOString(),
   idFactory = newId,
 } = {}) => {
-  const buildRow = (record = {}) => ({
-    ...toSnakeCase(record),
-    id: record.id || idFactory(),
-    user_id: record.user_id || userId,
-    created_at: record.created_at || now(),
-    updated_at: record.updated_at || now(),
-  });
+  const resolveOwner = async () => {
+    if (typeof userId === "function") return (await userId()) || null;
+    return userId || null;
+  };
 
   const clientFor = (table) => client.from(table);
 
@@ -48,7 +56,17 @@ export const createSupabaseRepo = ({
     },
 
     async create(table, record = {}) {
-      const row = buildRow(record);
+      const owner = await resolveOwner();
+      const row = {
+        ...toSnakeCase(record),
+        id: record.id || idFactory(),
+        created_at: record.created_at || now(),
+        updated_at: record.updated_at || now(),
+      };
+      // Only stamp ownership when it's known — otherwise the DB fills
+      // auth.uid() through its own default (guarantees RLS on the insert).
+      if (record.user_id) row.user_id = record.user_id;
+      else if (owner) row.user_id = owner;
       const res = await clientFor(table).insert(row).select().single();
       if (res.error) throw res.error;
       return res.data;

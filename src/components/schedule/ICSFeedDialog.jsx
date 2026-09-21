@@ -2,16 +2,11 @@ import { useMemo, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabase";
-import { isLocalWorkspace } from "@/lib/repo/select";
-import { createLocalRepo } from "@/lib/repo/localRepo";
+import { getAppRepo } from "@/lib/repo/select";
 import { useToast } from "@/components/ui/use-toast";
 import { parseICS, toScheduleEventRows, diffICS, fetchICSFeed, expandForImport } from "@/lib/calendarSync";
 import { loadFeeds, addFeed as storeAddFeed, removeFeed as storeRemoveFeed, feedName } from "@/lib/feedsStore";
 import { Link2, Upload, RefreshCw, Trash2, CalendarPlus, FileSpreadsheet, X } from "lucide-react";
-
-const LOCAL = isLocalWorkspace();
-const localRepo = LOCAL ? createLocalRepo() : null;
 
 const readFileText = (file) =>
   new Promise((resolve, reject) => {
@@ -91,12 +86,8 @@ export default function ICSFeedDialog({ open, onClose, data, onImported }) {
     if (!preview || !preview.rows.length || importing) return;
     setImporting(true);
     try {
-      if (LOCAL) {
-        for (const row of preview.rows) localRepo.create("schedule_events", row);
-      } else {
-        const { error } = await supabase.from("schedule_events").insert(preview.rows);
-        if (error) throw error;
-      }
+      const repo = getAppRepo();
+      for (const row of preview.rows) await repo.create("schedule_events", row);
       if (source.startsWith("http")) {
         const next = storeAddFeed(source, feedName(source));
         setFeeds(next);
@@ -114,12 +105,9 @@ export default function ICSFeedDialog({ open, onClose, data, onImported }) {
   const handleRemoveFeed = async (feed) => {
     setRemoveUrl(feed.url);
     try {
-      if (LOCAL) {
-        localRepo.deleteWhere("schedule_events", (r) => String(r.google_event_id || "").startsWith(`ics:${feed.url}`));
-      } else {
-        const { error } = await supabase.from("schedule_events").delete().like("google_event_id", `ics:${feed.url}%`);
-        if (error) throw error;
-      }
+      await getAppRepo().deleteWhere("schedule_events", (r) =>
+        String(r.google_event_id || "").startsWith(`ics:${feed.url}`)
+      );
       const next = storeRemoveFeed(feed.url);
       setFeeds(next);
       toast({ title: `Removed "${feed.name}" and its imported events.` });

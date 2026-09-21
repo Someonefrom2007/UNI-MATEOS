@@ -163,6 +163,81 @@ export const scopeFeed = (posts = [], { communityId = "", groupId = "" } = {}) =
     return true;
   });
 
+// ── Membership (§Phase 8): join/leave communities & study groups ───────────
+// A membership row links a user to exactly one scope (community_id OR
+// group_id). Ownership is user_id on hosted rows; local rows keep created_by
+// separate from identity, so both are checked.
+
+/**
+ * Build a deterministic membership row. Id is left blank so the repository
+ * generates a real one on create; nulls keep scope-column semantics honest.
+ * @returns {{ id: string, user_id: string, community_id: string|null, group_id: string|null, created_at: string, updated_at: string }}
+ */
+export const createMembership = ({
+  id = "",
+  userId = "",
+  communityId = "",
+  groupId = "",
+  idFactory = null,
+  now = () => new Date().toISOString(),
+} = {}) => ({
+  id: id || (idFactory ? idFactory() : ""),
+  user_id: userId,
+  community_id: communityId || null,
+  group_id: groupId || null,
+  created_at: now(),
+  updated_at: now(),
+});
+
+/**
+ * Whether the user has a membership row for a given scope.
+ * @param {Array<{user_id?: string, community_id?: string|null, group_id?: string|null}>} members
+ * @param {"community"|"group"} kind
+ * @param {string} targetId
+ * @param {string} userId
+ * @returns {boolean}
+ */
+export const isMember = (members, kind, targetId, userId) => {
+  if (!targetId || !userId) return false;
+  const field = kind === "community" ? "community_id" : "group_id";
+  return Boolean(
+    (members || []).some(
+      (m) => m.user_id === userId && String(m[field] || "") === String(targetId)
+    )
+  );
+};
+
+/**
+ * Whether the user owns a scope row (hosted user_id or local created_by).
+ * @param {{user_id?: string, created_by?: string|null}|null|undefined} scope
+ * @param {string} userId
+ * @returns {boolean}
+ */
+export const ownedScope = (scope, userId) =>
+  Boolean(
+    scope &&
+      (scope.user_id === userId || (scope.created_by != null && String(scope.created_by) === String(userId)))
+  );
+
+/**
+ * Display name for a scope row (name, then fallbacks per kind).
+ * @param {{name?: string, course_name?: string, university_name?: string}|null|undefined} scope
+ * @returns {string}
+ */
+export const scopeLabel = (scope) =>
+  (scope && (scope.name || scope.course_name || scope.university_name)) || "Untitled";
+
+/**
+ * Scopes the user can post into — those they own or have joined.
+ * @param {Array<object>} scopes
+ * @param {Array<object>} members
+ * @param {"community"|"group"} kind
+ * @param {string} userId
+ * @returns {Array<object>}
+ */
+export const myScopes = (scopes, members, kind, userId) =>
+  (scopes || []).filter((s) => ownedScope(s, userId) || isMember(members, kind, s.id, userId));
+
 // Derive the scope chip options a feed should offer from what posts actually
 // reference (stable order, names only). Empty lists mean "no scoping".
 export const scopesFromPosts = (posts = [], { communities = [], groups = [] } = {}) => {

@@ -31,15 +31,20 @@ const Grades        = React.lazy(() => import("@/pages/Grades"));
 const Notes         = React.lazy(() => import("@/pages/Notes"));
 const NoteDetail    = React.lazy(() => import("@/pages/NoteDetail"));
 const Resources     = React.lazy(() => import("@/pages/Resources"));
+const Topics        = React.lazy(() => import("@/pages/Topics"));
 const Focus         = React.lazy(() => import("@/pages/Focus"));
 const Goals         = React.lazy(() => import("@/pages/Goals"));
 const Habits        = React.lazy(() => import("@/pages/Habits"));
 const Workload      = React.lazy(() => import("@/pages/Workload"));
 const Insights      = React.lazy(() => import("@/pages/Insights"));
 const AIAssistant   = React.lazy(() => import("@/pages/AIAssistant"));
+const Flashcards    = React.lazy(() => import("@/pages/Flashcards"));
+const StudyPlanner  = React.lazy(() => import("@/pages/StudyPlanner"));
+const Analytics     = React.lazy(() => import("@/pages/Analytics"));
 const Profile       = React.lazy(() => import("@/pages/Profile"));
 const Settings      = React.lazy(() => import("@/pages/Settings"));
 const Plans         = React.lazy(() => import("@/pages/Plans"));
+const Integrations  = React.lazy(() => import("@/pages/Integrations"));
 const Onboarding    = React.lazy(() => import("@/pages/Onboarding"));
 const StickyWall    = React.lazy(() => import("@/pages/StickyWall"));
 
@@ -77,15 +82,20 @@ const AuthenticatedApp = () => {
             <Route path="/notes/:id" element={<NoteDetail />} />
             <Route path="/stickies" element={<StickyWall />} />
             <Route path="/resources" element={<Resources />} />
+            <Route path="/topics" element={<Topics />} />
             <Route path="/focus" element={<Focus />} />
             <Route path="/goals" element={<Goals />} />
             <Route path="/habits" element={<Habits />} />
             <Route path="/workload" element={<Workload />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/ai" element={<AIAssistant />} />
+            <Route path="/flashcards" element={<Flashcards />} />
+            <Route path="/study-plan" element={<StudyPlanner />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/plans" element={<Plans />} />
+            <Route path="/integrations" element={<Integrations />} />
           </Route>
         </Route>
 

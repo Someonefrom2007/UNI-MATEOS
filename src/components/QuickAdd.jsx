@@ -1,30 +1,21 @@
 import { useState, useEffect, Children, cloneElement, isValidElement } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckSquare, BookOpen, GraduationCap, CalendarDays, FileText, Target, Repeat, Award, Link2 } from "lucide-react";
+import { CheckSquare, BookOpen, GraduationCap, CalendarDays, FileText, Target, Repeat, Award, Link2, Layers } from "lucide-react";
 
 import { todayISO } from "@/lib/format";
 import { useToast } from "@/components/ui/use-toast";
-import { isLocalWorkspace } from "@/lib/repo/select";
-import { createLocalRepo } from "@/lib/repo/localRepo";
+import { getAppRepo } from "@/lib/repo/select";
 
-const LOCAL = isLocalWorkspace();
-const localRepo = LOCAL ? createLocalRepo() : null;
-
-// Adapter-aware insert: local workspace persists on-device, Supabase mode keeps
-// the exact same call and now surfaces real DB errors instead of swallowing them.
+// Single repository for every mode: local workspace persists on-device,
+// Supabase mode persists to the hosted backend through the same interface and
+// surfaces real DB errors instead of swallowing them.
 const insert = async (table, payload) => {
-  if (LOCAL) {
-    localRepo.create(table, payload);
-    return;
-  }
-  const { error } = await supabase.from(table).insert(payload);
-  if (error) throw error;
+  await getAppRepo().create(table, payload);
 };
 
 const OPTIONS = [
@@ -37,6 +28,7 @@ const OPTIONS = [
   { key: "habit", label: "Habit", icon: Repeat, color: "text-hud-cyan" },
   { key: "grade", label: "Grade", icon: Award, color: "text-hud-emerald" },
   { key: "resource", label: "Resource", icon: Link2, color: "text-hud-cyan" },
+  { key: "topic", label: "Topic", icon: Layers, color: "text-hud-violet" },
 ];
 
 export default function QuickAdd({ open, onClose, preset = null }) {
@@ -47,14 +39,10 @@ export default function QuickAdd({ open, onClose, preset = null }) {
 
   useEffect(() => {
     if (open) {
-      if (LOCAL) {
-        setCourses(localRepo.list("courses").slice().sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))));
-      } else {
-        (async () => {
-          const { data, error } = await supabase.from("courses").select("*").order("name");
-          if (!error) setCourses(data || []);
-        })();
-      }
+      (async () => {
+        const rows = await getAppRepo().list("courses");
+        setCourses(rows.slice().sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))));
+      })();
       if (preset) {
         const opt = OPTIONS.find((o) => o.key === preset.typeKey);
         if (opt) setType(opt);
@@ -225,6 +213,14 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
           course_id: form.course_id || null,
         });
         onDone("Resource added", "/resources");
+      } else if (type.key === "topic") {
+        await insert("topics", {
+          name: form.name,
+          course_id: form.course_id || null,
+          mastery: 0,
+          reviewed: false,
+        });
+        onDone("Topic added", "/topics");
       }
     } catch (err) {
       onDone("Couldn't save. Try again.");
@@ -374,6 +370,17 @@ function QuickAddForm({ type, courses, presetCourseId = null, onDone }) {
               </Select>
             </Field>
           </div>
+        </>
+      )}
+      {type.key === "topic" && (
+        <>
+          <Field label="Topic name"><Input autoFocus required value={form.name || ""} onChange={(e) => set("name", e.target.value)} placeholder="Eigenvalues" /></Field>
+          <Field label="Course">
+            <Select value={form.course_id || "none"} onValueChange={(v) => set("course_id", v === "none" ? null : v)}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent><SelectItem value="none">—</SelectItem>{courses.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
         </>
       )}
       <div className="flex justify-end gap-2 pt-2">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -8,15 +9,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 
-import { Save } from "lucide-react";
+import { Save, Crown } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 import { isLocalWorkspace, loadLocalProfile, saveLocalProfile } from "@/lib/repo/select";
+import { usePlan } from "@/lib/usePlan";
 
 export default function Profile() {
   const { user } = useAuth();
   const { t } = useI18n();
   const { toast } = useToast();
+  const { tier } = usePlan();
   const local = isLocalWorkspace();
   const [form, setForm] = useState({ university: "", degree: "", year: "", target_gpa: 8, preferred_focus: 25, language: "en" });
   const [saving, setSaving] = useState(false);
@@ -77,6 +80,12 @@ export default function Profile() {
             <div>
               <div className="font-medium">{user?.full_name || "Student"}</div>
               <div className="text-sm text-muted-foreground">{user?.email}</div>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-hud-violet/10 text-hud-violet border border-hud-violet/30 flex items-center gap-1">
+                  <Crown className="w-3 h-3" />{tier.label}
+                </span>
+                <Link to="/plans" className="text-xs text-hud-cyan hover:underline">Manage plan</Link>
+              </div>
             </div>
           </div>
           {local && (

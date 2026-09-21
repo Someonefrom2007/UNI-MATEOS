@@ -11,6 +11,23 @@ const json = (payload, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+const isoDate = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const isDate = (s) =>
+  typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(new Date(s + "T00:00:00").getTime());
+
+// Read a table defensively: any failure (e.g. a table not yet migrated in the
+// hosted project) degrades to an empty list instead of taking the endpoint down.
+const safeRead = async (supabase, table, userId) => {
+  try {
+    const { data } = await supabase.from(table).select("*").eq("user_id", userId);
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+};
+
 const fmtGrade = (g) =>
   g === null || g === undefined || Number.isNaN(g) ? "—" : Number(g).toFixed(2);
 
@@ -23,12 +40,10 @@ const fmtDuration = (minutes) => {
   return `${m}m`;
 };
 
-const relativeExam = (dateStr) => {
+const relativeExam = (dateStr, todayStr) => {
   if (!dateStr) return "date TBD";
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = new Date(todayStr + "T00:00:00");
   const d = new Date(dateStr + "T00:00:00");
-  d.setHours(0, 0, 0, 0);
   const n = Math.round((d - today) / 86400000);
   if (n < 0) return "past";
   if (n === 0) return "today";
@@ -53,33 +68,44 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser(jwt);
     if (!user) return json({ error: "Unauthorized" }, 401);
 
+    // Pro entitlement: the copilot is a paid feature, enforced server-side so a
+    // modified client still can't call it on a free account. Mirrors the plan
+    // tier living on the auth profile (user_metadata.plan). Unlock: upgrade.
+    const plan = String(user.user_metadata?.plan || "free").toLowerCase();
+    if (!["pro", "ultra"].includes(plan)) {
+      return json({ locked: true, plan, error: "AI Assistant is a Pro feature" }, 402);
+    }
+
     const body = await req.json().catch(() => ({}));
     const question = typeof body?.question === "string" ? body.question.trim().slice(0, 2000) : "";
     if (!question) return json({ error: "A question is required" }, 400);
 
-    const [courses, tasks, exams, grades, focusSessions] = await Promise.all([
-      supabase.from("courses").select("*").eq("user_id", user.id),
-      supabase.from("tasks").select("*").eq("user_id", user.id),
-      supabase.from("exams").select("*").eq("user_id", user.id),
-      supabase.from("grades").select("*").eq("user_id", user.id),
-      supabase.from("focus_sessions").select("*").eq("user_id", user.id),
+    // Anchor "today" to the user's local day when the client provides it;
+    // otherwise fall back to the server's UTC day.
+    const todayStr = isDate(body?.today) ? body.today : isoDate(new Date());
+    const weekAgo = new Date(todayStr + "T00:00:00");
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekAgoStr = isoDate(weekAgo);
+
+    const [courses, tasks, exams, grades, focusSessions, topics] = await Promise.all([
+      safeRead(supabase, "courses", user.id),
+      safeRead(supabase, "tasks", user.id),
+      safeRead(supabase, "exams", user.id),
+      safeRead(supabase, "grades", user.id),
+      safeRead(supabase, "focus_sessions", user.id),
+      safeRead(supabase, "topics", user.id),
     ]);
 
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekAgoStr = weekAgo.toISOString().slice(0, 10);
-
-    const activeCourses = (courses.data || []).filter((c) => !c.archived);
-    const openTasks = (tasks.data || []).filter((t) => t.status !== "completed");
-    const upcomingExams = (exams.data || []).filter((e) => e.status !== "completed");
-    const weekFocus = (focusSessions.data || []).filter((s) => (s.date || "") >= weekAgoStr);
+    const activeCourses = courses.filter((c) => !c.archived);
+    const openTasks = tasks.filter((t) => t.status !== "completed");
+    const upcomingExams = exams.filter((e) => e.status !== "completed");
+    const weekFocus = focusSessions.filter((s) => (s.date || "") >= weekAgoStr);
 
     // Deterministic weighted grade per course (same logic as the client Grade Engine)
     const courseGrades = activeCourses.map((c) => {
       const scored = [
-        ...(grades.data || []).filter((g) => g.course_id === c.id && g.grade !== null && g.grade !== undefined && g.weight > 0),
-        ...(exams.data || []).filter((e) => e.course_id === c.id && e.grade !== null && e.grade !== undefined && e.weight > 0),
+        ...grades.filter((g) => g.course_id === c.id && g.grade !== null && g.grade !== undefined && g.weight > 0),
+        ...exams.filter((e) => e.course_id === c.id && e.grade !== null && e.grade !== undefined && e.weight > 0),
       ];
       const totalWeight = scored.reduce((s, a) => s + a.weight, 0);
       const grade = totalWeight > 0 ? scored.reduce((s, a) => s + a.grade * a.weight, 0) / totalWeight : null;
@@ -91,13 +117,28 @@ Deno.serve(async (req) => {
       ? graded.reduce((s, c) => s + c.grade * c.ects, 0) / graded.reduce((s, c) => s + c.ects, 0)
       : null;
 
+    const topicStore = {};
+    topics.forEach((tp) => {
+      (topicStore[tp.course_id] = topicStore[tp.course_id] || []).push(tp);
+    });
+    const topicContext = activeCourses
+      .map((c) => {
+        const list = topicStore[c.id] || [];
+        if (!list.length) return null;
+        const avg = Math.round(list.reduce((s, tp) => s + (Number(tp.mastery) || 0), 0) / list.length);
+        const weakest = list.slice().sort((a, b) => (Number(a.mastery) || 0) - (Number(b.mastery) || 0))[0];
+        return `${c.name}: ${list.length} topic${list.length === 1 ? "" : "s"}, avg mastery ${avg}%, weakest "${weakest?.name || "unnamed"}"`;
+      })
+      .filter(Boolean);
+
     const context = [
       `Today is ${todayStr}.`,
       `Courses: ${courseGrades.map((c) => `${c.name}${c.code ? ` (${c.code})` : ""} — target ${fmtGrade(c.target)}, current ${c.grade !== null ? fmtGrade(c.grade) : "no grades yet"}, ${c.ects} ECTS`).join("; ") || "none"}.`,
       `Overall grade average (ECTS-weighted): ${gpa !== null ? fmtGrade(gpa) : "no grades yet"}.`,
       `Open tasks: ${openTasks.map((t) => `${t.title} (due ${t.due_date || "—"}, priority ${t.priority})`).join("; ") || "none"}.`,
-      `Upcoming exams: ${upcomingExams.map((e) => `${e.name} on ${e.date || "TBD"} (${relativeExam(e.date)})`).join("; ") || "none"}.`,
+      `Upcoming exams: ${upcomingExams.map((e) => `${e.name} on ${e.date || "TBD"} (${relativeExam(e.date, todayStr)})`).join("; ") || "none"}.`,
       `Focus sessions last 7 days: ${weekFocus.length}, total ${fmtDuration(weekFocus.reduce((s, f) => s + f.duration, 0))}.`,
+      `Topic mastery: ${topicContext.join("; ") || "no topics recorded yet"}.`,
     ].join("\n");
 
     const sys = `You are the UNI·MATE academic copilot. You help a university student plan and understand their academic life. Use ONLY the provided real data — never invent grades, averages, deadlines, or statistics. If data is insufficient, say so honestly and suggest what to add. Be concise, calm, and specific. When you recommend something, briefly explain why based on the data.

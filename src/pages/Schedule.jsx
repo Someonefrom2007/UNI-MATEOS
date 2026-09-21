@@ -3,9 +3,7 @@ import { useUserData } from "@/lib/useUserData";
 import { fetchICSFeed, toScheduleEventRows, diffICS, expandForImport } from "@/lib/calendarSync";
 import { urgentExamsWithin, pickFreeBlock, addMinutes } from "@/lib/planner";
 import { loadFeeds } from "@/lib/feedsStore";
-import { supabase } from "@/lib/supabase";
-import { isLocalWorkspace } from "@/lib/repo/select";
-import { createLocalRepo } from "@/lib/repo/localRepo";
+import { getAppRepo } from "@/lib/repo/select";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { Card } from "@/components/ui/card";
@@ -22,8 +20,7 @@ import DayView from "@/components/schedule/DayView";
 import MonthView from "@/components/schedule/MonthView";
 import ICSFeedDialog from "@/components/schedule/ICSFeedDialog";
 
-const LOCAL = isLocalWorkspace();
-const localRepo = LOCAL ? createLocalRepo() : null;
+const scheduleRepo = getAppRepo();
 
 export default function Schedule() {
   const { data, loading, error, refresh, mutate } = useUserData();
@@ -59,13 +56,8 @@ export default function Schedule() {
           const { rows } = toScheduleEventRows(expanded, f.url);
           const { toCreate } = diffICS(data.ScheduleEvent || [], rows);
           if (toCreate.length) {
-            if (LOCAL) {
-              for (const row of toCreate) localRepo.create("schedule_events", row);
-              added += toCreate.length;
-            } else {
-              const { error } = await supabase.from("schedule_events").insert(toCreate);
-              if (!error) added += toCreate.length;
-            }
+            for (const row of toCreate) await scheduleRepo.create("schedule_events", row);
+            added += toCreate.length;
           }
         } catch { /* offline or CORS — skip silently, keep previous imports */ }
       }

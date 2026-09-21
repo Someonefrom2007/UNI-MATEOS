@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
+import PlanLocked from "@/components/PlanLocked";
 import { Button } from "@/components/ui/button";
 import { BrainCircuit, Send, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { isLocalWorkspace } from "@/lib/repo/select";
+import { todayISO } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { usePlan } from "@/lib/usePlan";
 import ErrorState from "@/components/ErrorState";
 
 const SUGGESTIONS = [
@@ -20,6 +23,7 @@ const SUGGESTIONS = [
 export default function AIAssistant() {
   const { data, error, refresh } = useUserData();
   const { t } = useI18n();
+  const { can } = usePlan();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,6 +32,20 @@ export default function AIAssistant() {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
   if (error) return <ErrorState onRetry={refresh} />;
+
+  // Server-side copilot is a Pro feature; the edge function enforces the same
+  // rule, this screen just keeps the lock honest before a request is sent.
+  if (!can("ai_assistant")) {
+    return (
+      <>
+        <PageHeader title={t("title.ai")} subtitle={t("title.ai.subtitle")} />
+        <PlanLocked
+          feature="ai_assistant"
+          description="The AI copilot answers from your real schedule, workload and grades, so it runs on UNI·MATE's servers — a Pro feature. Your free plan keeps everything you need to organize the semester."
+        />
+      </>
+    );
+  }
 
   const ask = async (prompt) => {
     if (!prompt.trim() || loading) return;
@@ -43,9 +61,10 @@ export default function AIAssistant() {
     }
     setLoading(true);
     try {
-      // The copilot runs server-side, grounded in your real UNI·MATE data
+      // The copilot runs server-side, grounded in your real UNI·MATE data.
+      // The local "today" anchors its date math to the user's own timezone.
       const res = await supabase.functions.invoke("ai-assistant", {
-        body: { question: prompt },
+        body: { question: prompt, today: todayISO() },
       });
       const reply = res.data?.reply;
       setMessages((m) => [...m, { role: "assistant", text: reply || "I couldn't answer that — try rephrasing or adding more data to UNI·MATE." }]);

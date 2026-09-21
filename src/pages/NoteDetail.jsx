@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useUserData } from "@/lib/useUserData";
-import { supabase } from "@/lib/supabase";
-import { isLocalWorkspace } from "@/lib/repo/select";
+import { getAppRepo } from "@/lib/repo/select";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ReactQuill from "react-quill-new";
@@ -45,11 +44,7 @@ export default function NoteDetail() {
       setSaving(true);
       try {
         const patch = { title, content, course_id: courseId === "none" ? null : courseId, pinned };
-        if (isLocalWorkspace()) {
-          await mutate("Note", "update", id, patch);
-        } else {
-          await supabase.from("notes").update(patch).eq("id", id);
-        }
+        await getAppRepo().update("notes", id, patch);
         setStatus("Saved");
       } catch {
         setStatus("Save failed");

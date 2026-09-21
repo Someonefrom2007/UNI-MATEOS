@@ -836,3 +836,285 @@ CREATE INDEX IF NOT EXISTS study_groups_community_id_idx  ON public.study_groups
 CREATE INDEX IF NOT EXISTS study_groups_course_id_idx     ON public.study_groups (course_id);
 CREATE INDEX IF NOT EXISTS community_posts_community_id_idx ON public.community_posts (community_id);
 CREATE INDEX IF NOT EXISTS community_posts_group_id_idx    ON public.community_posts (group_id);
+
+-- ---------------------------------------------------------------------------
+-- Phase 3 follow-up: topics  (first-class knowledge module)
+-- ADDITIVE and idempotent. Pending one-time apply to the hosted project.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.topics (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  course_id   uuid NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
+  name        text NOT NULL,
+  mastery     numeric NOT NULL DEFAULT 0 CHECK (mastery >= 0 AND mastery <= 100),
+  reviewed    boolean NOT NULL DEFAULT false,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.topics ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "topics_select_own" ON public.topics
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "topics_insert_own" ON public.topics
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "topics_update_own" ON public.topics
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "topics_delete_own" ON public.topics
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER topics_set_updated_at
+  BEFORE UPDATE ON public.topics
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE INDEX IF NOT EXISTS topics_user_id_idx   ON public.topics (user_id);
+CREATE INDEX IF NOT EXISTS topics_course_id_idx ON public.topics (course_id);
+
+-- ---------------------------------------------------------------------------
+-- Phase 7 follow-up: community author identity + discoverable grouping names.
+-- ADDITIVE and idempotent. Pending one-time apply to the hosted project.
+-- ---------------------------------------------------------------------------
+
+-- Author identity is filled SERVER-SIDE on insert (client-sent values are
+-- overwritten, so display names can't be spoofed) for posts and replies.
+-- Hosted rows therefore carry author_name/author_email the feed can render
+-- without ever falling back to the viewer's identity.
+
+ALTER TABLE public.community_posts
+  ADD COLUMN IF NOT EXISTS author_email text;
+
+ALTER TABLE public.community_replies
+  ADD COLUMN IF NOT EXISTS author_name text;
+ALTER TABLE public.community_replies
+  ADD COLUMN IF NOT EXISTS author_email text;
+
+CREATE OR REPLACE FUNCTION public.community_set_author()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  NEW.author_name := (
+    SELECT COALESCE(raw_user_meta_data->>'full_name', email)
+    FROM auth.users
+    WHERE id = auth.uid()
+  );
+  NEW.author_email := (SELECT email FROM auth.users WHERE id = auth.uid());
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS community_posts_set_author ON public.community_posts;
+CREATE TRIGGER community_posts_set_author
+  BEFORE INSERT ON public.community_posts
+  FOR EACH ROW EXECUTE FUNCTION public.community_set_author();
+
+DROP TRIGGER IF EXISTS community_replies_set_author ON public.community_replies;
+CREATE TRIGGER community_replies_set_author
+  BEFORE INSERT ON public.community_replies
+  FOR EACH ROW EXECUTE FUNCTION public.community_set_author();
+
+-- Discovery renders active posts community-wide, but a post's community/study
+-- group chips need the grouping entities' names to resolve. Opens SELECT on
+-- communities and study_groups (name lookups only); every write stays own-only.
+CREATE POLICY IF NOT EXISTS "communities_select_discover" ON public.communities
+  FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "study_groups_select_discover" ON public.study_groups
+  FOR SELECT USING (true);
+
+-- ---------------------------------------------------------------------------
+-- Phase 8 follow-up: community membership — join/leave communities & study
+-- groups. ADDITIVE and idempotent. Pending one-time apply to the hosted
+-- project. A membership row links a user to exactly one scope; memberships
+-- cascade away with their scope and are private to their owner.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.community_members (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  community_id uuid REFERENCES public.communities(id) ON DELETE CASCADE,
+  group_id     uuid REFERENCES public.study_groups(id) ON DELETE CASCADE,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, community_id),
+  UNIQUE (user_id, group_id),
+  CHECK (community_id IS NOT NULL OR group_id IS NOT NULL)
+);
+
+ALTER TABLE public.community_members ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "community_members_select_own" ON public.community_members
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "community_members_insert_own" ON public.community_members
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "community_members_update_own" ON public.community_members
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "community_members_delete_own" ON public.community_members
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER community_members_set_updated_at
+  BEFORE UPDATE ON public.community_members
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE INDEX IF NOT EXISTS community_members_user_id_idx   ON public.community_members (user_id);
+CREATE INDEX IF NOT EXISTS community_members_community_idx ON public.community_members (community_id);
+CREATE INDEX IF NOT EXISTS community_members_group_idx     ON public.community_members (group_id);
+
+-- ---------------------------------------------------------------------------
+-- Phase 9 (Pro features start): waitlist capture + flashcards tables. ADDITIVE
+-- and idempotent. Pending one-time apply to the hosted project. The plan tier
+-- itself lives on the auth profile (user_metadata/local profile), not here.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.waitlist (
+  id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id    uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  email      text NOT NULL,
+  tier       text NOT NULL DEFAULT 'pro',
+  source     text NOT NULL DEFAULT 'plans',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS waitlist_email_uniq ON public.waitlist (lower(email));
+CREATE INDEX IF NOT EXISTS waitlist_created_at_idx ON public.waitlist (created_at);
+
+ALTER TABLE public.waitlist ENABLE ROW LEVEL SECURITY;
+
+-- Pre-launch capture: anyone (including anonymous visitors) may sign up.
+CREATE POLICY "waitlist_insert_public" ON public.waitlist
+  FOR INSERT WITH CHECK (true);
+CREATE POLICY "waitlist_select_own" ON public.waitlist
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "waitlist_delete_own" ON public.waitlist
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.flashcard_decks (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  course_id   uuid REFERENCES public.courses(id) ON DELETE CASCADE,
+  title       text NOT NULL,
+  description text NOT NULL DEFAULT '',
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.flashcard_decks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "flashcard_decks_select_own" ON public.flashcard_decks
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "flashcard_decks_insert_own" ON public.flashcard_decks
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "flashcard_decks_update_own" ON public.flashcard_decks
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "flashcard_decks_delete_own" ON public.flashcard_decks
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER flashcard_decks_set_updated_at
+  BEFORE UPDATE ON public.flashcard_decks
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE INDEX IF NOT EXISTS flashcard_decks_course_idx ON public.flashcard_decks (course_id);
+
+CREATE TABLE IF NOT EXISTS public.flashcards (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  deck_id     uuid NOT NULL REFERENCES public.flashcard_decks(id) ON DELETE CASCADE,
+  front       text NOT NULL,
+  back        text NOT NULL,
+  ease        numeric NOT NULL DEFAULT 2.5,
+  interval    numeric NOT NULL DEFAULT 0,
+  due_date    date NOT NULL DEFAULT CURRENT_DATE,
+  reviews     integer NOT NULL DEFAULT 0,
+  streak      integer NOT NULL DEFAULT 0,
+  last_result text CHECK (last_result IN ('again', 'hard', 'good', 'easy')),
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.flashcards ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "flashcards_select_own" ON public.flashcards
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "flashcards_insert_own" ON public.flashcards
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "flashcards_update_own" ON public.flashcards
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "flashcards_delete_own" ON public.flashcards
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER flashcards_set_updated_at
+  BEFORE UPDATE ON public.flashcards
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE INDEX IF NOT EXISTS flashcards_deck_id_idx ON public.flashcards (deck_id);
+CREATE INDEX IF NOT EXISTS flashcards_user_id_idx ON public.flashcards (user_id);
+
+-- ---------------------------------------------------------------------------
+-- Phase 10 — Smart Study Planner (Pro): generated day-by-day prep plans
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.study_plans (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  exam_id     uuid REFERENCES public.exams(id) ON DELETE CASCADE,
+  course_id   uuid REFERENCES public.courses(id) ON DELETE CASCADE,
+  title       text NOT NULL,
+  status      text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'archived')),
+  days_before integer NOT NULL DEFAULT 14,
+  budget_min  integer NOT NULL DEFAULT 90,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.study_plans ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "study_plans_select_own" ON public.study_plans
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "study_plans_insert_own" ON public.study_plans
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "study_plans_update_own" ON public.study_plans
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "study_plans_delete_own" ON public.study_plans
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER study_plans_set_updated_at
+  BEFORE UPDATE ON public.study_plans
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TABLE IF NOT EXISTS public.study_plan_items (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  plan_id     uuid NOT NULL REFERENCES public.study_plans(id) ON DELETE CASCADE,
+  date        date NOT NULL,
+  minutes     integer NOT NULL DEFAULT 20,
+  kind        text NOT NULL DEFAULT 'study'
+                CHECK (kind IN ('study', 'review', 'exam', 'weak_intro', 'mid_intro',
+                                'strong_intro', 'weak_review', 'mid_review', 'eve_review',
+                                'exam_pass')),
+  topic_id    uuid REFERENCES public.topics(id) ON DELETE SET NULL,
+  label       text NOT NULL,
+  notes       text,
+  completed   boolean NOT NULL DEFAULT false,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.study_plan_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "study_plan_items_select_own" ON public.study_plan_items
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "study_plan_items_insert_own" ON public.study_plan_items
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "study_plan_items_update_own" ON public.study_plan_items
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "study_plan_items_delete_own" ON public.study_plan_items
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER study_plan_items_set_updated_at
+  BEFORE UPDATE ON public.study_plan_items
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE INDEX IF NOT EXISTS study_plan_items_plan_id_idx ON public.study_plan_items (plan_id);
+CREATE INDEX IF NOT EXISTS study_plan_items_user_date_idx ON public.study_plan_items (user_id, date);

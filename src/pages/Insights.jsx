@@ -38,6 +38,9 @@ export default function Insights() {
     return m;
   }, [insights]);
 
+  // Deterministic order: risk first, then the engine's fixed discovery order.
+  const orderedCats = useMemo(() => ["Risk", ...Object.keys(byCat).filter((c) => c !== "Risk")], [byCat]);
+
   if (error) return <ErrorState onRetry={refresh} />;
 
   if (!loading && insights.length === 0) {
@@ -53,7 +56,8 @@ export default function Insights() {
     <>
       <PageHeader title={t("title.insights")} subtitle={t("title.insights.subtitle")} />
 
-      {Object.entries(byCat).map(([cat, list]) => {
+      {orderedCats.map((cat) => {
+        const list = byCat[cat];
         const Icon = CAT_ICON[cat] || Sparkles;
         return (
           <div key={cat} className="mb-6">
@@ -71,6 +75,8 @@ export default function Insights() {
           </div>
         );
       })}
+
+      <p className="text-xs text-muted-foreground mt-8">These patterns are computed only from your real data — UNI·MATE never fabricates signals.</p>
     </>
   );
 }

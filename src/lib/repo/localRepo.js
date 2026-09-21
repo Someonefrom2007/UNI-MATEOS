@@ -20,6 +20,14 @@ export const toSnakeCase = (obj) => {
   return out;
 };
 
+/**
+ * Local-first repository over an injectable storage backend.
+ * @param {object} [options={}]
+ * @param {object} [options.storage]        - key-value storage adapter
+ * @param {string} [options.userId]         - row owner id
+ * @param {() => string} [options.now]       - timestamp factory
+ * @param {() => string} [options.idFactory] - row id factory
+ */
 export const createLocalRepo = ({
   storage = getDefaultStorage(),
   userId = "local-workspace",

@@ -7,6 +7,7 @@ export const TABLE = {
   Grade: "grades",
   Note: "notes",
   Resource: "resources",
+  Topic: "topics",
   FocusSession: "focus_sessions",
   Goal: "goals",
   Habit: "habits",
@@ -21,6 +22,11 @@ export const TABLE = {
   CommunityReport: "community_reports",
   Community: "communities",
   StudyGroup: "study_groups",
+  FlashcardDeck: "flashcard_decks",
+  Flashcard: "flashcards",
+  Waitlist: "waitlist",
+  StudyPlan: "study_plans",
+  StudyPlanItem: "study_plan_items",
   User: "user_profiles",
 };
 

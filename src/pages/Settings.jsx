@@ -13,7 +13,7 @@ import { loadDemoData } from "@/lib/demoData";
 import { supabase } from "@/lib/supabase";
 import { TABLE } from "@/lib/tables";
 import { useI18n, getLang } from "@/lib/i18n";
-import { isLocalWorkspace } from "@/lib/repo/select";
+import { isLocalWorkspace, getAppRepo } from "@/lib/repo/select";
 import { createLocalRepo } from "@/lib/repo/localRepo";
 
 const EXPORT_ENTITIES = [
@@ -72,8 +72,11 @@ export default function Settings() {
         });
       } else {
         await Promise.all(EXPORT_ENTITIES.map(async (name) => {
-          const { data, error } = await supabase.from(TABLE[name]).select("*");
-          out[name] = error ? [] : data || [];
+          try {
+            out[name] = (await getAppRepo().list(TABLE[name])) || [];
+          } catch {
+            out[name] = [];
+          }
         }));
       }
       const blob = new Blob(

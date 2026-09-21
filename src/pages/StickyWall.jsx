@@ -19,7 +19,11 @@ export default function StickyWall() {
 
   const notes = useMemo(() => {
     const list = data?.StickyNote || [];
-    return [...list].sort((a, b) => (b.pinned - a.pinned) || (new Date(b.created_date).getTime() - new Date(a.created_date).getTime()));
+    return [...list].sort(
+      (a, b) =>
+        (Number(b.pinned) - Number(a.pinned)) ||
+        String(b.created_at || b.created_date || "").localeCompare(String(a.created_at || a.created_date || ""))
+    );
   }, [data]);
 
   const addNote = async () => {

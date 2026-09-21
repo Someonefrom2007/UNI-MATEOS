@@ -11,12 +11,11 @@
 // local repo serves everything (see src/lib/repo). Call sites never branch.
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { TABLE, getTable } from "@/lib/tables";
-import { createLocalRepo } from "@/lib/repo/localRepo";
-import { isLocalWorkspace } from "@/lib/repo/select";
+import { getTable } from "@/lib/tables";
+import { isLocalWorkspace, getAppRepo } from "@/lib/repo/select";
 
 const FETCH_ENTITIES = [
-  "Course", "ScheduleEvent", "Task", "Exam", "Grade", "Note", "Resource",
+  "Course", "ScheduleEvent", "Task", "Exam", "Grade", "Note", "Resource", "Topic",
   "FocusSession", "Goal", "Habit", "HabitLog", "Project", "Attendance", "StickyNote",
 ];
 
@@ -40,7 +39,18 @@ const toSnakeCase = (obj) => {
 };
 
 const LOCAL = isLocalWorkspace();
-const repo = LOCAL ? createLocalRepo() : null;
+// Single shared repository — the app data layer in both modes (see select.js).
+const repo = getAppRepo();
+
+// Repository wrapper preserving the tuned semantics of the historical hosted
+// path: a failing entity reads as null so load() can retry it individually.
+const listOrNull = async (r, table) => {
+  try {
+    return await r.list(table);
+  } catch {
+    return null;
+  }
+};
 
 export const useUserData = () => {
   const [data, setData] = useState(null);
@@ -49,34 +59,15 @@ export const useUserData = () => {
 
   const fetchAll = async () => {
     const results = {};
-    if (repo) {
-      FETCH_ENTITIES.forEach((key) => {
-        results[key] = repo.list(getTable(key));
-      });
-      return results;
-    }
     await Promise.all(
       FETCH_ENTITIES.map(async (key) => {
-        try {
-          const { data: rows, error: err } = await supabase.from(getTable(key)).select("*");
-          results[key] = err ? null : rows || [];
-        } catch {
-          results[key] = null;
-        }
+        results[key] = await listOrNull(repo, getTable(key));
       })
     );
     return results;
   };
 
-  const fetchOne = async (key) => {
-    if (repo) return repo.list(getTable(key));
-    try {
-      const { data: rows, error: err } = await supabase.from(getTable(key)).select("*");
-      return err ? null : rows || [];
-    } catch {
-      return null;
-    }
-  };
+  const fetchOne = async (key) => listOrNull(repo, getTable(key));
 
   const load = useCallback(async (attempt = 0) => {
     setLoading(true);
@@ -118,7 +109,7 @@ export const useUserData = () => {
   const hasData = data !== null;
 
   useEffect(() => {
-    if (!hasData || repo) return;
+    if (!hasData || LOCAL) return;
     // Unique name per lifecycle: StrictMode/HMR double-invoke must never reuse
     // a channel that is still subscribed.
     const channel = supabase.channel(realtimeChannelName());
@@ -141,25 +132,10 @@ export const useUserData = () => {
     const [id, payload] = args;
     let result = null;
     try {
-      if (repo) {
-        if (op === "create") result = repo.create(table, toSnakeCase(payload || {}));
-        else if (op === "update") result = repo.update(table, id, toSnakeCase(payload || {}));
-        else if (op === "delete") result = repo.delete(table, id);
-        else throw new Error(`Unknown op: ${op}`);
-      } else if (op === "create") {
-        const { data: rows, error } = await supabase.from(table).insert(toSnakeCase(payload || {})).select();
-        if (error) throw error;
-        result = rows?.[0] ?? null;
-      } else if (op === "update") {
-        const { data: rows, error } = await supabase.from(table).update(toSnakeCase(payload || {})).eq("id", id).select();
-        if (error) throw error;
-        result = rows?.[0] ?? null;
-      } else if (op === "delete") {
-        const { error } = await supabase.from(table).delete().eq("id", id);
-        if (error) throw error;
-      } else {
-        throw new Error(`Unknown op: ${op}`);
-      }
+      if (op === "create") result = await repo.create(table, toSnakeCase(payload || {}));
+      else if (op === "update") result = await repo.update(table, id, toSnakeCase(payload || {}));
+      else if (op === "delete") result = await repo.delete(table, id);
+      else throw new Error(`Unknown op: ${op}`);
     } catch (e) {
       await load();
       throw e;

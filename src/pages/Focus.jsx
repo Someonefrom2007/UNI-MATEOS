@@ -3,7 +3,9 @@ import { useLocation } from "react-router-dom";
 import { useUserData } from "@/lib/useUserData";
 import { useSoundscape, SOUNDSCAPE_MODES } from "@/hooks/use-soundscape";
 import PageHeader from "@/components/PageHeader";
-import { fmtDuration, courseColor } from "@/lib/format";
+import { fmtDuration, courseColor, todayISO } from "@/lib/format";
+import { weekStartOf } from "@/lib/dashboardRadar";
+import { minutesOnDate, minutesInRange, recentSessions } from "@/lib/focusStats";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,7 +53,7 @@ export default function Focus() {
         course_id: courseId === "none" ? null : courseId,
         task_id: taskId === "none" ? null : taskId,
         duration: minutes,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayISO(),
         completed: true,
         mode,
         label,
@@ -116,9 +118,10 @@ export default function Focus() {
   const course = courses.find((c) => c.id === courseId);
   const cc = course ? courseColor(course.color) : null;
 
-  const todayFocus = (data?.FocusSession || [])
-    .filter((s) => s.date === new Date().toISOString().slice(0, 10))
-    .reduce((sum, s) => sum + s.duration, 0);
+  const todayStr = todayISO();
+  const todayFocus = minutesOnDate(data?.FocusSession || [], todayStr);
+  const weekFocus = minutesInRange(data?.FocusSession || [], weekStartOf(todayStr), todayStr);
+  const recent = recentSessions(data?.FocusSession || [], 5);
 
   if (error) return <ErrorState onRetry={refresh} />;
 
@@ -248,6 +251,29 @@ export default function Focus() {
             <div className="um-label mb-2">Today</div>
             <div className="font-display text-2xl font-semibold">{fmtDuration(todayFocus)}</div>
             <p className="text-xs text-muted-foreground mt-1">Total focus time today.</p>
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border text-sm">
+              <span className="text-muted-foreground">This week</span>
+              <span className="font-medium">{fmtDuration(weekFocus)}</span>
+            </div>
+          </Card>
+          <Card className="p-5">
+            <div className="um-label mb-3">Recent sessions</div>
+            {recent.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No sessions yet — your completed focus blocks show up here.</p>
+            ) : (
+              <ul className="space-y-2">
+                {recent.map((s) => {
+                  const c = courses.find((x) => x.id === s.course_id);
+                  return (
+                    <li key={s.id} className="flex items-center gap-3 text-sm">
+                      <span className="text-xs text-muted-foreground w-20 shrink-0">{s.date}</span>
+                      <div className="flex-1 min-w-0 truncate">{s.label || c?.name || "Focus session"}</div>
+                      <span className="text-xs font-medium text-hud-cyan">{fmtDuration(s.duration)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </Card>
         </div>
       </div>

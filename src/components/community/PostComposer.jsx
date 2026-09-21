@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MessageSquarePlus } from "lucide-react";
 import { CONTENT_TYPES } from "@/lib/communityData";
 
-export default function PostComposer({ courses, groups = [], onPost }) {
+export default function PostComposer({ courses, communities = [], groups = [], onPost }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("question");
   const [courseId, setCourseId] = useState("none");
+  const [communityId, setCommunityId] = useState("none");
   const [groupId, setGroupId] = useState("none");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -22,12 +23,14 @@ export default function PostComposer({ courses, groups = [], onPost }) {
     try {
       const payload = { title: title.trim(), content: content.trim(), type };
       if (courseId !== "none") payload.course_id = courseId;
+      if (communityId !== "none") payload.community_id = communityId;
       if (groupId !== "none") payload.group_id = groupId;
       await onPost(payload);
       setTitle("");
       setContent("");
       setType("question");
       setCourseId("none");
+      setCommunityId("none");
       setGroupId("none");
       setOpen(false);
     } finally {
@@ -69,6 +72,18 @@ export default function PostComposer({ courses, groups = [], onPost }) {
             </SelectContent>
           </Select>
         </div>
+        {communities.length > 0 && (
+          <div className="space-y-1.5">
+            <Label>Community (optional)</Label>
+            <Select value={communityId} onValueChange={setCommunityId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No community</SelectItem>
+                {communities.map((c) => <SelectItem key={c.id} value={c.id}>{c.name || c.course_name || c.university_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         {groups.length > 0 && (
           <div className="space-y-1.5">
             <Label>Study group (optional)</Label>

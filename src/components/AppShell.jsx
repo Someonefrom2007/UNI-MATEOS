@@ -5,8 +5,9 @@ import { useAuth } from "@/lib/AuthContext";
 import { useI18n, LANGUAGES } from "@/lib/i18n";
 import {
   LayoutDashboard, BookOpen, CalendarDays, CheckSquare, GraduationCap, FileText,
-  FolderOpen, Timer, Target, Repeat, Gauge, Sparkles, BrainCircuit,
+  FolderOpen, Timer, Target, Repeat, Gauge, Sparkles, BrainCircuit, Layers,
   User, Settings, CreditCard, Plus, Search, Menu, X, LogOut, StickyNote, Users,
+  BookOpenCheck, CalendarClock, BarChart3, Plug,
 } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import CommandPalette from "@/components/CommandPalette";
@@ -32,6 +33,7 @@ const NAV = [
       { labelKey: "nav.notes", to: "/notes", icon: FileText },
       { labelKey: "nav.stickies", to: "/stickies", icon: StickyNote },
       { labelKey: "nav.resources", to: "/resources", icon: FolderOpen },
+      { labelKey: "nav.topics", to: "/topics", icon: Layers },
       { labelKey: "nav.focus", to: "/focus", icon: Timer },
       { labelKey: "nav.goals", to: "/goals", icon: Target },
       { labelKey: "nav.habits", to: "/habits", icon: Repeat },
@@ -47,6 +49,9 @@ const NAV = [
       { labelKey: "nav.workload", to: "/workload", icon: Gauge },
       { labelKey: "nav.insights", to: "/insights", icon: Sparkles },
       { labelKey: "nav.ai", to: "/ai", icon: BrainCircuit },
+      { labelKey: "nav.flashcards", to: "/flashcards", icon: BookOpenCheck },
+      { labelKey: "nav.studyPlan", to: "/study-plan", icon: CalendarClock },
+      { labelKey: "nav.analytics", to: "/analytics", icon: BarChart3 },
     ],
   },
   {
@@ -55,6 +60,7 @@ const NAV = [
       { labelKey: "nav.profile", to: "/profile", icon: User },
       { labelKey: "nav.settings", to: "/settings", icon: Settings },
       { labelKey: "nav.plans", to: "/plans", icon: CreditCard },
+      { labelKey: "nav.integrations", to: "/integrations", icon: Plug },
     ],
   },
 ];

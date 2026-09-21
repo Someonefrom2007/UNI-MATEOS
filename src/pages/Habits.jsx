@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { useUserData } from "@/lib/useUserData";
+import { todayISO } from "@/lib/format";
+import { habitStreak, habitWeekDone, lastNDayStrings } from "@/lib/habitStats";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { Card } from "@/components/ui/card";
@@ -10,8 +12,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
 import ErrorState from "@/components/ErrorState";
 
-const DAY_MS = 86400000;
-
 export default function Habits() {
   const { data, loading, error, mutate, refresh } = useUserData();
   const [qaOpen, setQaOpen] = useState(false);
@@ -20,31 +20,9 @@ export default function Habits() {
 
   const habits = useMemo(() => (data?.Habit || []).filter((h) => !h.archived), [data]);
   const logs = data?.HabitLog || [];
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayISO();
 
-  const last7 = useMemo(() => Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i)); d.setHours(0, 0, 0, 0);
-    return d.toISOString().slice(0, 10);
-  }), []);
-
-  const streak = (habitId) => {
-    const habitLogs = logs.filter((l) => l.habit_id === habitId && l.completed).map((l) => l.date).sort().reverse();
-    if (!habitLogs.length) return 0;
-    let s = 0;
-    const d = new Date(); d.setHours(0, 0, 0, 0);
-    // allow today or yesterday as start
-    if (habitLogs[0] !== todayStr) {
-      const y = new Date(); y.setDate(y.getDate() - 1); y.setHours(0,0,0,0);
-      if (habitLogs[0] !== y.toISOString().slice(0,10)) return 0;
-    }
-    const set = new Set(habitLogs);
-    const cur = new Date(d);
-    while (set.has(cur.toISOString().slice(0, 10))) {
-      s++;
-      cur.setDate(cur.getDate() - 1);
-    }
-    return s;
-  };
+  const last7 = useMemo(() => lastNDayStrings(7, todayStr), [todayStr]);
 
   const toggle = async (habit, dateStr) => {
     const existing = logs.find((l) => l.habit_id === habit.id && l.date === dateStr);
@@ -94,8 +72,8 @@ export default function Habits() {
 
       <div className="space-y-3">
         {habits.map((h) => {
-          const s = streak(h.id);
-          const weekDone = last7.filter((d) => logs.some((l) => l.habit_id === h.id && l.date === d && l.completed)).length;
+          const s = habitStreak(logs, h.id, todayStr);
+          const weekDone = habitWeekDone(logs, h.id, last7);
           return (
             <Card key={h.id} className="p-4 group glow-hover">
               <div className="flex items-center justify-between flex-wrap gap-3">

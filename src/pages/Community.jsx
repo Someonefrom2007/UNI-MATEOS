@@ -3,15 +3,25 @@ import { useAuth } from "@/lib/AuthContext";
 import PageHeader from "@/components/PageHeader";
 import PostComposer from "@/components/community/PostComposer";
 import PostCard from "@/components/community/PostCard";
+import ScopeManager from "@/components/community/ScopeManager";
 import { supabase } from "@/lib/supabase";
-import { isLocalWorkspace } from "@/lib/repo/select";
-import { createLocalRepo } from "@/lib/repo/localRepo";
-import { CONTENT_TYPES, feedFilter, applyFilters, sortPosts, decoratePosts, reportReasons, scopeFeed, scopesFromPosts } from "@/lib/communityData";
+import { isLocalWorkspace, getAppRepo } from "@/lib/repo/select";
+import { CONTENT_TYPES, feedFilter, applyFilters, sortPosts, decoratePosts, reportReasons, scopeFeed, scopesFromPosts, createCommunity, createStudyGroup, createMembership, isMember, myScopes } from "@/lib/communityData";
 import { Users, MessagesSquare, Bookmark } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 const LOCAL = isLocalWorkspace();
-const localRepo = LOCAL ? createLocalRepo() : null;
+const repo = getAppRepo();
+
+// A table read that can't happen (e.g. a group/community not yet migrated in
+// the hosted project) degrades to an empty list instead of failing the feed.
+const listOrZero = async (table) => {
+  try {
+    return (await repo.list(table)) || [];
+  } catch {
+    return [];
+  }
+};
 
 const FEEDS = [
   { value: "discover", label: "Discover", icon: MessagesSquare },
@@ -23,6 +33,13 @@ const SORTS = [
   { value: "new", label: "Newest" },
   { value: "top", label: "Top" },
 ];
+
+// Realtime is a hosted-only feature: the community feed subscribes to its own
+// tables so new posts, replies, likes, memberships and scopes appear live.
+// Handlers must attach BEFORE .subscribe() (see useUserData notes).
+const REALTIME_COMMUNITY_TABLES = ["community_posts", "community_replies", "community_likes", "community_saves", "community_members", "communities", "study_groups"];
+let communityChannelSeq = 0;
+const realtimeCommunityChannel = () => `unimate-community-${Date.now()}-${communityChannelSeq++}`;
 
 const byDateDesc = (a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""));
 
@@ -46,6 +63,7 @@ export default function Community() {
   const [courses, setCourses] = useState([]);
   const [communities, setCommunities] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [members, setMembers] = useState([]);
   const [reportingId, setReportingId] = useState(null);
 
   const [feed, setFeed] = useState("discover");
@@ -61,40 +79,22 @@ export default function Community() {
 
   const load = useCallback(async () => {
     try {
-      if (LOCAL) {
-        setPosts(localRepo.list("community_posts").slice().sort(byDateDesc).slice(0, 50).map((r) => enrich(r, authorName)));
-        setReplies(localRepo.list("community_replies"));
-        setLikes(localRepo.list("community_likes"));
-        setSaves(localRepo.list("community_saves"));
-        setCourses(localRepo.list("courses"));
-        setCommunities(localRepo.list("communities"));
-        setGroups(localRepo.list("study_groups"));
-        return;
-      }
       const [p, r, l, s, c] = await Promise.all([
-        supabase.from("community_posts").select("*").order("created_at", { ascending: false }).limit(50),
-        supabase.from("community_replies").select("*").order("created_at", { ascending: false }),
-        supabase.from("community_likes").select("*"),
-        supabase.from("community_saves").select("*"),
-        supabase.from("courses").select("*"),
+        listOrZero("community_posts"),
+        listOrZero("community_replies"),
+        listOrZero("community_likes"),
+        listOrZero("community_saves"),
+        listOrZero("courses"),
       ]);
-      setPosts((p.data || []).map((row) => enrich(row, authorName)));
-      setReplies((r.data || []).map((row) => enrich(row, authorName)));
-      setLikes((l.data || []).map((row) => enrich(row, authorName)));
-      setSaves((s.data || []).map((row) => enrich(row, authorName)));
-      setCourses(c.data || []);
-      try {
-        const [cm, g] = await Promise.all([
-          supabase.from("communities").select("*"),
-          supabase.from("study_groups").select("*"),
-        ]);
-        setCommunities(cm.data || []);
-        setGroups(g.data || []);
-      } catch {
-        // Hosted project predates the communities migration — scope stays off.
-        setCommunities([]);
-        setGroups([]);
-      }
+      setPosts(p.slice().sort(byDateDesc).slice(0, 50).map((row) => enrich(row, authorName)));
+      setReplies(r.map((row) => enrich(row, authorName)));
+      setLikes(l.map((row) => enrich(row, authorName)));
+      setSaves(s.map((row) => enrich(row, authorName)));
+      setCourses(c);
+      const [cm, g, m] = await Promise.all([listOrZero("communities"), listOrZero("study_groups"), listOrZero("community_members")]);
+      setCommunities(cm);
+      setGroups(g);
+      setMembers(m);
     } catch {
       setPosts([]);
     }
@@ -104,22 +104,29 @@ export default function Community() {
     load();
   }, [load]);
 
+  const loaded = posts !== null;
+  useEffect(() => {
+    if (LOCAL || !loaded) return;
+    const channel = supabase.channel(realtimeCommunityChannel());
+    REALTIME_COMMUNITY_TABLES.forEach((table) => {
+      channel.on("postgres_changes", { event: "*", schema: "public", table }, () => load());
+    });
+    channel.subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loaded, load]);
+
   const addPost = async (payload) => {
     const postDefaults = LOCAL ? { status: "active", author_name: authorName } : {};
-    if (LOCAL) {
-      localRepo.create("community_posts", { ...payload, ...postDefaults });
-    } else {
-      await supabase.from("community_posts").insert({ ...payload, ...postDefaults });
-    }
+    await repo.create("community_posts", { ...payload, ...postDefaults });
     await load();
   };
 
   const addReply = async (postId, content) => {
-    if (LOCAL) {
-      localRepo.create("community_replies", { post_id: postId, content, author_name: authorName });
-    } else {
-      await supabase.from("community_replies").insert({ post_id: postId, content });
-    }
+    const reply = { post_id: postId, content };
+    if (LOCAL) reply.author_name = authorName;
+    await repo.create("community_replies", reply);
     await load();
   };
 
@@ -127,12 +134,9 @@ export default function Community() {
     const mine = likes.find((l) => l.post_id === post.id && (l.user_id ?? l.created_by_id) === userId);
     try {
       if (mine) {
-        if (LOCAL) localRepo.delete("community_likes", mine.id);
-        else await supabase.from("community_likes").delete().eq("id", mine.id);
-      } else if (LOCAL) {
-        localRepo.create("community_likes", { post_id: post.id });
+        await repo.delete("community_likes", mine.id);
       } else {
-        await supabase.from("community_likes").insert({ post_id: post.id });
+        await repo.create("community_likes", { post_id: post.id });
       }
       await load();
     } catch { /* optimistic state stays as-is */ }
@@ -142,12 +146,9 @@ export default function Community() {
     const mine = saves.find((s) => s.post_id === post.id && (s.user_id ?? s.created_by_id) === userId);
     try {
       if (mine) {
-        if (LOCAL) localRepo.delete("community_saves", mine.id);
-        else await supabase.from("community_saves").delete().eq("id", mine.id);
-      } else if (LOCAL) {
-        localRepo.create("community_saves", { post_id: post.id });
+        await repo.delete("community_saves", mine.id);
       } else {
-        await supabase.from("community_saves").insert({ post_id: post.id });
+        await repo.create("community_saves", { post_id: post.id });
       }
       await load();
     } catch { /* optimistic state stays as-is */ }
@@ -156,8 +157,9 @@ export default function Community() {
   const handleReport = async (post, reason) => {
     const why = reportReasons.includes(reason) ? reason : "other";
     try {
-      if (LOCAL) localRepo.create("community_reports", { post_id: post.id, reason: why, status: "open" });
-      else await supabase.from("community_reports").insert({ post_id: post.id, reason: why });
+      const report = { post_id: post.id, reason: why };
+      if (LOCAL) report.status = "open";
+      await repo.create("community_reports", report);
     } catch { /* report is best-effort */ }
   };
 
@@ -171,27 +173,63 @@ export default function Community() {
   };
 
   const deletePost = async (post) => {
-    if (LOCAL) {
-      localRepo.delete("community_posts", post.id);
-      localRepo.deleteWhere("community_replies", (r) => r.post_id === post.id);
-      localRepo.deleteWhere("community_likes", (l) => l.post_id === post.id);
-      localRepo.deleteWhere("community_saves", (s) => s.post_id === post.id);
-    } else {
-      await supabase.from("community_posts").delete().eq("id", post.id);
+    await repo.delete("community_posts", post.id);
+    for (const table of ["community_replies", "community_likes", "community_saves"]) {
       try {
-        await supabase.from("community_replies").delete().eq("post_id", post.id);
-      } catch { /* others' replies are simply orphaned and never rendered */ }
-      try {
-        await supabase.from("community_likes").delete().eq("post_id", post.id);
-      } catch { /* likes are cleaned up best-effort */ }
-      try {
-        await supabase.from("community_saves").delete().eq("post_id", post.id);
-      } catch { /* saves are cleaned up best-effort */ }
+        await repo.deleteWhere(table, (r) => r.post_id === post.id);
+      } catch { /* hosted FK cascades remove children; other orphans are best-effort */ }
     }
     await load();
   };
 
   const savedIds = useMemo(() => new Set((saves || []).map((s) => s.post_id)), [saves]);
+
+  const createScope = async (kind, payload) => {
+    try {
+      if (kind === "community") {
+        const course = courses.find((c) => c.id === payload.courseId);
+        const row = createCommunity({ kind: payload.kind, name: payload.name, courseId: payload.courseId, courseName: course?.name });
+        delete row.id;
+        delete row.created_by;
+        await repo.create("communities", row);
+      } else {
+        const row = createStudyGroup({ name: payload.name, communityId: payload.communityId, courseId: payload.courseId });
+        delete row.id;
+        delete row.created_by;
+        await repo.create("study_groups", row);
+      }
+      await load();
+    } catch { /* a failed create leaves state as-is */ }
+  };
+
+  const toggleMember = async (scope, kind) => {
+    if (!userId) return;
+    try {
+      if (isMember(members, kind, scope.id, userId)) {
+        const mine = (members || []).find(
+          (m) => m.user_id === userId && (kind === "community" ? String(m.community_id) === String(scope.id) : String(m.group_id) === String(scope.id))
+        );
+        if (mine) await repo.delete("community_members", mine.id);
+      } else {
+        const row = createMembership({
+          communityId: kind === "community" ? scope.id : "",
+          groupId: kind === "group" ? scope.id : "",
+        });
+        await repo.create("community_members", row);
+      }
+      await load();
+    } catch { /* membership change is best-effort */ }
+  };
+
+  const deleteScope = async (scope, kind) => {
+    try {
+      await repo.delete(kind === "community" ? "communities" : "study_groups", scope.id);
+      await load();
+    } catch { /* FK-restrained delete is best-effort */ }
+  };
+
+  const myCommunities = useMemo(() => myScopes(communities, members, "community", userId), [communities, members, userId]);
+  const myGroups = useMemo(() => myScopes(groups, members, "group", userId), [groups, members, userId]);
 
   const scopeOptions = useMemo(
     () => scopesFromPosts(posts || [], { communities, groups }),
@@ -328,7 +366,19 @@ export default function Community() {
           </select>
         </div>
 
-        <PostComposer courses={courses} groups={LOCAL ? groups : []} onPost={addPost} />
+        <PostComposer courses={courses} communities={myCommunities} groups={myGroups} onPost={addPost} />
+
+        <ScopeManager
+          communities={communities}
+          groups={groups}
+          members={members}
+          courses={courses}
+          userId={userId}
+          onCreateCommunity={(p) => createScope("community", p)}
+          onCreateGroup={(p) => createScope("group", p)}
+          onToggleMember={toggleMember}
+          onDeleteScope={deleteScope}
+        />
 
         {posts === null && [0, 1, 2].map((i) => <div key={i} className="h-28 bg-muted rounded-xl animate-pulse" />)}
 

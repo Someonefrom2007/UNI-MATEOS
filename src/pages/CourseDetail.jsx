@@ -3,10 +3,11 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useUserData } from "@/lib/useUserData";
 import { courseColor, fmtGrade, fmtDuration, relativeDeadline, PRIORITY_META } from "@/lib/format";
 import { courseGrade, requiredGrade } from "@/lib/gradeEngine";
+import { topicStats } from "@/lib/topicStats";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, GraduationCap, Timer, CheckSquare, FileText, BookOpen } from "lucide-react";
+import { ArrowLeft, GraduationCap, Timer, CheckSquare, FileText, BookOpen, Layers, Check } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
@@ -30,6 +31,7 @@ export default function CourseDetail() {
     const tasks = data.Task.filter((t) => t.course_id === id);
     const notes = data.Note.filter((n) => n.course_id === id);
     const resources = data.Resource.filter((r) => r.course_id === id);
+    const topics = data.Topic.filter((t) => t.course_id === id);
     const focus = data.FocusSession.filter((f) => f.course_id === id);
     const assessments = [
       ...grades.map((g) => ({ grade: g.grade, weight: g.weight })),
@@ -39,7 +41,7 @@ export default function CourseDetail() {
     const req = requiredGrade(assessments, c.target_grade);
     const focusTotal = focus.reduce((s, f) => s + f.duration, 0);
     const completedTasks = tasks.filter((t) => t.status === "completed").length;
-    return { grades, exams, tasks, notes, resources, focus, grade, req, focusTotal, completedTasks };
+    return { grades, exams, tasks, notes, resources, topics, focus, grade, req, focusTotal, completedTasks };
   }, [data, c, id]);
 
   if (error) return <ErrorState onRetry={refresh} />;
@@ -57,6 +59,14 @@ export default function CourseDetail() {
   const toggleTask = async (task) => {
     const done = task.status !== "completed";
     await mutate("Task", "update", task.id, { status: done ? "completed" : "todo", completed_date: done ? new Date().toISOString().slice(0, 10) : null });
+  };
+
+  const toggleTopic = async (t) => {
+    await mutate("Topic", "update", t.id, { reviewed: !t.reviewed, mastery: t.reviewed ? (Number(t.mastery) || 0) : 100 });
+  };
+
+  const setTopicMastery = async (t, val) => {
+    await mutate("Topic", "update", t.id, { mastery: val, reviewed: val >= 80 });
   };
 
   const deleteCourse = async () => {
@@ -97,6 +107,7 @@ export default function CourseDetail() {
           <TabsTrigger value="exams">Exams</TabsTrigger>
           <TabsTrigger value="grades">Grades</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="topics">Topics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4">
@@ -206,6 +217,40 @@ export default function CourseDetail() {
                   </Card>
                 </Link>
               ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="topics" className="mt-4">
+          {derived.topics.length === 0 ? <EmptyState icon={Layers} title="No topics yet" description="Track the concepts you need to master for this course." actionLabel="Add topic" onAction={() => openQA("topic")} /> : (
+            <div className="space-y-3">
+              {(() => {
+                const stats = topicStats(derived.topics);
+                return (
+                  <div className="text-xs text-muted-foreground flex items-center gap-2">
+                    <span>{stats.count} topics</span>
+                    <span className="chip border-border/70 bg-muted/40 text-muted-foreground">{stats.mastery}% mastery</span>
+                    <span className="chip border-border/70 bg-muted/40 text-muted-foreground">{stats.reviewed} reviewed</span>
+                  </div>
+                );
+              })()}
+              <div className="space-y-2">
+              {derived.topics.map((t) => (
+                <Card key={t.id} className="p-3 flex items-center gap-3">
+                  <button onClick={() => toggleTopic(t)} aria-label={t.reviewed ? `Mark ${t.name} as not reviewed` : `Mark ${t.name} as reviewed`} className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${t.reviewed ? "bg-emerald-500 border-emerald-500" : "border-border"}`}>
+                    {t.reviewed && <Check className="w-3 h-3 text-white" />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{t.name}</div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-1.5">
+                      <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${Number(t.mastery) || 0}%` }} />
+                    </div>
+                  </div>
+                  <input type="range" min="0" max="100" value={Number(t.mastery) || 0} onChange={(e) => setTopicMastery(t, Number(e.target.value))} aria-label={`${t.name} mastery`} className="w-24 accent-cyan-500" />
+                  <span className="text-xs text-muted-foreground w-8 text-right">{Number(t.mastery) || 0}%</span>
+                </Card>
+              ))}
+              </div>
             </div>
           )}
         </TabsContent>

@@ -11,6 +11,10 @@ import QuickAdd from "@/components/QuickAdd";
 import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
 import ErrorState from "@/components/ErrorState";
+import PlanLocked from "@/components/PlanLocked";
+import { usePlan } from "@/lib/usePlan";
+import { BrainCircuit } from "lucide-react";
+import { predictedScore, scoreBand, stepsToPass } from "@/lib/examIntelligence";
 
 export default function Exams() {
   const { id } = useParams();
@@ -121,11 +125,13 @@ export default function Exams() {
 function ExamDetail({ id }) {
   const { data, mutate } = useUserData();
   const { toast } = useToast();
+  const { can } = usePlan();
   const exam = data?.Exam.find((e) => e.id === id);
   if (!exam) return <EmptyState title="Exam not found" actionLabel="Back to exams" actionTo="/exams" />;
   const course = data?.Course.find((c) => c.id === exam.course_id);
   const cc = course ? courseColor(course.color) : null;
   const topics = exam.topics || [];
+  const grades = data?.Grade || [];
 
   const toggleTopic = async (idx) => {
     const newTopics = topics.map((t, i) => i === idx ? { ...t, reviewed: !t.reviewed, mastery: t.reviewed ? (t.mastery || 0) : 100 } : t);
@@ -144,6 +150,11 @@ function ExamDetail({ id }) {
   };
 
   const readiness = topics.length ? Math.round(topics.reduce((s, t) => s + (t.mastery || 0), 0) / topics.length) : 0;
+
+  const prediction = predictedScore(exam, grades);
+  const band = scoreBand(prediction?.value ?? null);
+  const steps = stepsToPass(prediction?.value ?? null, topics);
+  const PRO_INTRO = "Walk into every exam with a predicted score band and a concrete to-pass plan — a Pro feature layered on the countdowns you already track.";
 
   return (
     <div className="space-y-6">
@@ -166,6 +177,43 @@ function ExamDetail({ id }) {
           )}
         </div>
       </div>
+
+      {can("exam_intelligence") ? (
+        <Card className="p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <BrainCircuit className="w-4 h-4 text-hud-violet" />
+            <h2 className="um-label">Intelligence</h2>
+          </div>
+          {prediction ? (
+            <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 items-start">
+              <div className="rounded-xl border border-border/70 p-4 min-w-40 text-center">
+                <div className={`text-[10px] px-2 py-0.5 rounded-full border uppercase tracking-wide inline-block ${band.cls}`}>{band.label}</div>
+                <div className="font-display text-4xl font-semibold mt-2">{prediction.value}</div>
+                <div className="text-xs text-muted-foreground mt-1">{prediction.source} · {prediction.confidence === "exact" ? "recorded" : prediction.confidence === "good" ? "high confidence" : prediction.confidence === "medium" ? "medium confidence" : "estimate"}</div>
+              </div>
+              <div className="space-y-2">
+                {steps && steps.gap === 0 && (
+                  <p className="text-sm text-hud-emerald font-medium">{steps.steps[0].text}</p>
+                )}
+                {steps && steps.gap > 0 && steps.steps.map((s, i) => (
+                  <div key={i} className="flex items-start gap-2.5 rounded-lg border border-border/70 p-3">
+                    <span className={`w-6 h-6 rounded-md ${s.kind === "mastery" ? "bg-hud-amber/10 text-hud-amber" : "bg-hud-violet/10 text-hud-violet"} flex items-center justify-center text-xs font-semibold shrink-0`}>{i + 1}</span>
+                    <div>
+                      <div className="text-sm font-medium">{s.kind === "mastery" ? "Mastery gap" : "Schedule"}</div>
+                      <p className="text-xs text-muted-foreground">{s.text}</p>
+                    </div>
+                  </div>
+                ))}
+                {!steps && <p className="text-sm text-muted-foreground">No score signal yet — add an expected grade or log graded assessments to unlock predictions.</p>}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No score signal yet — add an expected grade on this exam, or log graded assessments for its course, and predictions will appear here.</p>
+          )}
+        </Card>
+      ) : (
+        <PlanLocked feature="exam_intelligence" description={PRO_INTRO} />
+      )}
 
       <Card className="p-5">
         <div className="flex items-center justify-between mb-4">

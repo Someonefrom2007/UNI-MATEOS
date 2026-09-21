@@ -2,8 +2,10 @@ import { useMemo } from "react";
 import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
-import { fmtDuration, courseColor } from "@/lib/format";
+import { fmtDuration, courseColor, todayISO } from "@/lib/format";
 import { weekWorkload } from "@/lib/workloadEngine";
+import { tasksByDay } from "@/lib/workloadDays";
+import { weekStartOf } from "@/lib/dashboardRadar";
 import { Card } from "@/components/ui/card";
 import { Gauge, AlertTriangle } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
@@ -15,10 +17,7 @@ export default function Workload() {
   const { data, loading, error, refresh } = useUserData();
   const { t } = useI18n();
 
-  const weekStart = useMemo(() => {
-    const d = new Date(); d.setDate(d.getDate() - d.getDay()); d.setHours(0, 0, 0, 0);
-    return d.toISOString().slice(0, 10);
-  }, []);
+  const weekStart = useMemo(() => weekStartOf(todayISO()), []);
 
   const wl = useMemo(() => {
     if (!data) return { total: 0, breakdown: [] };
@@ -27,14 +26,7 @@ export default function Workload() {
 
   const byDay = useMemo(() => {
     if (!data) return Array(7).fill(0);
-    const days = Array(7).fill(0);
-    data.Task.filter((t) => t.status !== "completed" && t.due_date).forEach((t) => {
-      const due = new Date(t.due_date + "T00:00:00");
-      const ws = new Date(weekStart + "T00:00:00");
-      const diff = Math.floor((due.getTime() - ws.getTime()) / 86400000);
-      if (diff >= 0 && diff < 7) days[diff] += t.estimated_duration || 30;
-    });
-    return days;
+    return tasksByDay(data.Task, weekStart);
   }, [data, weekStart]);
 
   const maxDay = Math.max(...byDay, 1);

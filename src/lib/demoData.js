@@ -1,11 +1,6 @@
 // Demo semester — a believable starter workspace, seeded relative to today.
 
-import { supabase } from "@/lib/supabase";
-import { isLocalWorkspace } from "@/lib/repo/select";
-import { createLocalRepo } from "@/lib/repo/localRepo";
-
-const LOCAL = isLocalWorkspace();
-const localRepo = LOCAL ? createLocalRepo() : null;
+import { getAppRepo } from "@/lib/repo/select";
 
 const pad = (n) => String(n).padStart(2, "0");
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -17,12 +12,13 @@ const inDays = (n) => {
 
 // Insert helper: every write is awaited, surfaced, and thrown on failure so a
 // partial seed can never look "successful". No silent catch-and-continue.
-// Local workspace writes straight to on-device storage through the repo.
+// Both modes write through the shared repository — rows come back with real
+// ids so FK references below resolve.
 const insert = async (table, rows) => {
-  if (LOCAL) return rows.map((row) => localRepo.create(table, row));
-  const { data, error } = await supabase.from(table).insert(rows).select();
-  if (error) throw new Error(`Seeding "${table}" failed: ${error.message}`);
-  return data || [];
+  const repo = getAppRepo();
+  const created = [];
+  for (const row of rows) created.push(await repo.create(table, row));
+  return created;
 };
 
 export const loadDemoData = async () => {
@@ -74,6 +70,21 @@ export const loadDemoData = async () => {
     { title: "Essay structure that worked", content: "Hook → context → claim → 3 body paragraphs (evidence + analysis) → so-what conclusion. Prof. Okafor likes counterarguments addressed early.", course_id: writing.id },
   ]);
 
+  const topics = await insert("topics", [
+    { course_id: math.id, name: "Eigenvalues", mastery: 40, reviewed: false },
+    { course_id: math.id, name: "Diagonalization", mastery: 25, reviewed: false },
+    { course_id: math.id, name: "Vector spaces", mastery: 55, reviewed: true },
+    { course_id: math.id, name: "Bases & dimension", mastery: 70, reviewed: true },
+    { course_id: cs.id, name: "Control flow", mastery: 80, reviewed: true },
+    { course_id: cs.id, name: "Functions & scope", mastery: 60, reviewed: false },
+    { course_id: cs.id, name: "Data structures", mastery: 30, reviewed: false },
+    { course_id: psych.id, name: "Memory & cognition", mastery: 45, reviewed: false },
+    { course_id: psych.id, name: "Research methods", mastery: 65, reviewed: true },
+    { course_id: writing.id, name: "Argument structure", mastery: 75, reviewed: true },
+    { course_id: writing.id, name: "Thesis statements", mastery: 80, reviewed: true },
+  ]);
+  if (!topics?.length) throw new Error('Seeding "topics" returned no rows');
+
   await insert("sticky_notes", [
     { content: "ask Ferrer about repeated eigenvalues before the midterm!!", color: "amber", rotation: -1.4 },
     { content: "psych quiz is 20% of the grade — do NOT leave it for the night before", color: "rose", rotation: 1.2, pinned: true },
@@ -108,5 +119,5 @@ export const loadDemoData = async () => {
     { course_id: math.id, duration: 25, date: inDays(-5), completed: true, mode: "25_5" },
   ]);
 
-  return { courses: courses.length, classes: 6, tasks: 5, exams: 3, grades: 4, notes: 2, stickies: 5, habits: habits.length };
+  return { courses: courses.length, classes: 6, tasks: 5, exams: 3, grades: 4, notes: 2, topics: topics.length, stickies: 5, habits: habits.length };
 };

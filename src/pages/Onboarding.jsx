@@ -10,8 +10,7 @@ import Logo from "@/components/Logo";
 import { useToast } from "@/components/ui/use-toast";
 import { loadDemoData } from "@/lib/demoData";
 import { supabase } from "@/lib/supabase";
-import { isLocalWorkspace } from "@/lib/repo/select";
-import { createLocalRepo } from "@/lib/repo/localRepo";
+import { isLocalWorkspace, getAppRepo } from "@/lib/repo/select";
 
 const STEPS = ["Welcome", "About you", "Semester", "Goals", "Courses", "Done"];
 
@@ -63,8 +62,7 @@ export default function Onboarding() {
         archived: false,
       };
       try {
-        if (local) createLocalRepo().create("courses", payload);
-        else await supabase.from("courses").insert(payload);
+        await getAppRepo().create("courses", payload);
       } catch { /* onboarding never blocks on a single optional course */ }
     }
     setStep(5);

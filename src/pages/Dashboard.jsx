@@ -8,6 +8,8 @@ import { todayTimeline, nextClass } from "@/lib/scheduleEngine";
 import { generateInsights, recommendNow } from "@/lib/insightsEngine";
 import { weeklyVelocity } from "@/lib/burnout";
 import { statusBanner, studyVelocity, markIcsTimeline } from "@/lib/dashboardRadar";
+import { nextUrgent } from "@/lib/nextUrgent";
+import { todayISO } from "@/lib/format";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -87,7 +89,7 @@ export default function Dashboard() {
     const habitLogs = data.HabitLog;
     const sticky = data.StickyNote || [];
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayISO();
 
     const courseGrades = courses.map((c) => {
       const cGrades = grades.filter((g) => g.course_id === c.id);
@@ -110,17 +112,7 @@ export default function Dashboard() {
     const radar = studyVelocity({ tasks, exams, focusSessions: focus, courses, todayStr });
     const insights = generateInsights({ tasks, exams, focusSessions: focus, courses, grades, habits, habitLogs });
     const rec = recommendNow({ tasks, exams, courses, events });
-
-    const urgent = [
-      ...exams.filter((e) => e.status !== "completed" && e.date).map((e) => {
-        const n = Math.round((new Date(e.date + "T00:00:00").getTime() - new Date().getTime()) / 86400000);
-        return n >= 0 && n <= 7 ? { kind: "exam", item: e, n, course: courses.find((c) => c.id === e.course_id) } : null;
-      }).filter(Boolean),
-      ...tasks.filter((t) => t.status !== "completed" && t.due_date).map((t) => {
-        const n = Math.round((new Date(t.due_date + "T00:00:00").getTime() - new Date().getTime()) / 86400000);
-        return n <= 2 ? { kind: "task", item: t, n, course: courses.find((c) => c.id === t.course_id) } : null;
-      }).filter(Boolean),
-    ].sort((a, b) => a.n - b.n).slice(0, 4);
+    const urgent = nextUrgent(exams, tasks, courses, todayStr);
 
     return { courses, tasks, exams, grades, courseGrades, semesterGPA, totalEcts, nc, timeline, timelineIcs, wl, velocity, radar, insights, rec, urgent, goals, habits, habitLogs, sticky, todayStr };
   }, [data]);
