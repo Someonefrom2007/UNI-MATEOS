@@ -1004,6 +1004,13 @@ export const setLang = (code) => {
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(EVENT, { detail: code }));
 };
 
+export const translate = (lang, key) => {
+  const table = DICT[lang];
+  if (table && table[key] !== undefined) return table[key];
+  const fallback = DICT.en;
+  return fallback[key] !== undefined ? fallback[key] : key;
+};
+
 export const useI18n = () => {
   const [lang, setLangState] = useState(getLang);
 
@@ -1016,12 +1023,7 @@ export const useI18n = () => {
     return () => window.removeEventListener(EVENT, onLang);
   }, [lang]);
 
-  const t = (key) => {
-    const table = DICT[lang];
-    if (table && table[key] !== undefined) return table[key];
-    const fallback = DICT.en;
-    return (fallback[key] !== undefined ? fallback[key] : key);
-  };
+  const t = (key) => translate(lang, key);
 
   return { lang, setLang, t, LANGUAGES };
 };

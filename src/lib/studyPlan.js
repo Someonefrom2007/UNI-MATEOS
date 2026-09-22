@@ -78,7 +78,7 @@ const noteFor = (kind, topic) => {
   }
 };
 
-const itemFor = (exam, topic, kind, startDate, dayIndex, now) => {
+const itemFor = (exam, topic, kind, startDate, dayIndex) => {
   const date = addDaysISO(startDate, dayIndex);
   return {
     id: "",
@@ -90,8 +90,6 @@ const itemFor = (exam, topic, kind, startDate, dayIndex, now) => {
     label: topic ? topic.name : kind === "exam_pass" ? "Exam-day pass" : "Course refresh",
     note: noteFor(kind, topic),
     completed: false,
-    created_at: now(),
-    updated_at: now(),
   };
 };
 
@@ -127,7 +125,7 @@ const byDateThenRank = (a, b) => {
  *   { id, name, date: "yyyy-mm-dd", course_id, weight?, status? }
  * Topics are the course's topics with 0-100 masteries. Options:
  *   today (iso date), daysBefore (lookahead window), budgetMin (max study
- *   minutes per day), now (timestamp factory).
+ *   minutes per day).
  *
  * @param {object} exam
  * @param {Array<{ id: string, course_id?: string, name: string, mastery?: number }>} [topics]
@@ -139,12 +137,11 @@ export const generateStudyPlan = (exam = {}, topics = [], options = {}) => {
   const today = isoOf(options.today ?? new Date().toISOString());
   const daysBefore = options.daysBefore ?? PLAN_DEFAULTS.daysBefore;
   const budgetMin = options.budgetMin ?? PLAN_DEFAULTS.budgetMin;
-  const now = options.now ?? (() => new Date().toISOString());
 
   if (!examDate) return [];
   const horizon = daysBetween(today, examDate);
   if (horizon < 0) return [];
-  if (horizon === 0) return [itemFor(exam, null, "exam_pass", examDate, 0, now)];
+  if (horizon === 0) return [itemFor(exam, null, "exam_pass", examDate, 0)];
 
   const window = Math.min(horizon, daysBefore);
   const startDate = addDaysISO(examDate, -window);
@@ -160,7 +157,7 @@ export const generateStudyPlan = (exam = {}, topics = [], options = {}) => {
     const reviewDays = Math.min(3, available);
     for (let k = reviewDays; k >= 1; k -= 1) {
       items.push(
-        itemFor(exam, null, "mid_review", startDate, available - k, now)
+        itemFor(exam, null, "mid_review", startDate, available - k)
       );
     }
   } else {
@@ -172,7 +169,7 @@ export const generateStudyPlan = (exam = {}, topics = [], options = {}) => {
     sorted.forEach((topic, i) => {
       const band = masteryBand(topic);
       const introDay = Math.min(available - 1, Math.floor(i / perDay));
-      items.push(itemFor(exam, topic, `${band}_intro`, startDate, introDay, now));
+      items.push(itemFor(exam, topic, `${band}_intro`, startDate, introDay));
 
       if (band === "weak") {
         if (available >= 5) {
@@ -180,22 +177,22 @@ export const generateStudyPlan = (exam = {}, topics = [], options = {}) => {
             available - 2,
             introDay + Math.max(2, Math.round(available * 0.4))
           );
-          items.push(itemFor(exam, topic, "weak_review", startDate, reviewDay, now));
+          items.push(itemFor(exam, topic, "weak_review", startDate, reviewDay));
         }
         if (available >= 3) {
-          items.push(itemFor(exam, topic, "eve_review", startDate, available, now));
+          items.push(itemFor(exam, topic, "eve_review", startDate, available));
         }
       } else if (band === "mid" && available >= 5) {
         const reviewDay = Math.min(
           available - 1,
           introDay + Math.max(2, Math.round(available * 0.5))
         );
-        items.push(itemFor(exam, topic, "mid_review", startDate, reviewDay, now));
+        items.push(itemFor(exam, topic, "mid_review", startDate, reviewDay));
       }
     });
   }
 
-  items.push(itemFor(exam, null, "exam_pass", startDate, window, now));
+  items.push(itemFor(exam, null, "exam_pass", startDate, window));
 
   return applyBudget(items, budgetMin).sort(byDateThenRank);
 };
