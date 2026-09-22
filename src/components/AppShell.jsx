@@ -23,6 +23,7 @@ const NAV = [
     items: [
       { labelKey: "nav.courses", to: "/courses", icon: BookOpen },
       { labelKey: "nav.schedule", to: "/schedule", icon: CalendarDays },
+      { labelKey: "nav.attendance", to: "/attendance", icon: CalendarDays },
       { labelKey: "nav.timeline", to: "/timeline", icon: CalendarDays },
       { labelKey: "nav.tasks", to: "/tasks", icon: CheckSquare },
       { labelKey: "nav.exams", to: "/exams", icon: GraduationCap },
@@ -70,6 +71,7 @@ const NAV = [
 const MOBILE_NAV = [
   { labelKey: "nav.home", to: "/dashboard", icon: LayoutDashboard },
   { labelKey: "nav.schedule", to: "/schedule", icon: CalendarDays },
+  { labelKey: "nav.attendance", to: "/attendance", icon: CalendarDays },
   { labelKey: "nav.timeline", to: "/timeline", icon: CalendarDays },
   { labelKey: "nav.tasks", to: "/tasks", icon: CheckSquare },
   { labelKey: "nav.ai", to: "/ai", icon: BrainCircuit },

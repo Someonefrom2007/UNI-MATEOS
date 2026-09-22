@@ -33,7 +33,7 @@ export default function Attendance() {
   if (error) {
     return (
       <PageHeader title={t("attendance.errorTitle")} subtitle={t("attendance.errorDesc")}>
-        <button onClick={refresh} className="mt-2 text-sm underline">
+        <button onClick={() => refresh()} className="mt-2 text-sm underline">
           {t("common.retry")}
         </button>
       </PageHeader>
@@ -45,7 +45,7 @@ export default function Attendance() {
 
   return (
     <div>
-      <PageHeader title={t("attendance.title")} subtitle={t("attendance.subtitle", { lang })} />
+      <PageHeader title={t("attendance.title")} subtitle={t("attendance.subtitle")} />
       {!anyData && (
         <Card className="p-6">
           <h3 className="font-semibold">{t("attendance.emptyTitle")}</h3>
@@ -61,11 +61,8 @@ export default function Attendance() {
                 <span className="text-lg font-bold">{rateLabel(s.rate)}</span>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-              <p className="mt-1 text-sm text-muted-foreground">
                 {t("attendance.attendedOf")}: {s.attended ?? 0}/{s.total ?? 0}
-                {s.excused > 0 && ` (+{s.excused} excused)`}
-              </p>
-                })}
+                {s.excused > 0 && ` (+${s.excused} excused)`}
               </p>
               {s.atRisk && (
                 <p className="mt-2 text-sm font-semibold text-destructive">{t("attendance.atRisk")}</p>
@@ -77,3 +74,4 @@ export default function Attendance() {
     </div>
   );
 }
+

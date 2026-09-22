@@ -25,6 +25,7 @@ const Community     = React.lazy(() => import("@/pages/Community"));
 const Courses       = React.lazy(() => import("@/pages/Courses"));
 const CourseDetail  = React.lazy(() => import("@/pages/CourseDetail"));
 const Schedule      = React.lazy(() => import("@/pages/Schedule"));
+const Attendance    = React.lazy(() => import("@/pages/Attendance"));
 const AcademicTimeline = React.lazy(() => import("@/pages/AcademicTimeline"));
 const Tasks         = React.lazy(() => import("@/pages/Tasks"));
 const Exams         = React.lazy(() => import("@/pages/Exams"));
@@ -75,6 +76,7 @@ const AuthenticatedApp = () => {
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/:id" element={<CourseDetail />} />
             <Route path="/schedule" element={<Schedule />} />
+            <Route path="/attendance" element={<Attendance />} />
             <Route path="/timeline" element={<AcademicTimeline />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/exams" element={<Exams />} />

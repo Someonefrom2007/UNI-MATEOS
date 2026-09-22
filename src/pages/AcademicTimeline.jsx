@@ -7,7 +7,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
-  CalendarRange,
   CalendarDays,
   ChevronRight,
   GraduationCap,
