@@ -1118,3 +1118,61 @@ CREATE TRIGGER study_plan_items_set_updated_at
 
 CREATE INDEX IF NOT EXISTS study_plan_items_plan_id_idx ON public.study_plan_items (plan_id);
 CREATE INDEX IF NOT EXISTS study_plan_items_user_date_idx ON public.study_plan_items (user_id, date);
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- BILLING (Lemon Squeezy) — ADDITIVE. Pending one-time apply to hosted.
+-- The edge function lemon-squeezy writes subscriptions via the service role;
+-- clients may only read their own subscription row. webhook_events is a
+-- server-only idempotency ledger (no client policy → no client access).
+-- ════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS public.subscriptions (
+  id                              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id                         uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  lemon_squeezy_subscription_id   text NOT NULL,
+  lemon_squeezy_customer_id       text,
+  product_id                      text,
+  variant_id                      text,
+  tier                            text NOT NULL CHECK (tier IN ('free','pro','ultimate')),
+  status                          text,
+  renews_at                       timestamptz,
+  cancel_at_period_end            boolean NOT NULL DEFAULT false,
+  update_payment_method_url       text,
+  created_at                      timestamptz NOT NULL DEFAULT now(),
+  updated_at                      timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id)
+);
+
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "subscriptions_select_own" ON public.subscriptions
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE TRIGGER subscriptions_set_updated_at
+  BEFORE UPDATE ON public.subscriptions
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE INDEX IF NOT EXISTS subscriptions_user_id_idx ON public.subscriptions (user_id);
+
+CREATE TABLE IF NOT EXISTS public.webhook_events (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id      text NOT NULL UNIQUE,
+  event_name    text NOT NULL,
+  payload       jsonb NOT NULL,
+  processed_at  timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.webhook_events ENABLE ROW LEVEL SECURITY;
+
+-- No client policies: webhook ingestion runs with the service role only.
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- COMMUNITY POST TYPE ENUM — ADDITIVE relaxation. The app ships six content
+-- types (question, tip, win, resource, event, announcement); the base CHECK
+-- only allowed four. Relax it so hosted inserts of event/announcement posts
+-- don't violate a constraint the UI already emits. Kept as its own block so it
+-- can be applied independently.
+-- ────────────────────────────────────────────────────────────────────────────
+ALTER TABLE public.community_posts DROP CONSTRAINT IF EXISTS community_posts_type_check;
+ALTER TABLE public.community_posts ADD CONSTRAINT community_posts_type_check
+  CHECK (type IN ('question','tip','win','resource','event','announcement'));

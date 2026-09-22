@@ -7,10 +7,10 @@ import { supabase } from "@/lib/supabase";
 import { isLocalWorkspace, loadLocalProfile, saveLocalProfile } from "@/lib/repo/select";
 import { planOf, planTier, can as canFeature, isPremium as isPaid } from "@/lib/plans";
 
-// Local/demo sandbox defaults to Ultra so every Pro/Ultra feature is
+// Local/demo sandbox defaults to Ultimate so every Pro/Ultimate feature is
 // explorable offline; hosted starts everyone on Free. Switching works either
 // way, which is exactly what the demo needs.
-const LOCAL_DEFAULT_PLAN = "ultra";
+const LOCAL_DEFAULT_PLAN = "ultimate";
 
 export const usePlan = () => {
   const { user } = useAuth();

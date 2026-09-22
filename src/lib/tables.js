@@ -22,6 +22,7 @@ export const TABLE = {
   CommunityReport: "community_reports",
   Community: "communities",
   StudyGroup: "study_groups",
+  CommunityMember: "community_members",
   FlashcardDeck: "flashcard_decks",
   Flashcard: "flashcards",
   Waitlist: "waitlist",

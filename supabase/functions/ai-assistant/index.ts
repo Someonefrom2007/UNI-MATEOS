@@ -70,9 +70,10 @@ Deno.serve(async (req) => {
 
     // Pro entitlement: the copilot is a paid feature, enforced server-side so a
     // modified client still can't call it on a free account. Mirrors the plan
-    // tier living on the auth profile (user_metadata.plan). Unlock: upgrade.
+    // tier living on the auth profile (user_metadata.plan). Accepts the legacy
+    // "ultra" spelling so grandfathered Pre-2.0 profiles keep access. Unlock: upgrade.
     const plan = String(user.user_metadata?.plan || "free").toLowerCase();
-    if (!["pro", "ultra"].includes(plan)) {
+    if (!["pro", "ultra", "ultimate"].includes(plan)) {
       return json({ locked: true, plan, error: "AI Assistant is a Pro feature" }, 402);
     }
 

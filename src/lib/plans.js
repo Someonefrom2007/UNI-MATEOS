@@ -3,10 +3,15 @@
 // plan?" across the app (page gates, edge-function guards, Plans UI).
 
 export const PLAN_TIERS = Object.freeze([
-  { value: "free", rank: 1, label: "Free", tag: "Organize me" },
-  { value: "pro", rank: 2, label: "Pro", tag: "Help me" },
-  { value: "ultra", rank: 3, label: "Ultra", tag: "Work with me" },
+  { value: "free", rank: 1, label: "Free", tag: "Organize" },
+  { value: "pro", rank: 2, label: "Pro", tag: "Understand" },
+  { value: "ultimate", rank: 3, label: "Ultimate", tag: "Connect" },
 ]);
+
+// Pre-2.0 profiles persisted the top tier as "ultra" (and, before that, as
+// uppercase). Normalize every legacy spelling to the canonical value so no
+// stored plan is silently downgraded to Free.
+const LEGACY_ALIASES = { ultra: "ultimate" };
 
 // Each PRO/ULTRA feature maps to the minimum tier that unlocks it. Gating is
 // rank-based so a tier inherits every feature of the tiers below it.
@@ -16,8 +21,8 @@ export const PLAN_FEATURES = Object.freeze({
   smart_planning: "pro",
   exam_intelligence: "pro",
   advanced_analytics: "pro",
-  study_groups: "ultra",
-  university_integrations: "ultra",
+  study_groups: "ultimate",
+  university_integrations: "ultimate",
 });
 
 export const FEATURE_LABELS = Object.freeze({
@@ -31,14 +36,19 @@ export const FEATURE_LABELS = Object.freeze({
 });
 
 /**
- * Tier descriptor for a plan value, or null when unknown.
+ * Tier descriptor for a plan value, or null when unknown. Legacy spellings
+ * ("ultra", "ULTRA", …) normalize to their canonical value.
  * @param {string} value
  * @returns {{value: string, rank: number, label: string, tag: string}|null}
  */
-export const planTier = (value) => PLAN_TIERS.find((t) => t.value === String(value).toLowerCase()) || null;
+export const planTier = (value) => {
+  const raw = String(value || "").toLowerCase();
+  const canonical = LEGACY_ALIASES[raw] || raw;
+  return PLAN_TIERS.find((t) => t.value === canonical) || null;
+};
 
 /**
- * Numeric rank of a plan (free 1, pro 2, ultra 3); unknown values rank as free.
+ * Numeric rank of a plan (free 1, pro 2, ultimate 3); unknown values rank as free.
  * @param {string} value
  * @returns {number}
  */
@@ -46,7 +56,8 @@ export const planRank = (value) => (planTier(value) || PLAN_TIERS[0]).rank;
 
 /**
  * Normalize a plan value — accepts a plan string or a profile-ish object with a
- * `.plan` field and always returns a valid tier value ("free" | "pro" | "ultra").
+ * `.plan` field and always returns a valid tier value
+ * ("free" | "pro" | "ultimate").
  * @param {string|object|null|undefined} profile
  * @returns {string}
  */
@@ -56,7 +67,7 @@ export const planOf = (profile) => {
 };
 
 /**
- * Whether the plan is paid (pro or ultra).
+ * Whether the plan is paid (pro or ultimate).
  * @param {string} value
  * @returns {boolean}
  */
