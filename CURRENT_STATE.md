@@ -7,12 +7,12 @@ Evidence-based snapshot from repository inspection + green-gate baseline. This e
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 50 files / 657 tests pass (deterministic discovery scoped to `src`, agent worktrees excluded) |
+| Tests | `npm test` (vitest run) | ✅ 50 files / 659 tests pass (deterministic discovery scoped to `src`, agent worktrees excluded) |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
 | Build | `npm run build` | ✅ PASS — PWA, 84 precache entries (1610.30 KiB), chunked vendor split (`vendor-react` / `vendor-data` / `vendor-anim`), no >500 kB chunk |
 | All-in-one | `npm run verify` | ✅ `typecheck && lint && test && build` in sequence (script added this pass) |
 
-Runtime/browser verification is NOT available in this environment — evidence is compile + test + build. Live OAuth/Lemon Squeezy/OpenAI flows are env-gated and were not exercised against real providers (no external credentials).
+Runtime: a headless-Chrome sweep was performed 2026-09-22 (offline, local workspace) and covered the signed-in student surface + all 15 `/admin` console sections + in-app nav clicks — no console errors. Full live OAuth/Lemon Squeezy/OpenAI flows are env-gated and were not exercised against real providers (no external credentials).
 
 ## Delivered after the 2026-09-16 baseline
 
@@ -45,6 +45,12 @@ Runtime/browser verification is NOT available in this environment — evidence i
 ### Hygiene
 - Vitest discovery is now deterministic: `include: ['src/**/*.{test,spec}...']`, `.kilo/**` excluded — the true suite is **46 files / 632 tests** (the stale agent-worktree copy added 23 files / 349 duplicated tests). Deleted dead `src/utils/index.ts`. Pruned stale `jsconfig.json` excludes (`src/vite-plugins`, `src/api`) and the non-existent `src/Layout.jsx` entry in `eslint.config.js`.
 - Git: `main` ahead of upstream; milestone commits `e2781bc` (billing), `4c9c10d` (Google Calendar + Drive), rescue, settings, i18n, hygiene, `ae3ab7e` (control-center milestone 2 — pure admin core), milestone 3 (15 console pages + `/admin` wiring + probes + prefs), plus a dedicated follow-on commit (console tests + `useFeatureFlags` + `admin-gateway` + admin docs).
+
+### Runtime pass (09-22, headless Chrome, local workspace)
+- Full signed-in sweep of the student surface + all 15 admin console sections + a nav-click interaction; zero console errors.
+- Fixed two pre-existing local-mode bugs the browser sweep flushed out:
+  - **Repo promise contract**: `src/lib/repo/localRepo.js` was synchronous while `supabaseRepo` returned promises — `NotificationCenter.jsx` chained `.then` on `list()` and crashed every student page in local mode. Local adapter methods are now `async` (interface-symmetric; `Settings.jsx` consumers updated to await). A promise-contract assertion was added to the shared `repoContract` suite (both adapters).
+  - **Insights phantom category**: `Insights.jsx` always rendered a `Risk` bucket even when no Risk insight existed, so loading/empty data hit `undefined.map`. Category list is now derived from what actually exists (Risk-first ordering preserved).
 
 ### 09-22 quality pass
 - **README** rewritten to match reality: real edge functions (`ai-assistant` / `lemon-squeezy` / `google-calendar-sync` / `google-drive`), env-gated secrets, local-vs-hosted behavior, feature list (billing, Rescue My Week, Google connectors, i18n), and the `npm run verify` shortcut. Removed the stale "OAuth not wired" / trailing junk lines.

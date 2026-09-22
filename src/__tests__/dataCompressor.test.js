@@ -356,20 +356,20 @@ describe("integration: localRepo CRUD through compressed default storage", () =>
 
   afterEach(() => getDefaultStorage().clear());
 
-  it("CRUD round-trips through the compressed adapter", () => {
-    const created = repo.create("courses", {
+  it("CRUD round-trips through the compressed adapter", async () => {
+    const created = await repo.create("courses", {
       name: "Biology",
       targetGrade: 9,
     });
-    expect(repo.list("courses")).toHaveLength(1);
-    expect(repo.list("courses")[0]).toMatchObject({
+    expect(await repo.list("courses")).toHaveLength(1);
+    expect((await repo.list("courses"))[0]).toMatchObject({
       name: "Biology",
       target_grade: 9,
     });
-    repo.update("courses", created.id, { targetGrade: 8.5 });
-    expect(repo.list("courses")[0].target_grade).toBe(8.5);
-    expect(repo.delete("courses", created.id)).toBe(true);
-    expect(repo.list("courses")).toHaveLength(0);
+    await repo.update("courses", created.id, { targetGrade: 8.5 });
+    expect((await repo.list("courses"))[0].target_grade).toBe(8.5);
+    expect(await repo.delete("courses", created.id)).toBe(true);
+    expect(await repo.list("courses")).toHaveLength(0);
   });
 
   it("stores many rows via getDefaultStorage and reads them back identical", () => {

@@ -7,12 +7,12 @@ Pre-launch status of the UNI·MATE academic OS (React 18 + Vite/Tailwind + shadc
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` | 0 errors |
-| Tests | `npm test` | 50 files / 657 tests pass |
+| Tests | `npm test` | 50 files / 659 tests pass |
 | Lint | `npm run lint` | 0 errors |
 | Build | `npm run build` | PASS — PWA `generateSW`, 84 precache entries (~1.61 MB), vendor chunk split, no >500 kB chunk |
 | All-in-one | `npm run verify` | `typecheck && lint && test && build` in one command (added 09-22) |
 
-Runtime/browser smoke and live third-party round-trips are not possible in this environment (compile/test/build evidence only). Live OAuth, Lemon Squeezy checkout and OpenAI calls were not exercised against real providers — no external credentials.
+Runtime: a headless-Chrome sweep covered the signed-in student surface, all 15 `/admin` console sections, and in-app navigation in the local workspace with zero console errors. Two pre-existing local-mode bugs found by that sweep were fixed (the local repo adapter is now promise-returning like the hosted adapter, and the Insights page no longer renders a phantom Risk bucket). Live OAuth, Lemon Squeezy checkout and OpenAI calls were not exercised against real providers — no external credentials.
 
 ## 2. What exists now
 

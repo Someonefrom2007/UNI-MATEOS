@@ -73,11 +73,11 @@ export default function Settings() {
     if (local) {
       let bytes = 0;
       const counts = {};
-      ALL_ENTITIES.forEach((name) => {
-        const rows = localRepo.list(TABLE[name]) || [];
+      for (const name of ALL_ENTITIES) {
+        const rows = (await localRepo.list(TABLE[name])) || [];
         counts[name] = rows.length;
         rows.forEach((r) => { bytes += JSON.stringify(r).length; });
-      });
+      }
       setUsage({ bytes, counts });
       return;
     }
@@ -123,9 +123,9 @@ export default function Settings() {
     try {
       const out = {};
       if (local) {
-        EXPORT_ENTITIES.forEach((name) => {
-          out[name] = localRepo.list(TABLE[name]) || [];
-        });
+        for (const name of EXPORT_ENTITIES) {
+          out[name] = (await localRepo.list(TABLE[name])) || [];
+        }
       } else {
         await Promise.all(EXPORT_ENTITIES.map(async (name) => {
           try {
@@ -200,7 +200,7 @@ export default function Settings() {
     if (!confirm(t("settings.confirm.wipe2"))) return;
     setClearing(true);
     try {
-      ALL_ENTITIES.forEach((name) => localRepo.clear(TABLE[name]));
+      await Promise.all(ALL_ENTITIES.map((name) => localRepo.clear(TABLE[name])));
       computeUsage();
       toast({ title: t("settings.data.cleared"), description: t("settings.data.clearedDesc") });
     } catch {

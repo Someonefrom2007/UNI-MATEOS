@@ -76,9 +76,9 @@ describe("localRepo: on-device CRUD contract", () => {
       ...over,
     });
 
-  it("injects id/user/timestamps and snake_cases incoming keys", () => {
+  it("injects id/user/timestamps and snake_cases incoming keys", async () => {
     const repo = makeRepo();
-    const row = repo.create("courses", { name: "Algorithms", targetGrade: 8 });
+    const row = await repo.create("courses", { name: "Algorithms", targetGrade: 8 });
     expect(row).toMatchObject({
       id: "id-1",
       user_id: "u-1",
@@ -87,58 +87,58 @@ describe("localRepo: on-device CRUD contract", () => {
       created_at: FIXED,
       updated_at: FIXED,
     });
-    expect(repo.list("courses")).toEqual([row]);
+    expect(await repo.list("courses")).toEqual([row]);
   });
 
-  it("returns an empty list for unknown or malformed tables", () => {
+  it("returns an empty list for unknown or malformed tables", async () => {
     const storage = createMemoryStorage();
     storage.setItem("tasks", "{not valid json");
     const repo = createLocalRepo({ storage });
-    expect(repo.list("tasks")).toEqual([]);
-    expect(repo.list("never-created")).toEqual([]);
+    expect(await repo.list("tasks")).toEqual([]);
+    expect(await repo.list("never-created")).toEqual([]);
   });
 
-  it("update merges in place, preserves id/created_at and bumps updated_at", () => {
+  it("update merges in place, preserves id/created_at and bumps updated_at", async () => {
     let clock = "2026-01-01T00:00:00.000Z";
     const repo = makeRepo({ now: () => clock });
-    repo.create("tasks", { title: "A" });
+    await repo.create("tasks", { title: "A" });
     clock = "2026-01-02T00:00:00.000Z";
-    const updated = repo.update("tasks", "id-1", { status: "done", dueDate: "2026-02-01" });
+    const updated = await repo.update("tasks", "id-1", { status: "done", dueDate: "2026-02-01" });
     expect(updated).toMatchObject({
       status: "done",
       due_date: "2026-02-01",
       created_at: "2026-01-01T00:00:00.000Z",
       updated_at: "2026-01-02T00:00:00.000Z",
     });
-    expect(repo.update("tasks", "missing", { status: "x" })).toBeNull();
+    expect(await repo.update("tasks", "missing", { status: "x" })).toBeNull();
   });
 
-  it("delete reports whether a row was actually removed", () => {
+  it("delete reports whether a row was actually removed", async () => {
     let n = 0;
     const repo = makeRepo({ idFactory: () => `id-${++n}` });
-    repo.create("tasks", { title: "A" });
-    repo.create("tasks", { title: "B" });
-    expect(repo.delete("tasks", "id-1")).toBe(true);
-    expect(repo.delete("tasks", "id-1")).toBe(false);
-    expect(repo.list("tasks").map((r) => r.id)).toEqual(["id-2"]);
+    await repo.create("tasks", { title: "A" });
+    await repo.create("tasks", { title: "B" });
+    expect(await repo.delete("tasks", "id-1")).toBe(true);
+    expect(await repo.delete("tasks", "id-1")).toBe(false);
+    expect((await repo.list("tasks")).map((r) => r.id)).toEqual(["id-2"]);
   });
 
-  it("deleteWhere removes a batch by predicate (feed cleanup)", () => {
+  it("deleteWhere removes a batch by predicate (feed cleanup)", async () => {
     let n = 0;
     const repo = makeRepo({ idFactory: () => `id-${++n}` });
-    repo.create("schedule_events", { google_event_id: "ics:feed-a:1" });
-    repo.create("schedule_events", { google_event_id: "ics:feed-a:2" });
-    repo.create("schedule_events", { google_event_id: "ics:feed-b:1" });
-    const removed = repo.deleteWhere("schedule_events", (r) => r.google_event_id.startsWith("ics:feed-a:"));
+    await repo.create("schedule_events", { google_event_id: "ics:feed-a:1" });
+    await repo.create("schedule_events", { google_event_id: "ics:feed-a:2" });
+    await repo.create("schedule_events", { google_event_id: "ics:feed-b:1" });
+    const removed = await repo.deleteWhere("schedule_events", (r) => r.google_event_id.startsWith("ics:feed-a:"));
     expect(removed).toBe(2);
-    expect(repo.list("schedule_events")).toHaveLength(1);
+    expect(await repo.list("schedule_events")).toHaveLength(1);
   });
 
-  it("persists across repo instances that share one storage backend", () => {
+  it("persists across repo instances that share one storage backend", async () => {
     const storage = createMemoryStorage();
-    createLocalRepo({ storage, idFactory: () => "id-1" }).create("notes", { title: "Shared" });
+    await createLocalRepo({ storage, idFactory: () => "id-1" }).create("notes", { title: "Shared" });
     const second = createLocalRepo({ storage });
-    expect(second.list("notes").map((r) => r.title)).toEqual(["Shared"]);
+    expect((await second.list("notes")).map((r) => r.title)).toEqual(["Shared"]);
   });
 
   it("newId yields unique, non-empty string ids", () => {
@@ -202,12 +202,12 @@ describe("demoData: local workspace seeding", () => {
     expect(summary).toMatchObject({ courses: 4, classes: 6, tasks: 5, exams: 3, grades: 4, notes: 2, stickies: 5, habits: 2 });
 
     const repo = createRepo({ storage: getDefaultStorage() });
-    expect(repo.list("courses")).toHaveLength(4);
-    expect(repo.list("tasks")).toHaveLength(5);
-    expect(repo.list("habit_logs")).toHaveLength(4);
+    expect(await repo.list("courses")).toHaveLength(4);
+    expect(await repo.list("tasks")).toHaveLength(5);
+    expect(await repo.list("habit_logs")).toHaveLength(4);
     // Foreign keys resolve to real created ids (not undefined).
-    const courseIds = new Set(repo.list("courses").map((c) => c.id));
-    expect(repo.list("schedule_events").every((e) => courseIds.has(e.course_id))).toBe(true);
+    const courseIds = new Set((await repo.list("courses")).map((c) => c.id));
+    expect((await repo.list("schedule_events")).every((e) => courseIds.has(e.course_id))).toBe(true);
 
     getDefaultStorage().clear();
   });

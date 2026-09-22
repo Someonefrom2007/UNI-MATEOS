@@ -49,12 +49,14 @@ export const createLocalRepo = ({
     storage.setItem(table, JSON.stringify(rows));
   };
 
+  // All methods are async so the local adapter honors the same promise-returning
+  // interface as the hosted adapter (e.g. .then() consumers work identically).
   return {
-    list(table) {
+    async list(table) {
       return readTable(table);
     },
 
-    create(table, record = {}) {
+    async create(table, record = {}) {
       const rows = readTable(table);
       const row = {
         ...toSnakeCase(record),
@@ -68,7 +70,7 @@ export const createLocalRepo = ({
       return row;
     },
 
-    update(table, id, patch = {}) {
+    async update(table, id, patch = {}) {
       const rows = readTable(table);
       const idx = rows.findIndex((r) => String(r.id) === String(id));
       if (idx === -1) return null;
@@ -85,7 +87,7 @@ export const createLocalRepo = ({
       return updated;
     },
 
-    delete(table, id) {
+    async delete(table, id) {
       const rows = readTable(table);
       const next = rows.filter((r) => String(r.id) !== String(id));
       const removed = next.length !== rows.length;
@@ -93,7 +95,7 @@ export const createLocalRepo = ({
       return removed;
     },
 
-    deleteWhere(table, predicate) {
+    async deleteWhere(table, predicate) {
       const rows = readTable(table);
       const next = rows.filter((r) => !predicate(r));
       const removed = rows.length - next.length;
@@ -101,7 +103,7 @@ export const createLocalRepo = ({
       return removed;
     },
 
-    clear(table) {
+    async clear(table) {
       storage.removeItem(table);
     },
   };

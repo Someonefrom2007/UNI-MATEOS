@@ -30,13 +30,13 @@ const setEnv = (vars) => {
 };
 
 describe("createRepo — adapter selection", () => {
-  it("defaults to the local adapter when no Supabase env is present", () => {
+  it("defaults to the local adapter when no Supabase env is present", async () => {
     const restore = setEnv({ VITE_SUPABASE_URL: undefined, VITE_SUPABASE_ANON_KEY: undefined });
     try {
       const repo = createRepo({ storage: createMemoryStorage(), userId: "local-workspace" });
-      const row = repo.create("notes", { title: "Local note" });
+      const row = await repo.create("notes", { title: "Local note" });
       expect(row.user_id).toBe("local-workspace");
-      repo.clear("notes"); // local adapter supports clear()
+      await repo.clear("notes"); // local adapter supports clear()
     } finally {
       restore();
     }
@@ -150,9 +150,9 @@ describe("getAppRepo — shared application repository", () => {
 
     const repo = getAppRepo();
     expect(getAppRepo()).toBe(repo); // one shared instance
-    const row = repo.create("courses", { name: "Singleton course" });
+    const row = await repo.create("courses", { name: "Singleton course" });
     expect(row.user_id).toBe("local-workspace");
-    expect(repo.list("courses").map((r) => r.name)).toEqual(["Singleton course"]);
-    repo.clear("courses");
+    expect((await repo.list("courses")).map((r) => r.name)).toEqual(["Singleton course"]);
+    await repo.clear("courses");
   });
 });

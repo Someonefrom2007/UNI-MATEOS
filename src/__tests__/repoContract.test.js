@@ -27,6 +27,12 @@ const supabaseFactory = () => {
 
 const runContract = (name, make) => {
   describe(`repository contract — ${name}`, () => {
+    it("exposes a promise-returning interface (parallel-safe .then/.await)", () => {
+      const repo = make();
+      expect(repo.list("courses")).toBeInstanceOf(Promise);
+      expect(repo.create("courses", {})).toBeInstanceOf(Promise);
+    });
+
     it("list returns every row with the stored shape", async () => {
       const repo = make();
       await repo.create("courses", { name: "Algorithms", targetGrade: 8 });

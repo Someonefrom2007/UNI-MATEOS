@@ -39,7 +39,14 @@ export default function Insights() {
   }, [insights]);
 
   // Deterministic order: risk first, then the engine's fixed discovery order.
-  const orderedCats = useMemo(() => ["Risk", ...Object.keys(byCat).filter((c) => c !== "Risk")], [byCat]);
+  // Only categories that actually exist are rendered (never a phantom key).
+  const orderedCats = useMemo(
+    () => [
+      ...(byCat.Risk ? ["Risk"] : []),
+      ...Object.keys(byCat).filter((c) => c !== "Risk"),
+    ],
+    [byCat]
+  );
 
   if (error) return <ErrorState onRetry={refresh} />;
 
