@@ -64,7 +64,7 @@ export const check = ({ id, label, status, detail, check: probe }) => ({
 /**
  * Run a suite of individual checks into an { items, overall } shape.
  * @param {Array<() => { id, label, status, detail? }>} checkers
- * @returns {{ items: Array<{id,label,status,detail}>, overall: string }}
+ * @returns {{ items: Array<{id,label,status,detail?}>, overall: string }}
  */
 export const runPulse = (checkers = []) => {
   const items = checkers.map((fn) => fn());

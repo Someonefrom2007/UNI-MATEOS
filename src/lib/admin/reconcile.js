@@ -54,9 +54,9 @@ const tierOfPlan = (plan) => {
 
 /**
  * Reconcile the three layers for one user's billing.
- * @param {object} input
- * @param {object|null} input.provider      - { tier, status } from Lemon Squeezy webhook (null when unknown)
- * @param {object|null} input.subscription  - stored `subscriptions` row (null when none)
+ * @param {object} [input={}]
+ * @param {object|null} [input.provider]      - { tier, status } from Lemon Squeezy webhook (null when unknown)
+ * @param {object|null} [input.subscription]  - stored `subscriptions` row (null when none)
  * @param {string} [input.entitlement]      - auth user_metadata.plan value
  * @returns {{ ok: boolean, matches: string[], mismatches: Array<{area: string, message: string, action: string}>, suggestedPlan: string }}
  */
@@ -124,8 +124,8 @@ export const reconcile = ({ provider = null, subscription = null, entitlement = 
  * The only entitlement-altering step this module offers. Adjusts the entitlement
  * plan value (what the app grants) to the provider tier. Never touches billing
  * rows, never "confirms a payment".
- * @param {object} input
- * @param {string} input.plan - entitlement plan to set
+ * @param {object} [input={}]
+ * @param {string} [input.plan] - entitlement plan to set
  * @returns {{ ok: boolean, plan: string, changed: boolean }}
  */
 export const reconcileEntitlement = ({ plan = "" } = {}) => {

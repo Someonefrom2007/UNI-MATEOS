@@ -41,6 +41,7 @@ export const countsByDay = (rows = [], dateField = "created_at", days = 14) => {
  * @returns {Record<string, number|null>}
  */
 export const totals = (tables = {}) => {
+  /** @type {Record<string, number|null>} */
   const out = {};
   Object.entries(tables).forEach(([name, rows]) => {
     out[name] = rows == null ? null : asArray(rows).length;
@@ -90,7 +91,11 @@ export const usageBars = (counts = {}, labels = {}) =>
 export const newUsers = (users = [], days = 7) =>
   countsByDay(users, "created_at", days).reduce((s, b) => s + b.count, 0);
 
-/** Users with activity since a cutoff (caller supplies lastActivityAt per user). */
+/** Users with activity since a cutoff (caller supplies lastActivityAt per user).
+ * @param {Array<object>} users
+ * @param {{ since?: string, activityField?: string }} [opts={}]
+ * @returns {number|null}
+ */
 export const activeUsers = (users = [], { since, activityField = "last_active_at" } = {}) => {
   if (!since) return null;
   const cutoff = new Date(since).getTime();

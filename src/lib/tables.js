@@ -29,6 +29,8 @@ export const TABLE = {
   StudyPlan: "study_plans",
   StudyPlanItem: "study_plan_items",
   User: "user_profiles",
+  Subscription: "subscriptions",
+  WebhookEvent: "webhook_events",
   AdminAccount: "admin_accounts",
   FeatureFlag: "feature_flags",
   Announcement: "announcements",

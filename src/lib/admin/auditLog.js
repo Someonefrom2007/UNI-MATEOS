@@ -27,7 +27,7 @@ const normalize = (meta) => {
  * @param {string} [opts.result='success']  - 'success' | 'failed' | 'blocked' | 'cancelled'
  * @param {object} [opts.meta]
  * @param {string} [opts.actor]
- * @param {string} [opts.now]
+ * @param {string|(() => string)} [opts.now] - ISO timestamp or a factory for it
  * @returns {object} a writeable audit_log row (snake_case ok via repo adapter)
  */
 export const auditEntry = ({
@@ -74,7 +74,7 @@ export const logAudit = async ({ repo }, entry) => {
  * the action result. This keeps sensitive operations auditable by construction.
  * @param {{ repo: object }} deps
  * @param {object} entry - from auditEntry(); `result` may be patched by outcome
- * @param {() => Promise<{ ok?: boolean, error?: unknown }>} run
+ * @param {() => Promise<{ ok?: boolean, error?: unknown, value?: unknown }>} run
  * @returns {Promise<{ ok: boolean, error?: unknown, audited: boolean, value?: unknown }>}
  */
 export const withAudit = async ({ repo }, entry, run) => {
@@ -117,7 +117,12 @@ export const recentAudit = async ({ repo }, limit = 100) => {
   }
 };
 
-/** Pure filter over audit entries — used by the Security screen and tests. */
+/**
+ * Pure filter over audit entries — used by the Security screen and tests.
+ * @param {Array<object>} entries
+ * @param {{ action?: string, result?: string, q?: string }} [opts={}]
+ * @returns {Array<object>}
+ */
 export const filterAudit = (entries = [], { action, result, q } = {}) =>
   entries.filter((e) => {
     if (action && e.action !== action) return false;

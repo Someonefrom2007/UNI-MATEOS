@@ -92,6 +92,7 @@ export const evaluateFlag = (flag = {}, ctx = {}) => {
  * @returns {Record<string, { enabled: boolean, reason: string }>}
  */
 export const featuresEnabled = (flags = [], ctx = {}) => {
+  /** @type {Record<string, { enabled: boolean, reason: string }>} */
   const out = {};
   (Array.isArray(flags) ? flags : []).forEach((row) => {
     const flag = typeof row.key !== "undefined" ? normalizeFlag(row) : { key: "unnamed", ...row };

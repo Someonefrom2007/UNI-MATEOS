@@ -11,6 +11,9 @@ import Splash from './components/Brand/Splash';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppShell from '@/components/AppShell';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { AdminLayout, RequireAdmin, RequirePermission } from '@/lib/admin/useAdmin';
+import AdminShell from '@/components/admin/AdminShell';
+import { SECTIONS } from '@/lib/admin/sections';
 
 // Auth pages — eagerly loaded (small, part of core auth flow)
 import Login from '@/pages/Login';
@@ -50,6 +53,30 @@ const Plans         = React.lazy(() => import("@/pages/Plans"));
 const Integrations  = React.lazy(() => import("@/pages/Integrations"));
 const Onboarding    = React.lazy(() => import("@/pages/Onboarding"));
 const StickyWall    = React.lazy(() => import("@/pages/StickyWall"));
+
+// Control Center pages — lazily loaded per section
+const AdminOverview     = React.lazy(() => import("@/pages/admin/Overview"));
+const AdminUsers        = React.lazy(() => import("@/pages/admin/Users"));
+const AdminBilling      = React.lazy(() => import("@/pages/admin/Billing"));
+const AdminCommunity    = React.lazy(() => import("@/pages/admin/Community"));
+const AdminAnalytics    = React.lazy(() => import("@/pages/admin/Analytics"));
+const AdminAI           = React.lazy(() => import("@/pages/admin/AI"));
+const AdminIntegrations = React.lazy(() => import("@/pages/admin/Integrations"));
+const AdminFlags        = React.lazy(() => import("@/pages/admin/Flags"));
+const AdminAnnouncements = React.lazy(() => import("@/pages/admin/Announcements"));
+const AdminSystem       = React.lazy(() => import("@/pages/admin/System"));
+const AdminErrors       = React.lazy(() => import("@/pages/admin/Errors"));
+const AdminSecurity     = React.lazy(() => import("@/pages/admin/Security"));
+const AdminDev          = React.lazy(() => import("@/pages/admin/Dev"));
+const AdminSettings     = React.lazy(() => import("@/pages/admin/Settings"));
+const AdminAudit        = React.lazy(() => import("@/pages/admin/Audit"));
+
+const ADMIN_PAGES = {
+  overview: AdminOverview, users: AdminUsers, billing: AdminBilling, community: AdminCommunity,
+  analytics: AdminAnalytics, ai: AdminAI, integrations: AdminIntegrations, flags: AdminFlags,
+  announcements: AdminAnnouncements, system: AdminSystem, errors: AdminErrors,
+  security: AdminSecurity, dev: AdminDev, settings: AdminSettings, audit: AdminAudit,
+};
 
 const PageFallback = () => <Splash label="Loading" />;
 
@@ -106,6 +133,24 @@ const AuthenticatedApp = () => {
         </Route>
 
         <Route path="*" element={<PageNotFound />} />
+
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route element={<RequireAdmin />}>
+            <Route element={<AdminShell />}>
+              {SECTIONS.map((s) => {
+                const Page = ADMIN_PAGES[s.id];
+                return (
+                  <Route
+                    key={s.id}
+                    index={s.id === "overview"}
+                    path={s.id === "overview" ? undefined : s.id}
+                    element={<RequirePermission permission={s.permission}>{Page ? <Page /> : null}</RequirePermission>}
+                  />
+                );
+              })}
+            </Route>
+          </Route>
+        </Route>
       </Routes>
     </Suspense>
   );

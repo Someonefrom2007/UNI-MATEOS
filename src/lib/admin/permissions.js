@@ -58,6 +58,7 @@ export const DEFAULT_ADMIN_PERMISSIONS = Object.freeze([
 ]);
 
 // SYSTEM_MANAGE is reserved for super admins (rollouts, destructive tooling).
+/** @type {ReadonlyArray<string>} */
 export const ALL_PERMISSIONS = Object.freeze(
   [...DEFAULT_ADMIN_PERMISSIONS, PERMISSIONS.SYSTEM_MANAGE]
 );
@@ -66,7 +67,7 @@ export const ALL_PERMISSIONS = Object.freeze(
  * Effective permission set for a role/membership. super_admin always gets
  * everything; a plain admin with an explicit set uses it, and one with no
  * explicit set gets the default admin set. Unknown roles get nothing.
- * @param {{ role: string, permissions?: string[], isSuper?: boolean }} membership
+ * @param {{ role?: string, permissions?: string[], isSuper?: boolean }} [membership={}]
  * @returns {string[]}
  */
 export const permissionsFor = (membership = {}) => {
@@ -105,7 +106,7 @@ export const isKnownPermission = (permission) => ALL_PERMISSIONS.includes(permis
  * Principal derived from a membership row or plain context. `source` records
  * where the identity came from: "hosted" (server-checked admin_accounts),
  * "local" (dev-only, not server-enforced) or "none".
- * @param {{ role?: string, permissions?: string[], source?: 'hosted'|'local'|'none' }} membership
+ * @param {{ role?: string, permissions?: string[], source?: 'hosted'|'local'|'none', isAdmin?: boolean }} [membership={}]
  * @returns {{ isAdmin: boolean, role: string, permissions: string[], source: 'hosted'|'local'|'none' }}
  */
 export const principalFrom = (membership = {}) => {
