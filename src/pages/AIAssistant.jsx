@@ -9,6 +9,7 @@ import { isLocalWorkspace } from "@/lib/repo/select";
 import { todayISO } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { usePlan } from "@/lib/usePlan";
+import { useFeatureFlags } from "@/lib/useFeatureFlags";
 import ErrorState from "@/components/ErrorState";
 
 const SUGGESTIONS = [
@@ -24,6 +25,7 @@ export default function AIAssistant() {
   const { data, error, refresh } = useUserData();
   const { t } = useI18n();
   const { can } = usePlan();
+  const { features, loaded } = useFeatureFlags();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,6 +45,31 @@ export default function AIAssistant() {
           feature="ai_assistant"
           description="The AI copilot answers from your real schedule, workload and grades, so it runs on UNI·MATE's servers — a Pro feature. Your free plan keeps everything you need to organize the semester."
         />
+      </>
+    );
+  }
+
+  // Operational flag/rollout gate (this is NOT an upgrade gate): the assistant
+  // is temporarily unavailable for this account/environment while the flag is
+  // off or the rollout hasn't reached it yet.
+  const flagOpen = loaded ? Boolean(features.ai_assistant?.enabled) : true;
+  if (!flagOpen) {
+    return (
+      <>
+        <PageHeader title={t("title.ai")} subtitle={t("title.ai.subtitle")} />
+        <div className="max-w-2xl rounded-2xl border border-border bg-card p-6">
+          <div className="flex items-start gap-4">
+            <div className="rounded-2xl bg-hud-amber/10 p-3 shrink-0">
+              <BrainCircuit className="w-6 h-6 text-hud-amber" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-display text-lg font-semibold">AI Assistant is temporarily unavailable</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                The assistant is rolling out in stages and hasn't reached your account yet. Your plan and data are unaffected — check back soon.
+              </p>
+            </div>
+          </div>
+        </div>
       </>
     );
   }
