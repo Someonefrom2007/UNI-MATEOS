@@ -7,7 +7,7 @@ import {
   LayoutDashboard, BookOpen, CalendarDays, CheckSquare, GraduationCap, FileText,
   FolderOpen, Timer, Target, Repeat, Gauge, Sparkles, BrainCircuit, Layers,
   User, Settings, CreditCard, Plus, Search, Menu, X, LogOut, StickyNote, Users,
-  BookOpenCheck, CalendarClock, BarChart3, Plug,
+  BookOpenCheck, CalendarClock, BarChart3, Plug, LifeBuoy,
 } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import CommandPalette from "@/components/CommandPalette";
@@ -38,6 +38,7 @@ const NAV = [
       { labelKey: "nav.resources", to: "/resources", icon: FolderOpen },
       { labelKey: "nav.topics", to: "/topics", icon: Layers },
       { labelKey: "nav.focus", to: "/focus", icon: Timer },
+      { labelKey: "nav.rescue", to: "/rescue", icon: LifeBuoy },
       { labelKey: "nav.goals", to: "/goals", icon: Target },
       { labelKey: "nav.habits", to: "/habits", icon: Repeat },
     ],

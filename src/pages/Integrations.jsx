@@ -27,7 +27,7 @@ export default function Integrations() {
         <PageHeader title={t("title.integrations")} subtitle={t("title.integrations.subtitle")} />
         <PlanLocked
           feature="university_integrations"
-          description="Live external data wired into your planner: university calendars, course feeds and direct connections — an Ultra feature that makes UNI·MATE talk to the rest of your campus life."
+          description="Live external data wired into your planner: university calendars, course feeds and direct connections — an Ultimate feature that makes UNI·MATE talk to the rest of your campus life."
         />
       </>
     );

@@ -26,6 +26,7 @@ const COMMANDS = [
   { label: "Go to AI Assistant", to: "/ai", type: "Go to" },
   { label: "Go to Flashcards", to: "/flashcards", type: "Go to" },
   { label: "Go to Study Planner", to: "/study-plan", type: "Go to" },
+  { label: "Go to Rescue My Week", to: "/rescue", type: "Go to" },
   { label: "Go to Analytics", to: "/analytics", type: "Go to" },
   { label: "Go to Profile", to: "/profile", type: "Go to" },
   { label: "Go to Settings", to: "/settings", type: "Go to" },

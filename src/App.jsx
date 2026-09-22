@@ -42,6 +42,7 @@ const Insights      = React.lazy(() => import("@/pages/Insights"));
 const AIAssistant   = React.lazy(() => import("@/pages/AIAssistant"));
 const Flashcards    = React.lazy(() => import("@/pages/Flashcards"));
 const StudyPlanner  = React.lazy(() => import("@/pages/StudyPlanner"));
+const RescueWeek    = React.lazy(() => import("@/pages/RescueWeek"));
 const Analytics     = React.lazy(() => import("@/pages/Analytics"));
 const Profile       = React.lazy(() => import("@/pages/Profile"));
 const Settings      = React.lazy(() => import("@/pages/Settings"));
@@ -95,6 +96,7 @@ const AuthenticatedApp = () => {
             <Route path="/ai" element={<AIAssistant />} />
             <Route path="/flashcards" element={<Flashcards />} />
             <Route path="/study-plan" element={<StudyPlanner />} />
+            <Route path="/rescue" element={<RescueWeek />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
