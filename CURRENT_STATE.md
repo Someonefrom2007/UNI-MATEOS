@@ -1,17 +1,49 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline (2026-09-16, end of the 2.0 roadmap + Mission 2.5 dashboard elevation + Mission 10.5 floating stickies + Mission 11 light-mode contrast). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline. This entry updates 2026-09-16 + records the pre-launch hardening work delivered 2026-09-17 → 09-22 (billing, Rescue My Week, Google Calendar/Drive, Settings, full i18n, hygiene). Do not treat this file as a spec — it records what actually exists.
 
-## Baseline verification (all green)
+## Verification (all green, 2026-09-22)
 
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 23 files / 349 tests pass |
+| Tests | `npm test` (vitest run) | ✅ 43 files / 551 tests pass (deterministic discovery scoped to `src`, agent worktrees excluded) |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — no >500 kB chunks; entry 182 kB; PWA 60 precache entries (1445.56 KiB) |
+| Build | `npm run build` | ✅ PASS — PWA, 83 precache entries (1606.01 KiB), chunked vendor split (`vendor-react` / `vendor-data` / `vendor-anim`), no >500 kB chunk |
 
-Runtime/browser verification is NOT available in this environment — evidence is compile + test + build.
+Runtime/browser verification is NOT available in this environment — evidence is compile + test + build. Live OAuth/Lemon Squeezy/OpenAI flows are env-gated and were not exercised against real providers (no external credentials).
+
+## Delivered after the 2026-09-16 baseline
+
+### Billing (real, env-gated)
+- `src/lib/billing/BillingService.js` — provider-independent contract (`checkout/status/manage`) over a `lemon-squeezy` provider (`src/lib/billing/lemonSqueezy.js`, `checkout`/`status`/`manage`). `useSubscription` (`src/lib/billing/useSubscription.js`) loads hosted `subscriptions` rows; `canUpgrade` is true only when billing is configured (honest).
+- Edge Function `supabase/functions/lemon-squeezy/index.ts` — `checkout`/`status`/`manage` + unsigned-request `verify` webhook (Idempotency-Key, signature→HMAC, `webhook_events` dedupe, upserts `subscriptions.id`, VITE-forward subscription grace). Requires server secrets (`LEMONSQUEEZY_STORE_ID`, `LEMONSQUEEZY_API_KEY`, `LEMONSQUEEZY_SIGNING_SECRET`) — no configured env → deployment is honest: Plans UI shows UPGRADE / COMING SOON accordingly; the local workspace keeps a clearly labeled **simulated** upgrade toggle (demo only).
+- Schema additions: `subscriptions`, `webhook_events` (+ RLS, triggers, indexes) appended to `supabase/schema.sql` — **pending one-time apply to the hosted project**.
+- Plans page (`src/pages/Plans.jsx`) renders the three tiers with live status, Lemon Squeezy checkout, `Manage billing`, and a working launch waitlist (local + hosted `waitlist` table).
+
+### Rescue My Week (`/rescue`)
+- Pure planner `src/lib/rescuePlan.js` (`RESCUE_DEFAULTS` windowDays 7 / dailyBudgetMin 300 / prepMin 60 / minBlock 25 / hours 08–20; `addDaysISO`, `daysUntil`, `freeMinutes`, `buildCapacities`, latest-fit assignment, honest `overloaded` reporting). Free-time semantics: `freeMinutes` returns raw free minutes; `buildCapacities` caps by budget.
+- UI `src/pages/RescueWeek.jsx`: needed/available/planned/can't-fit stats + day-by-day capacity bars + recommendation card; **"Add plan to schedule"** creates real `schedule_events` of type `study` inside verified free blocks (`allocateDay`/`pickFreeBlock`/`addMinutes`). Route, nav item, CommandPalette entry, and en/ca/es i18n wired. 16 unit tests (`src/__tests__/rescuePlan.test.js`).
+
+### Google Calendar + Google Drive (real OAuth2, env-gated)
+- Edge Functions `supabase/functions/google-calendar-sync/index.ts` and `google-drive/index.ts` — real server-side OAuth2 (state-gated `check`/`connect`/`sync`/`disconnect` with JWT; public GET `callback` exchanges the code, stores tokens in the connection tables, 302 → `GOOGLE_*_REDIRECT_URL`). No secrets present → `check` reports `configured: false` and the UI shows COMING SOON (honest).
+- Cal sync: `calendar.readonly`; primary calendar events in `now−14d → now+30d`, all-day events skipped (`skippedAllDay`), idempotent upsert into `schedule_events` keyed by the new UNIQUE `google_event_id` (split insert/update for honest counts), token refresh.
+- Drive sync: `drive.readonly`; own files (`trashed = false and 'me' in owners`), MIME→resource type map, folders skipped, upsert into `resources` keyed by the new UNIQUE `drive_file_id`, `tags:["drive"]`.
+- Schema additions (additive, pending hosted apply): `google_calendar_connections`/`google_drive_connections` (own-row RLS), shared `google_oauth_states`, and UNIQUE constraints on `schedule_events.google_event_id` / `resources.drive_file_id`.
+- `src/components/schedule/CalendarSync.jsx` rewritten (live check → configured/connected/email + Connect/Sync/Disconnect, `?google=connected|error` landing handling); `src/pages/Integrations.jsx` shows live Google status for both connectors + a Drive "Sync files" action. `GOOGLE_*` vars documented in `.env.example`.
+
+### Settings (`src/pages/Settings.jsx`)
+- Language now dual-persisted: `setLang()` writes the device pref instantly and, in hosted mode, `supabase.auth.updateUser({ data: { language } })` syncs the account profile (device wins on load).
+- Notifications card: per-device, per-group toggles via `src/lib/notifyPrefs.js` (storage-injectable, tested) — filtered into the bell through `useNotifications` (live via a `unimate:notif-prefs` event; `NotificationCenter` re-renders on change).
+- Data card: live storage usage line (bytes + counts local; row counts hosted), export (existing), demo loader, and a local-only **Delete all data** wipe with double confirmation; hosted shows an honest note instead.
+- Let other gates pass unchanged: theme/accent/logout/export/demo retained.
+
+### i18n coverage (en/ca/es)
+- The four remaining English-only pages are now fully translated via `t()`: **Settings, Plans, Profile, Integrations** — section headers, tier tags/descriptions/feature lists, status labels, CTAs, toasts, and confirm dialogs; `~/src/lib/i18n.js` grew by ~650 lines. Integrations re-checks provider status when the language changes (deps `[lang]`, no loop).
+
+### Hygiene
+- Vitest discovery is now deterministic: `include: ['src/**/*.{test,spec}...']`, `.kilo/**` excluded — the true suite is **43 files / 551 tests** (the stale agent-worktree copy added 23 files / 349 duplicated tests). Deleted dead `src/utils/index.ts`. Pruned stale `jsconfig.json` excludes (`src/vite-plugins`, `src/api`) and the non-existent `src/Layout.jsx` entry in `eslint.config.js`.
+- Git: `main` ahead of upstream; milestone commits `e2781bc` (billing), `4c9c10d` (Google Calendar + Drive), rescue, settings, i18n, hygiene.
 
 ## Stack (verified in package.json / configs)
 
@@ -94,3 +126,4 @@ Runtime/browser verification is NOT available in this environment — evidence i
 - Theme/accent system, `useDeskMode`, `useSoundscape`.
 - shadcn/ui primitives consumption.
 - Supabase schema / Edge Functions contracts (change only with matching stack changes).
+- `src/lib/billing/BillingService.js` + `rescuePlan.js` + the Google edge functions follow the pinned pattern — layer, don't rewrite.

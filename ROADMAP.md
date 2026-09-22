@@ -106,6 +106,35 @@ Status legend: `[ ]` backlog · `[~]` in progress · `[x]` done. One mission = o
 
 ---
 
+## Phase E — Pre-launch & monetization hardening (2026-09-17 → 09-22)
+
+### Mission 12 — Pre-launch audit — DONE
+- Full repository audit vs the 2.0 directive; baseline gates captured and locked before any change; `PRE_LAUNCH_AUDIT.md` written.
+
+### Mission 13 — Real billing (Lemon Squeezy, env-gated) — DONE
+- Provider-independent `BillingService` + provider; server-side edge function (checkout/status/manage + HMAC webhook, idempotent via `webhook_events`); `subscriptions` + `webhook_events` schema (pending hosted apply); honest Plans UI (UPGRADE vs COMING SOON) + simulated toggle in local only; launch waitlist. Aligned with TECH_DECISIONS §6 (no fake functionality), Webhook signatures never reach the client.
+- **Evidence:** typecheck 0 · lint 0 · tests 43 files / 551 pass · build ✅ · commit `e2781bc`.
+
+### Mission 14 — Rescue My Week — DONE
+- Pure planner `src/lib/rescuePlan.js` + 16 tests; page `/rescue` with honest capacity/overload stats and "Add plan to schedule" that creates real `study` events in verified free blocks; nav + ⌘K + i18n wired.
+- **Evidence:** typecheck 0 · lint 0 · tests 43 files / 551 pass · build ✅.
+
+### Mission 15 — Google Calendar + Drive OAuth (real, env-gated) — DONE
+- Two Edge Functions (`google-calendar-sync`, `google-drive`) doing real server-side OAuth2 + idempotent syncs into `schedule_events`/`resources` (UNIQUE `google_event_id` / `drive_file_id`); connection/state tables in schema (pending hosted apply); CalendarSync panel + Integrations live status + Drive Sync button. `GOOGLE_*` secrets documented in `.env.example`; unconfigured → honest COMING SOON.
+- **Evidence:** typecheck 0 · lint 0 · tests 43 files / 551 pass · build ✅ · commit `4c9c10d`.
+
+### Mission 16 — Settings hardening — DONE
+- Language dual-persistence (device + `user_metadata.language`), notification group prefs (`notifyPrefs.js`, tested, wired live into the bell), data card with storage usage + local-only **Delete all data** (double-confirm) + honest hosted note.
+- **Evidence:** typecheck 0 · lint 0 · tests 43 files / 551 pass · build ✅.
+
+### Mission 17 — Full i18n (en/ca/es) for Settings, Plans, Profile, Integrations — DONE
+- Every static string on the four remaining English-only pages moved to `t()` keys (+~650 dict lines); Integrations re-checks on language change.
+- **Evidence:** typecheck 0 · lint 0 · tests 43 files / 551 pass · build ✅ · commit `2a76cb7`.
+
+### Mission 18 — Hygiene: honest test discovery — DONE
+- Vitest discovery scoped to `src` with `.kilo` excluded (the agent worktree was inflating the suite with 23 stale files / 349 duplicated tests — true app suite is 43 files / 551); deleted dead `src/utils/index.ts`; pruned stale `jsconfig.json`/`eslint.config.js` entries.
+- **Evidence:** typecheck 0 · lint 0 · tests **43 files / 551 pass** · build ✅.
+
 ## Cross-cutting reminders
 - Every mission: TYPECHECK → TEST → LINT → BUILD, then record evidence here.
 - Never modify pinned engines or their tests. Never commit `.env.local` or new secrets. Keep changes recoverable (git checkpoint per mission).

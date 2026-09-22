@@ -45,3 +45,9 @@ Never surface raw technical errors. Messages state: what happened, what was pres
 
 ## 12. Atomic missions (§32–33)
 Work ships as one mission at a time: OBJECTIVE / SCOPE / FILES / IMPLEMENTATION / TESTS / ACCEPTANCE. Each ends with typecheck+test+lint+build. Error budget: 1 failure → investigate; 2 related → reduce scope; 3+ cascading → STOP and report.
+
+## 13. Monetization (Lemon Squeezy only, server-authoritative)
+Billing goes through a provider-independent `BillingService`; the server-side Edge Function (Lemon Squeezy provider) is the only authority on entitlement. No `VITE_*`/public billing secrets exist. Webhook signatures verify server-side; the client never signs or forwards provider secrets. Unconfigured deployments are honest: Plans UI shows UPGRADE / COMING SOON, never fake checkout. The local workspace's simulated tier switch is explicitly labeled "simulated (demo)" — it is a preview affordance, not real billing.
+
+## 14. External integrations are env-gated OAuth2 (never faked)
+Google Calendar/Drive syncs are real Edge Functions doing server-side OAuth2 (state-gated) + idempotent upserts into app tables (unique `google_event_id`/`drive_file_id`). Without provider secrets the functions report `configured: false` and the UI shows an honest COMING SOON state — no fabricated sync counts. Schema for OAuth state/connections is additive and lives in `supabase/schema.sql` (pending one-time hosted apply).
