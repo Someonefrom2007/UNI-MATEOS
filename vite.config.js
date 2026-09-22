@@ -6,6 +6,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   test: {
     environment: 'node',
+    // Deterministic discovery: only the app's own tests, never agent worktrees.
+    include: ['src/**/*.{test,spec}.?(c|m)[jt]s?(x)'],
+    exclude: ['**/node_modules/**', '**/dist/**', '.kilo/**'],
     coverage: {
       provider: 'v8',
       include: ['src/lib/**/*.{js,jsx}'],
