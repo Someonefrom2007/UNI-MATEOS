@@ -7,7 +7,7 @@ Pre-launch status of the UNI·MATE academic OS (React 18 + Vite/Tailwind + shadc
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` | 0 errors |
-| Tests | `npm test` | 45 files / 572 tests pass |
+| Tests | `npm test` | 46 files / 632 tests pass |
 | Lint | `npm run lint` | 0 errors |
 | Build | `npm run build` | PASS — PWA `generateSW`, 84 precache entries (~1.61 MB), vendor chunk split, no >500 kB chunk |
 | All-in-one | `npm run verify` | `typecheck && lint && test && build` in one command (added 09-22) |

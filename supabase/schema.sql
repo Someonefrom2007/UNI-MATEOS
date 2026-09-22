@@ -1258,3 +1258,243 @@ CREATE POLICY "google_drive_delete_own" ON public.google_drive_connections
 CREATE TRIGGER google_drive_set_updated_at
   BEFORE UPDATE ON public.google_drive_connections
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- ADMIN CONTROL CENTER — ADDITIVE. The private operating console behind UNI·MATE.
+-- Security model:
+--   * Admin authority lives ONLY in public.admin_accounts. It is written by the
+--     owner through the SQL console or a service-role edge function; the client
+--     can never insert/update it, so self-promotion is impossible.
+--   * public.is_admin() / current_admin_role() are SECURITY DEFINER helpers the
+--     RLS policies use as the real server-side admin gate ("do not trust a role
+--     sent from the client").
+--   * A BEFORE trigger blocks escalation of the legacy user_profiles.role column.
+--   * audit_log is append-only and has NO client policies: entries are written
+--     through log_audit() (definer, admin-checked) and read through
+--     audit_recent() (definer, admin-checked).
+-- ════════════════════════════════════════════════════════════════════════════
+
+-- 1. Block browser self-promotion through the legacy user_profiles.role column.
+CREATE OR REPLACE FUNCTION public.guard_admin_role()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF NEW.role = 'admin'
+     AND auth.uid() IS NOT NULL
+     AND auth.uid() = NEW.id
+     AND (TG_OP = 'INSERT' OR OLD.role IS DISTINCT FROM NEW.role)
+  THEN
+    RAISE EXCEPTION 'admin role cannot be self-assigned';
+  END IF;
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS user_profiles_guard_admin_role ON public.user_profiles;
+CREATE TRIGGER user_profiles_guard_admin_role
+  BEFORE INSERT OR UPDATE ON public.user_profiles
+  FOR EACH ROW EXECUTE FUNCTION public.guard_admin_role();
+
+-- 2. Admin membership — the ONLY place that says who is an admin.
+CREATE TABLE IF NOT EXISTS public.admin_accounts (
+  user_id     uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  role        text NOT NULL DEFAULT 'admin' CHECK (role IN ('admin','super_admin')),
+  permissions text[] NOT NULL DEFAULT '{}',
+  created_by  uuid REFERENCES auth.users(id),
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  CHECK (role = 'super_admin' OR EXISTS (SELECT 1 FROM unnest(permissions) AS x WHERE x = 'system.manage') = false
+         OR array_length(permissions, 1) IS NULL)
+);
+
+ALTER TABLE public.admin_accounts ENABLE ROW LEVEL SECURITY;
+
+-- Own-row read lets the client gate UI on real membership; no client writes.
+CREATE POLICY "admin_accounts_select_own" ON public.admin_accounts
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- 3. Security-definer admin helpers. SECURITY DEFINER runs as the table owner,
+--    bypassing RLS, and each helper re-verifies the caller internally before
+--    releasing any information.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT EXISTS (SELECT 1 FROM public.admin_accounts WHERE user_id = auth.uid())
+$$;
+
+CREATE OR REPLACE FUNCTION public.current_admin_role()
+RETURNS text LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT role FROM public.admin_accounts WHERE user_id = auth.uid()
+$$;
+
+CREATE OR REPLACE FUNCTION public.current_admin_permissions()
+RETURNS text[] LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT permissions FROM public.admin_accounts WHERE user_id = auth.uid()
+$$;
+
+-- Admin roster — returns membership rows to admins only (checked inside).
+CREATE OR REPLACE FUNCTION public.admin_roster()
+RETURNS TABLE (user_id uuid, role text, permissions text[], created_at timestamptz)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT aa.user_id, aa.role, aa.permissions, aa.created_at
+  FROM public.admin_accounts aa
+  WHERE public.is_admin()
+  ORDER BY aa.created_at
+$$;
+
+-- 4. Feature flags — readable by the whole app (flags are NOT authorization),
+--    writable by admins only.
+CREATE TABLE IF NOT EXISTS public.feature_flags (
+  key          text PRIMARY KEY,
+  enabled      boolean NOT NULL DEFAULT true,
+  plan_floor   text NOT NULL DEFAULT 'free' CHECK (plan_floor IN ('free','pro','ultimate','admins')),
+  rollout_pct  integer NOT NULL DEFAULT 100 CHECK (rollout_pct BETWEEN 0 AND 100),
+  envs         text[] NOT NULL DEFAULT '{}',
+  description  text NOT NULL DEFAULT '',
+  created_by   uuid,
+  updated_by   uuid,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.feature_flags ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "feature_flags_select_authenticated" ON public.feature_flags
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "feature_flags_insert_admin" ON public.feature_flags
+  FOR INSERT WITH CHECK (public.is_admin());
+CREATE POLICY "feature_flags_update_admin" ON public.feature_flags
+  FOR UPDATE USING (public.is_admin());
+CREATE POLICY "feature_flags_delete_admin" ON public.feature_flags
+  FOR DELETE USING (public.is_admin());
+
+CREATE TRIGGER feature_flags_set_updated_at
+  BEFORE UPDATE ON public.feature_flags
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- 5. Announcements — student app reads, admins manage.
+CREATE TABLE IF NOT EXISTS public.announcements (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title       text NOT NULL,
+  body        text NOT NULL DEFAULT '',
+  severity    text NOT NULL DEFAULT 'info' CHECK (severity IN ('info','notice','maintenance','important')),
+  audience    text NOT NULL DEFAULT 'all' CHECK (audience IN ('all','free','pro','ultimate','admins')),
+  start_at    timestamptz,
+  end_at      timestamptz,
+  created_by  uuid,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  CHECK (end_at IS NULL OR start_at IS NULL OR end_at >= start_at)
+);
+
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "announcements_select_authenticated" ON public.announcements
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "announcements_insert_admin" ON public.announcements
+  FOR INSERT WITH CHECK (public.is_admin());
+CREATE POLICY "announcements_update_admin" ON public.announcements
+  FOR UPDATE USING (public.is_admin());
+CREATE POLICY "announcements_delete_admin" ON public.announcements
+  FOR DELETE USING (public.is_admin());
+
+CREATE TRIGGER announcements_set_updated_at
+  BEFORE UPDATE ON public.announcements
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- 6. Audit log — append-only, monotonic ids, NO client policies.
+CREATE TABLE IF NOT EXISTS public.audit_log (
+  id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  actor_id    uuid,
+  action      text NOT NULL,
+  target_type text,
+  target_id   text,
+  result      text NOT NULL DEFAULT 'success',
+  meta        jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS audit_log_created_at_idx ON public.audit_log (created_at DESC);
+CREATE INDEX IF NOT EXISTS audit_log_actor_idx ON public.audit_log (actor_id);
+
+-- Inserts via log_audit() (definer, admin-checked); reads via audit_recent().
+CREATE OR REPLACE FUNCTION public.log_audit(
+  p_action text,
+  p_target_type text DEFAULT NULL,
+  p_target_id text DEFAULT NULL,
+  p_result text DEFAULT 'success',
+  p_meta jsonb DEFAULT '{}'::jsonb
+) RETURNS bigint LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_id bigint;
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'audit: admin authorization required';
+  END IF;
+  INSERT INTO public.audit_log (actor_id, action, target_type, target_id, result, meta)
+  VALUES (auth.uid(), p_action, p_target_type, p_target_id, p_result, p_meta)
+  RETURNING id INTO v_id;
+  RETURN v_id;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.audit_recent(p_limit integer DEFAULT 100)
+RETURNS TABLE (
+  id bigint, actor_id uuid, action text, target_type text,
+  target_id text, result text, meta jsonb, created_at timestamptz
+) LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT id, actor_id, action, target_type, target_id, result, meta, created_at
+  FROM public.audit_log
+  WHERE public.is_admin()
+  ORDER BY id DESC
+  LIMIT GREATEST(1, LEAST(p_limit, 500))
+$$;
+
+-- 7. User lifecycle — add a status column (active/suspended/disabled) that
+--    admins manage; the app can check it to refuse sign-in/UI accordingly.
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active'
+  CHECK (status IN ('active','suspended','disabled'));
+
+CREATE POLICY "user_profiles_admin_read" ON public.user_profiles
+  FOR SELECT USING (public.is_admin());
+CREATE POLICY "user_profiles_admin_update" ON public.user_profiles
+  FOR UPDATE USING (public.is_admin());
+
+-- 8. Billing observability — webhook monitor fields (additive).
+ALTER TABLE public.webhook_events ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'processed'
+  CHECK (status IN ('received','processed','failed','retrying','resolved'));
+ALTER TABLE public.webhook_events ADD COLUMN IF NOT EXISTS error text;
+ALTER TABLE public.webhook_events ADD COLUMN IF NOT EXISTS replayed_at timestamptz;
+
+CREATE POLICY "webhook_events_admin_read" ON public.webhook_events
+  FOR SELECT USING (public.is_admin());
+CREATE POLICY "subscriptions_admin_read" ON public.subscriptions
+  FOR SELECT USING (public.is_admin());
+CREATE POLICY "subscriptions_admin_update" ON public.subscriptions
+  FOR UPDATE USING (public.is_admin());
+
+-- 9. Moderation read/update for admins (community content + reports).
+CREATE POLICY "community_reports_admin_read" ON public.community_reports
+  FOR SELECT USING (public.is_admin());
+CREATE POLICY "community_reports_admin_update" ON public.community_reports
+  FOR UPDATE USING (public.is_admin());
+CREATE POLICY "community_posts_admin_read" ON public.community_posts
+  FOR SELECT USING (public.is_admin());
+CREATE POLICY "community_posts_admin_update" ON public.community_posts
+  FOR UPDATE USING (public.is_admin());
+CREATE POLICY "community_replies_admin_read" ON public.community_replies
+  FOR SELECT USING (public.is_admin());
+CREATE POLICY "community_replies_admin_update" ON public.community_replies
+  FOR UPDATE USING (public.is_admin());
+
+-- 10. Admin read over every user-owned content table (Users → inspect usage).
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'courses','schedule_events','tasks','exams','grades','notes','resources',
+    'topics','focus_sessions','goals','habits','habit_logs','projects',
+    'attendance','sticky_notes','study_plans','study_plan_items',
+    'flashcard_decks','flashcards','community_saves','community_likes'
+  ] LOOP
+    EXECUTE format('DROP POLICY IF EXISTS admin_read ON public.%I', t);
+    EXECUTE format('CREATE POLICY admin_read ON public.%I FOR SELECT USING (public.is_admin())', t);
+  END LOOP;
+END $$;

@@ -7,9 +7,9 @@ Evidence-based snapshot from repository inspection + green-gate baseline. This e
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 45 files / 572 tests pass (deterministic discovery scoped to `src`, agent worktrees excluded) |
+| Tests | `npm test` (vitest run) | ✅ 46 files / 632 tests pass (deterministic discovery scoped to `src`, agent worktrees excluded) |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — PWA, 83 precache entries (1605.94 KiB), chunked vendor split (`vendor-react` / `vendor-data` / `vendor-anim`), no >500 kB chunk |
+| Build | `npm run build` | ✅ PASS — PWA, 84 precache entries (1610.30 KiB), chunked vendor split (`vendor-react` / `vendor-data` / `vendor-anim`), no >500 kB chunk |
 | All-in-one | `npm run verify` | ✅ `typecheck && lint && test && build` in sequence (script added this pass) |
 
 Runtime/browser verification is NOT available in this environment — evidence is compile + test + build. Live OAuth/Lemon Squeezy/OpenAI flows are env-gated and were not exercised against real providers (no external credentials).
@@ -43,7 +43,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 - The four remaining English-only pages are now fully translated via `t()`: **Settings, Plans, Profile, Integrations** — section headers, tier tags/descriptions/feature lists, status labels, CTAs, toasts, and confirm dialogs; `~/src/lib/i18n.js` grew by ~650 lines. Integrations re-checks provider status when the language changes (deps `[lang]`, no loop).
 
 ### Hygiene
-- Vitest discovery is now deterministic: `include: ['src/**/*.{test,spec}...']`, `.kilo/**` excluded — the true suite is **45 files / 572 tests** (the stale agent-worktree copy added 23 files / 349 duplicated tests). Deleted dead `src/utils/index.ts`. Pruned stale `jsconfig.json` excludes (`src/vite-plugins`, `src/api`) and the non-existent `src/Layout.jsx` entry in `eslint.config.js`.
+- Vitest discovery is now deterministic: `include: ['src/**/*.{test,spec}...']`, `.kilo/**` excluded — the true suite is **46 files / 632 tests** (the stale agent-worktree copy added 23 files / 349 duplicated tests). Deleted dead `src/utils/index.ts`. Pruned stale `jsconfig.json` excludes (`src/vite-plugins`, `src/api`) and the non-existent `src/Layout.jsx` entry in `eslint.config.js`.
 - Git: `main` ahead of upstream; milestone commits `e2781bc` (billing), `4c9c10d` (Google Calendar + Drive), rescue, settings, i18n, hygiene.
 
 ### 09-22 quality pass

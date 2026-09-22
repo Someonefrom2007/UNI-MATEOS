@@ -29,6 +29,10 @@ export const TABLE = {
   StudyPlan: "study_plans",
   StudyPlanItem: "study_plan_items",
   User: "user_profiles",
+  AdminAccount: "admin_accounts",
+  FeatureFlag: "feature_flags",
+  Announcement: "announcements",
+  AuditLog: "audit_log",
 };
 
 export const getTable = (entityName) => TABLE[entityName];
