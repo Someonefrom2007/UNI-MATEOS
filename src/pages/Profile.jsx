@@ -55,14 +55,14 @@ export default function Profile() {
     try {
       if (local) {
         saveLocalProfile(form);
-        toast({ title: "Profile saved on this device" });
+        toast({ title: t("profile.savedLocal") });
         return;
       }
       const { error } = await supabase.auth.updateUser({ data: form });
       if (error) throw error;
-      toast({ title: "Profile saved" });
+      toast({ title: t("profile.saved") });
     } catch {
-      toast({ title: "Couldn't save profile" });
+      toast({ title: t("profile.couldntSave") });
     } finally {
       setSaving(false);
     }
@@ -70,7 +70,7 @@ export default function Profile() {
 
   return (
     <>
-      <PageHeader title="Profile" subtitle="Your academic identity and preferences." />
+      <PageHeader title={t("title.profile")} subtitle={t("title.profile.subtitle")} />
       <div className="max-w-2xl space-y-5">
         <Card className="p-5">
           <div className="flex items-center gap-4 mb-5">
@@ -78,46 +78,46 @@ export default function Profile() {
               {(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}
             </div>
             <div>
-              <div className="font-medium">{user?.full_name || "Student"}</div>
+              <div className="font-medium">{user?.full_name || t("profile.student")}</div>
               <div className="text-sm text-muted-foreground">{user?.email}</div>
               <div className="flex items-center gap-2 mt-1.5">
                 <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-hud-violet/10 text-hud-violet border border-hud-violet/30 flex items-center gap-1">
                   <Crown className="w-3 h-3" />{tier.label}
                 </span>
-                <Link to="/plans" className="text-xs text-hud-cyan hover:underline">Manage plan</Link>
+                <Link to="/plans" className="text-xs text-hud-cyan hover:underline">{t("profile.managePlan")}</Link>
               </div>
             </div>
           </div>
           {local && (
             <p className="text-xs text-muted-foreground mb-4">
-              Local workspace — your profile is stored on this device only, so it opens even when you're offline.
+              {t("profile.localNote")}
             </p>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5"><Label className="text-xs">University</Label><Input value={form.university} onChange={(e) => setForm({ ...form, university: e.target.value })} aria-label="University" placeholder="Universitat de Barcelona" /></div>
-            <div className="space-y-1.5"><Label className="text-xs">Degree</Label><Input value={form.degree} onChange={(e) => setForm({ ...form, degree: e.target.value })} aria-label="Degree" placeholder="Computer Science" /></div>
-            <div className="space-y-1.5"><Label className="text-xs">Year</Label>
+            <div className="space-y-1.5"><Label className="text-xs">{t("profile.fields.university")}</Label><Input value={form.university} onChange={(e) => setForm({ ...form, university: e.target.value })} aria-label={t("profile.fields.university")} placeholder={t("profile.ph.university")} /></div>
+            <div className="space-y-1.5"><Label className="text-xs">{t("profile.fields.degree")}</Label><Input value={form.degree} onChange={(e) => setForm({ ...form, degree: e.target.value })} aria-label={t("profile.fields.degree")} placeholder={t("profile.ph.degree")} /></div>
+            <div className="space-y-1.5"><Label className="text-xs">{t("profile.fields.year")}</Label>
               <Select value={form.year} onValueChange={(v) => setForm({ ...form, year: v })}>
-                <SelectTrigger aria-label="Year"><SelectValue /></SelectTrigger>
-                <SelectContent>{["1", "2", "3", "4", "5+"].map((y) => <SelectItem key={y} value={y}>Year {y}</SelectItem>)}</SelectContent>
+                <SelectTrigger aria-label={t("profile.fields.year")}><SelectValue /></SelectTrigger>
+                <SelectContent>{["1", "2", "3", "4", "5+"].map((y) => <SelectItem key={y} value={y}>{t("profile.yearValue")} {y}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5"><Label className="text-xs">Target average</Label><Input type="number" step="0.1" max="10" value={form.target_gpa} onChange={(e) => setForm({ ...form, target_gpa: Number(e.target.value) })} aria-label="Target average" /></div>
-            <div className="space-y-1.5"><Label className="text-xs">Preferred focus (min)</Label>
+            <div className="space-y-1.5"><Label className="text-xs">{t("profile.fields.targetAverage")}</Label><Input type="number" step="0.1" max="10" value={form.target_gpa} onChange={(e) => setForm({ ...form, target_gpa: Number(e.target.value) })} aria-label={t("profile.fields.targetAverage")} /></div>
+            <div className="space-y-1.5"><Label className="text-xs">{t("profile.fields.preferredFocus")}</Label>
               <Select value={String(form.preferred_focus)} onValueChange={(v) => setForm({ ...form, preferred_focus: Number(v) })}>
-                <SelectTrigger aria-label="Preferred focus minutes"><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label={t("profile.fields.preferredFocus")}><SelectValue /></SelectTrigger>
                 <SelectContent>{[25, 50, 90].map((m) => <SelectItem key={m} value={String(m)}>{m} min</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5"><Label className="text-xs">Language</Label>
+            <div className="space-y-1.5"><Label className="text-xs">{t("profile.fields.language")}</Label>
               <Select value={form.language} onValueChange={(v) => setForm({ ...form, language: v })}>
-                <SelectTrigger aria-label="Language"><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label={t("profile.fields.language")}><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="en">English</SelectItem><SelectItem value="es">Español</SelectItem><SelectItem value="ca">Català</SelectItem></SelectContent>
               </Select>
             </div>
           </div>
           <div className="flex justify-end mt-5">
-            <Button onClick={save} disabled={saving}><Save className="w-4 h-4 mr-2" />{saving ? "Saving…" : "Save"}</Button>
+            <Button onClick={save} disabled={saving}><Save className="w-4 h-4 mr-2" />{saving ? t("profile.saving") : t("profile.save")}</Button>
           </div>
         </Card>
       </div>

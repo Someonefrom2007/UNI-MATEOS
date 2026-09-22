@@ -15,12 +15,12 @@ import { CalendarDays, Rss, FolderOpen, Smartphone, School, ArrowRight } from "l
 const LOCAL = isLocalWorkspace();
 
 export default function Integrations() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { can } = usePlan();
   const { toast } = useToast();
   const [feedCount, setFeedCount] = useState(0);
-  const [gcal, setGcal] = useState({ state: LOCAL ? "local" : "checking", cls: "bg-muted text-muted-foreground" });
-  const [gdrive, setGdrive] = useState({ state: LOCAL ? "local" : "checking", cls: "bg-muted text-muted-foreground", connected: false });
+  const [gcal, setGcal] = useState({ state: LOCAL ? t("integrations.status.local") : t("integrations.status.checking"), cls: "bg-muted text-muted-foreground" });
+  const [gdrive, setGdrive] = useState({ state: LOCAL ? t("integrations.status.local") : t("integrations.status.checking"), cls: "bg-muted text-muted-foreground", connected: false });
   const [driving, setDriving] = useState(false);
 
   useEffect(() => {
@@ -33,14 +33,14 @@ export default function Integrations() {
         });
         const d = res?.data || {};
         if (!d.configured) {
-          setGcal({ state: "Not configured here", cls: "bg-muted text-muted-foreground" });
+          setGcal({ state: t("integrations.status.notConfigured"), cls: "bg-muted text-muted-foreground" });
         } else if (d.connected) {
-          setGcal({ state: d.email ? `Synced · ${d.email}` : "Synced", cls: "bg-hud-emerald/10 text-hud-emerald" });
+          setGcal({ state: d.email ? `${t("integrations.status.synced")} · ${d.email}` : t("integrations.status.synced"), cls: "bg-hud-emerald/10 text-hud-emerald" });
         } else {
-          setGcal({ state: "Not connected", cls: "bg-muted text-muted-foreground" });
+          setGcal({ state: t("integrations.status.notConnected"), cls: "bg-muted text-muted-foreground" });
         }
       } catch {
-        setGcal({ state: "Unavailable", cls: "bg-muted text-muted-foreground" });
+        setGcal({ state: t("integrations.status.unavailable"), cls: "bg-muted text-muted-foreground" });
       }
       try {
         const res = await supabase.functions.invoke("google-drive", {
@@ -48,17 +48,17 @@ export default function Integrations() {
         });
         const d = res?.data || {};
         if (!d.configured) {
-          setGdrive({ state: "Not configured here", cls: "bg-muted text-muted-foreground", connected: false });
+          setGdrive({ state: t("integrations.status.notConfigured"), cls: "bg-muted text-muted-foreground", connected: false });
         } else if (d.connected) {
-          setGdrive({ state: d.email ? `Synced · ${d.email}` : "Synced", cls: "bg-hud-emerald/10 text-hud-emerald", connected: true });
+          setGdrive({ state: d.email ? `${t("integrations.status.synced")} · ${d.email}` : t("integrations.status.synced"), cls: "bg-hud-emerald/10 text-hud-emerald", connected: true });
         } else {
-          setGdrive({ state: "Not connected", cls: "bg-muted text-muted-foreground", connected: false });
+          setGdrive({ state: t("integrations.status.notConnected"), cls: "bg-muted text-muted-foreground", connected: false });
         }
       } catch {
-        setGdrive({ state: "Unavailable", cls: "bg-muted text-muted-foreground", connected: false });
+        setGdrive({ state: t("integrations.status.unavailable"), cls: "bg-muted text-muted-foreground", connected: false });
       }
     })();
-  }, []);
+  }, [lang]);
 
   const syncDrive = async () => {
     setDriving(true);
@@ -68,16 +68,16 @@ export default function Integrations() {
       });
       if (res.error) throw res.error;
       if (res.data?.connected === false) {
-        toast({ title: "Google Drive needs attention", description: res.data.message || "Reconnect to keep syncing." });
-        setGdrive((g) => ({ ...g, connected: false, state: "Not connected", cls: "bg-muted text-muted-foreground" }));
+        toast({ title: t("integrations.drive.needsAttention"), description: res.data.message || t("integrations.drive.reconnect") });
+        setGdrive((g) => ({ ...g, connected: false, state: t("integrations.status.notConnected"), cls: "bg-muted text-muted-foreground" }));
       } else {
         toast({
-          title: `Drive synced — ${res.data?.created ?? 0} new, ${res.data?.updated ?? 0} updated.`,
-          description: res.data?.skipped > 0 ? `${res.data.skipped} folders/links skipped.` : undefined,
+          title: `${t("integrations.drive.syncedTitle")}${res.data?.created ?? 0}${t("integrations.drive.newCount")}${res.data?.updated ?? 0}${t("integrations.drive.updatedCount")}`,
+          description: res.data?.skipped > 0 ? `${res.data.skipped}${t("integrations.drive.skipped")}` : undefined,
         });
       }
     } catch {
-      toast({ title: "Drive sync failed. Try reconnecting." });
+      toast({ title: t("integrations.drive.syncFailed") });
     } finally {
       setDriving(false);
     }
@@ -89,7 +89,7 @@ export default function Integrations() {
         <PageHeader title={t("title.integrations")} subtitle={t("title.integrations.subtitle")} />
         <PlanLocked
           feature="university_integrations"
-          description="Live external data wired into your planner: university calendars, course feeds and direct connections — an Ultimate feature that makes UNI·MATE talk to the rest of your campus life."
+          description={t("integrations.locked")}
         />
       </>
     );
@@ -102,9 +102,9 @@ export default function Integrations() {
       name: "Google Calendar",
       state: gcal.state,
       stateCls: gcal.cls,
-      desc: "Pin your Google account and pull upcoming events into the schedule — real OAuth through the google-calendar-sync edge function.",
+      desc: t("integrations.calendar.desc"),
       href: "/schedule",
-      cta: "Open Schedule",
+      cta: t("integrations.calendar.cta"),
     },
     {
       key: "drive",
@@ -112,40 +112,40 @@ export default function Integrations() {
       name: "Google Drive",
       state: gdrive.state,
       stateCls: gdrive.cls,
-      desc: "Import your own Drive files as study resources — deduplicated by file, refreshed on every sync through the google-drive edge function.",
+      desc: t("integrations.drive.desc"),
       href: "/resources",
-      cta: "Open Resources",
+      cta: t("integrations.drive.cta"),
       onSync: gdrive.connected ? syncDrive : null,
       syncing: driving,
-      syncLabel: driving ? "Syncing…" : "Sync files",
+      syncLabel: driving ? t("integrations.drive.syncing") : t("integrations.drive.syncFiles"),
     },
     {
       key: "ics",
       icon: <Rss className="w-5 h-5" />,
-      name: "Course calendar feeds",
-      state: `${feedCount} subscribed`,
+      name: t("integrations.ics.name"),
+      state: `${feedCount} ${t("integrations.status.subscribed")}`,
       stateCls: feedCount > 0 ? "bg-hud-emerald/10 text-hud-emerald" : "bg-muted text-muted-foreground",
-      desc: "Subscribe to .ics feeds from your university portal — classes, labs and deadlines refresh automatically on load.",
+      desc: t("integrations.ics.desc"),
       href: "/schedule",
-      cta: feedCount > 0 ? "Manage feeds" : "Add a feed",
+      cta: feedCount > 0 ? t("integrations.ics.cta.manage") : t("integrations.ics.cta.add"),
     },
     {
       key: "resources",
       icon: <FolderOpen className="w-5 h-5" />,
-      name: "Course resources",
-      state: "Active",
+      name: t("integrations.resources.name"),
+      state: t("integrations.status.active"),
       stateCls: "bg-hud-emerald/10 text-hud-emerald",
-      desc: "Attach syllabus URLs and external reading to any course and keep them one tap away.",
+      desc: t("integrations.resources.desc"),
       href: "/resources",
-      cta: "Open Resources",
+      cta: t("integrations.resources.cta"),
     },
     {
       key: "mobile",
       icon: <Smartphone className="w-5 h-5" />,
-      name: "UNI·MATE mobile",
-      state: "Soon",
+      name: t("integrations.mobile.name"),
+      state: t("integrations.status.soon"),
       stateCls: "bg-muted text-muted-foreground",
-      desc: "Native apps that inherit your whole workspace — schedule, focus timer and flashcards on the go.",
+      desc: t("integrations.mobile.desc"),
       href: "",
       cta: "",
       soon: true,
@@ -153,10 +153,10 @@ export default function Integrations() {
     {
       key: "lms",
       icon: <School className="w-5 h-5" />,
-      name: "Learning-management import",
-      state: "Soon",
+      name: t("integrations.lms.name"),
+      state: t("integrations.status.soon"),
       stateCls: "bg-muted text-muted-foreground",
-      desc: "Pre-fill courses, assignments and exam dates from your university platform.",
+      desc: t("integrations.lms.desc"),
       href: "",
       cta: "",
       soon: true,
@@ -197,7 +197,7 @@ export default function Integrations() {
 
       <Card className="p-5 mt-4">
         <p className="text-xs text-muted-foreground">
-          For local/demo workspaces connectors reflect their hosted behavior; signing in on the hosted project activates real cloud sync and live external data.
+          {t("integrations.footer")}
         </p>
       </Card>
     </>

@@ -24,10 +24,10 @@ const EXPORT_ENTITIES = [
 
 const ALL_ENTITIES = [...EXPORT_ENTITIES, "Topic", "StickyNote"];
 
-const NOTIFY_GROUP_LABELS = {
-  academic: "Academic (exams, tasks, free time)",
-  milestone: "Milestones (focus streaks)",
-  community: "Community (replies to you)",
+const NOTIFY_GROUP_KEYS = {
+  academic: "settings.notify.academic",
+  milestone: "settings.notify.milestone",
+  community: "settings.notify.community",
 };
 
 export default function Settings() {
@@ -97,7 +97,7 @@ export default function Settings() {
     setTheme(tt);
     localStorage.setItem("um-theme", tt);
     applyTheme(tt);
-    toast({ title: "Theme updated" });
+    toast({ title: t("settings.theme.updated") });
   };
 
   const saveLang = async (l) => {
@@ -106,7 +106,7 @@ export default function Settings() {
     if (!local) {
       try { await supabase.auth.updateUser({ data: { language: l } }); } catch {}
     }
-    toast({ title: "Language preference saved" });
+    toast({ title: t("settings.language.saved") });
   };
 
   const toggleNotify = (group) => {
@@ -142,38 +142,38 @@ export default function Settings() {
       a.download = `unimate-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "Export ready — check your downloads" });
+      toast({ title: t("settings.data.exported") });
     } catch {
-      toast({ title: "Export failed. Please try again." });
+      toast({ title: t("settings.data.exportFailed") });
     } finally {
       setExporting(false);
     }
   };
 
   const loadDemo = async () => {
-    if (!confirm("This adds a full sample semester (courses, classes, tasks, exams, grades, sticky notes) to your workspace. Continue?")) return;
+    if (!confirm(t("settings.confirm.demo"))) return;
     setDemoLoading(true);
     try {
       await loadDemoData();
-      toast({ title: "Demo semester loaded — go explore!" });
+      toast({ title: t("settings.data.loaded") });
       computeUsage();
     } catch {
-      toast({ title: "Couldn't load the demo data. Please try again." });
+      toast({ title: t("settings.data.loadFailed") });
     } finally {
       setDemoLoading(false);
     }
   };
 
   const wipeAll = async () => {
-    if (!confirm("This permanently deletes every row in this local workspace — courses, tasks, exams, notes, everything. Export first if you want a backup. Continue?")) return;
-    if (!confirm("Are you absolutely sure? There is no undo.")) return;
+    if (!confirm(t("settings.confirm.wipe1"))) return;
+    if (!confirm(t("settings.confirm.wipe2"))) return;
     setClearing(true);
     try {
       ALL_ENTITIES.forEach((name) => localRepo.clear(TABLE[name]));
       computeUsage();
-      toast({ title: "Workspace cleared", description: "Every local row was removed from this device." });
+      toast({ title: t("settings.data.cleared"), description: t("settings.data.clearedDesc") });
     } catch {
-      toast({ title: "Couldn't clear the workspace. Try again." });
+      toast({ title: t("settings.data.couldntClear") });
     } finally {
       setClearing(false);
     }
@@ -186,9 +186,9 @@ export default function Settings() {
     const total = Object.values(usage.counts).reduce((s, n) => s + n, 0);
     if (local) {
       const kb = (usage.bytes / 1024).toFixed(1);
-      return `${total} rows · ${kb} KB on this device`;
+      return `${total} ${t("settings.data.rows")} · ${kb} KB ${t("settings.data.onDevice")}`;
     }
-    return `${total} rows in your account`;
+    return `${total} ${t("settings.data.rows")} ${t("settings.data.inAccount")}`;
   };
 
   return (
@@ -196,51 +196,52 @@ export default function Settings() {
       <PageHeader title={t("title.settings")} subtitle={t("title.settings.subtitle")} />
       <div className="max-w-2xl space-y-5">
         <Card className="p-5">
-          <div className="flex items-center gap-2 mb-4"><Sun className="w-4 h-4 text-hud-amber" /><h2 className="um-label">Appearance</h2></div>
+          <div className="flex items-center gap-2 mb-4"><Sun className="w-4 h-4 text-hud-amber" /><h2 className="um-label">{t("settings.appearance")}</h2></div>
           <div className="grid grid-cols-3 gap-2">
-            {[{ k: "dark", label: "Dark", Icon: Moon }, { k: "light", label: "Light", Icon: Sun }, { k: "system", label: "System", Icon: Monitor }].map(({ k, label, Icon }) => (
+            {[{ k: "dark", label: t("settings.theme.dark"), Icon: Moon }, { k: "light", label: t("settings.theme.light"), Icon: Sun }, { k: "system", label: t("settings.theme.system"), Icon: Monitor }].map(({ k, label, Icon }) => (
               <button key={k} onClick={() => chooseTheme(k)} className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-colors ${theme === k ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
                 <Icon className="w-5 h-5" /><span className="text-sm">{label}</span>
               </button>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground mt-4">{t("settings.appearance.desc")}</p>
 
           <div className="mt-5 pt-5 border-t border-border">
             <div className="flex items-center gap-2 mb-3">
               <Palette className="w-4 h-4 text-primary" />
-              <h2 className="um-label">Accent color</h2>
+              <h2 className="um-label">{t("settings.accent")}</h2>
             </div>
             <div className="flex flex-wrap gap-2.5">
               {Object.entries(ACCENT_PRESETS).map(([key, a]) => (
                 <button
                   key={key}
-                  onClick={() => { setAccent(key); applyAccent(key); toast({ title: "Accent updated" }); }}
+                  onClick={() => { setAccent(key); applyAccent(key); toast({ title: t("settings.accent.updated") }); }}
                   title={a.label}
                   className={`w-8 h-8 rounded-full ${a.swatch} transition-transform ${accent === key ? "ring-2 ring-ring ring-offset-2 ring-offset-background scale-110" : "hover:scale-110"}`}
                 />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-3">Recolors buttons, highlights, and the active states across the app.</p>
+            <p className="text-xs text-muted-foreground mt-3">{t("settings.accent.desc")}</p>
           </div>
         </Card>
 
         <Card className="p-5">
-          <div className="flex items-center gap-2 mb-4"><Globe className="w-4 h-4 text-hud-cyan" /><h2 className="um-label">Language</h2></div>
+          <div className="flex items-center gap-2 mb-4"><Globe className="w-4 h-4 text-hud-cyan" /><h2 className="um-label">{t("settings.language")}</h2></div>
           <Select value={lang} onValueChange={saveLang}>
-            <SelectTrigger className="w-full" aria-label="Language"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full" aria-label={t("settings.language")}><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="en">English</SelectItem><SelectItem value="es">Español</SelectItem><SelectItem value="ca">Català</SelectItem></SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground mt-2">
             {local
-              ? "Saved to this device."
-              : "Saved to your device and your account profile — the next device you sign into inherits it."}
+              ? t("settings.language.deviceNote")
+              : t("settings.language.profileNote")}
           </p>
         </Card>
 
         <Card className="p-5">
-          <div className="flex items-center gap-2 mb-4"><Bell className="w-4 h-4 text-hud-amber" /><h2 className="um-label">Notifications</h2></div>
+          <div className="flex items-center gap-2 mb-4"><Bell className="w-4 h-4 text-hud-amber" /><h2 className="um-label">{t("settings.notifications")}</h2></div>
           <div className="space-y-2">
-            {Object.entries(NOTIFY_GROUP_LABELS).map(([group, label]) => {
+            {Object.entries(NOTIFY_GROUP_KEYS).map(([group, key]) => {
               const enabled = notifyPrefs[group] !== false;
               return (
                 <button
@@ -250,51 +251,51 @@ export default function Settings() {
                     enabled ? "border-border bg-secondary/40" : "border-border bg-muted/30 opacity-70"
                   }`}
                 >
-                  <span className="text-sm">{label}</span>
+                  <span className="text-sm">{t(key)}</span>
                   <span className={`flex items-center gap-2 text-xs ${enabled ? "text-hud-emerald" : "text-muted-foreground"}`}>
                     {enabled ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
-                    {enabled ? "On" : "Off"}
+                    {enabled ? t("settings.notify.on") : t("settings.notify.off")}
                   </span>
                 </button>
               );
             })}
           </div>
-          <p className="text-xs text-muted-foreground mt-3">Notification preferences are applied per device, like read-state.</p>
+          <p className="text-xs text-muted-foreground mt-3">{t("settings.notify.note")}</p>
         </Card>
 
         <Card className="p-5">
-          <div className="flex items-center gap-2 mb-4"><Database className="w-4 h-4 text-hud-emerald" /><h2 className="um-label">Data</h2></div>
+          <div className="flex items-center gap-2 mb-4"><Database className="w-4 h-4 text-hud-emerald" /><h2 className="um-label">{t("settings.data")}</h2></div>
           <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-2 mb-4">
             <HardDrive className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">{usage ? `Stored: ${usageLine()}` : "Counting your data…"}</span>
+            <span className="text-sm text-muted-foreground">{usage ? `${t("settings.data.stored")}: ${usageLine()}` : t("settings.data.counting")}</span>
           </div>
           <Button variant="outline" className="w-full justify-start" onClick={exportData} disabled={exporting}>
             {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-            {exporting ? "Preparing export…" : "Export your data (JSON)"}
+            {exporting ? t("settings.data.exporting") : t("settings.data.export")}
           </Button>
-          <p className="text-xs text-muted-foreground mt-2">Downloads every course, task, exam, grade, note, and session you've created.</p>
+          <p className="text-xs text-muted-foreground mt-2">{t("settings.data.exportDesc")}</p>
           <Button variant="outline" className="w-full justify-start mt-3" onClick={loadDemo} disabled={demoLoading}>
             {demoLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2 text-primary" />}
-            {demoLoading ? "Loading demo data…" : "Load demo data"}
+            {demoLoading ? t("settings.data.demoLoading") : t("settings.data.demo")}
           </Button>
-          <p className="text-xs text-muted-foreground mt-2">Fills your workspace with a sample semester — courses, classes, tasks, exams, grades, and sticky notes.</p>
+          <p className="text-xs text-muted-foreground mt-2">{t("settings.data.demoDesc")}</p>
           {local ? (
             <>
               <Button variant="outline" className="w-full justify-start mt-3 text-destructive hover:text-destructive" onClick={wipeAll} disabled={clearing}>
                 {clearing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                {clearing ? "Clearing workspace…" : "Delete all data on this device"}
+                {clearing ? t("settings.data.wiping") : t("settings.data.wipe")}
               </Button>
-              <p className="text-xs text-muted-foreground mt-2">Permanently empties this local workspace. Export a backup first.</p>
+              <p className="text-xs text-muted-foreground mt-2">{t("settings.data.wipeDesc")}</p>
             </>
           ) : (
-            <p className="text-xs text-muted-foreground mt-3">Data lives in your host account. Export any time; deleting account data is handled in your host project's dashboard.</p>
+            <p className="text-xs text-muted-foreground mt-3">{t("settings.data.hosted")}</p>
           )}
         </Card>
 
         {!local && (
           <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4"><LogOut className="w-4 h-4 text-muted-foreground" /><h2 className="um-label">Account</h2></div>
-            <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive" onClick={handleLogout}>Log out</Button>
+            <div className="flex items-center gap-2 mb-4"><LogOut className="w-4 h-4 text-muted-foreground" /><h2 className="um-label">{t("settings.account")}</h2></div>
+            <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive" onClick={handleLogout}>{t("shell.logout")}</Button>
           </Card>
         )}
       </div>

@@ -17,16 +17,10 @@ import { getBillingService } from "@/lib/billing/lemonSqueezy";
 const LOCAL = isLocalWorkspace();
 const repo = getAppRepo();
 
-const TIER_FEATURES = {
-  free: ["Dashboard", "Courses, Schedule, Tasks", "Exams & Grades", "Notes & Resources", "Focus, Goals, Habits", "Workload & Insights", "Basic AI context"],
-  pro: ["Advanced AI copilot", "Syllabus & document intelligence", "Predictive workload", "Smart study planning", "Flashcards & quizzes", "Exam intelligence", "Advanced analytics"],
-  ultimate: ["Advanced cloud sync", "University integrations", "Study groups & collaboration", "Shared courses", "Campus integrations", "Cross-device intelligence"],
-};
-
-const TIER_DESC = {
-  free: "The core academic operating system.",
-  pro: "UNI·MATE gets intelligent.",
-  ultimate: "Connect to your whole academic world.",
+const FEATURE_KEY_LISTS = {
+  free: Array.from({ length: 7 }, (_, i) => `plans.feat.free.${i}`),
+  pro: Array.from({ length: 7 }, (_, i) => `plans.feat.pro.${i}`),
+  ultimate: Array.from({ length: 6 }, (_, i) => `plans.feat.ultimate.${i}`),
 };
 
 export default function Plans() {
@@ -47,12 +41,12 @@ export default function Plans() {
       if (LOCAL) {
         try {
           await setPlan(value);
-          toast({ title: `${planTier(value).label} enabled (simulated demo)`, description: "On the hosted app this becomes a real subscription." });
+          toast({ title: `${planTier(value).label}${t("plans.toast.enabledLocal")}`, description: t("plans.toast.enabledLocalDesc") });
         } catch {
-          toast({ title: "Couldn't change plan" });
+          toast({ title: t("plans.toast.couldntChange") });
         }
       } else {
-        toast({ title: `${planTier(value).label} is coming soon`, description: "Billing isn't configured for this deployment yet." });
+        toast({ title: `${planTier(value).label}${t("plans.toast.comingSoonTitle")}`, description: t("plans.toast.comingSoonDesc") });
       }
       return;
     }
@@ -60,9 +54,9 @@ export default function Plans() {
     try {
       const { checkoutUrl } = await getBillingService().startCheckout(value);
       window.open(checkoutUrl, "_blank", "noopener,noreferrer");
-      toast({ title: "Checkout opened", description: "Complete it on Lemon Squeezy — your access activates automatically." });
+      toast({ title: t("plans.toast.checkoutOpened"), description: t("plans.toast.checkoutOpenedDesc") });
     } catch (err) {
-      toast({ title: "Couldn't open checkout", description: err.message });
+      toast({ title: t("plans.toast.checkoutFailed"), description: err.message });
     } finally {
       setCheckingOut(null);
     }
@@ -72,16 +66,16 @@ export default function Plans() {
     try {
       const { portalUrl } = await getBillingService().manage();
       if (portalUrl) window.open(portalUrl, "_blank", "noopener,noreferrer");
-      else toast({ title: "No billing portal link yet", description: "Everything can be managed from your email from Lemon Squeezy." });
+      else toast({ title: t("plans.toast.noPortal"), description: t("plans.toast.noPortalDesc") });
     } catch (err) {
-      toast({ title: "Couldn't open billing", description: err.message });
+      toast({ title: t("plans.toast.manageFailed"), description: err.message });
     }
   };
 
   const joinWaitlist = async () => {
     const clean = email.trim();
     if (!isValidEmail(clean)) {
-      toast({ title: "Enter a valid email" });
+      toast({ title: t("plans.toast.waitlistInvalid") });
       return;
     }
     setBusy(true);
@@ -90,15 +84,15 @@ export default function Plans() {
         const { ok, duplicate } = addLocalWaitlist(clean, "pro");
         if (ok) {
           setJoined(true);
-          toast({ title: duplicate ? "You're already on the list" : "Got it — you're on the list" });
+          toast({ title: duplicate ? t("plans.toast.waitlistDuplicate") : t("plans.toast.waitlistJoined") });
         }
       } else {
         await repo.create("waitlist", { email: clean, tier: "pro", source: "plans" });
         setJoined(true);
-        toast({ title: "Got it — you're on the list" });
+        toast({ title: t("plans.toast.waitlistJoined") });
       }
     } catch {
-      toast({ title: "You're already on the launch list" });
+      toast({ title: t("plans.toast.waitlistExists") });
     } finally {
       setBusy(false);
     }
@@ -109,7 +103,7 @@ export default function Plans() {
     if (current) {
       return (
         <Button variant="outline" className="w-full" disabled>
-          {planTier(plan).label === "Free" ? "Active" : "Current plan"}
+          {planTier(plan).label === "Free" ? t("plans.active") : t("plans.currentPlan")}
         </Button>
       );
     }
@@ -117,21 +111,21 @@ export default function Plans() {
       return (
         <Button variant={p.rank > tier.rank ? "default" : "outline"} className="w-full" onClick={() => upgrade(p.value)} disabled={checkingOut === p.value}>
           {checkingOut === p.value ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-          {p.rank > tier.rank ? `Upgrade to ${p.label}` : `Switch to ${p.label}`}
+          {p.rank > tier.rank ? `${t("plans.upgradeTo")} ${p.label}` : `${t("plans.switchTo")} ${p.label}`}
         </Button>
       );
     }
     if (LOCAL) {
       return (
         <Button variant="outline" className="w-full" onClick={() => upgrade(p.value)}>
-          {p.rank > tier.rank ? `Enable ${p.label}` : `Switch to ${p.label}`}
-          <span className="ml-2 text-[10px] uppercase tracking-wide opacity-70">simulated</span>
+          {p.rank > tier.rank ? `${t("plans.enable")} ${p.label}` : `${t("plans.switchTo")} ${p.label}`}
+          <span className="ml-2 text-[10px] uppercase tracking-wide opacity-70">{t("plans.simulated")}</span>
         </Button>
       );
     }
     return (
       <Button variant="outline" className="w-full" disabled>
-        Coming soon
+        {t("plans.comingSoon")}
       </Button>
     );
   };
@@ -149,19 +143,19 @@ export default function Plans() {
                 <div className="flex items-center justify-between">
                   <h2 className="font-display text-xl font-semibold">{p.label}</h2>
                   {current ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-hud-emerald/10 text-hud-emerald border border-hud-emerald/30">Active</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-hud-emerald/10 text-hud-emerald border border-hud-emerald/30">{t("plans.active")}</span>
                   ) : p.value === "pro" ? (
-                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-hud-violet/10 text-hud-violet border border-hud-violet/30"><Zap className="w-3 h-3" />Popular</span>
+                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-hud-violet/10 text-hud-violet border border-hud-violet/30"><Zap className="w-3 h-3" />{t("plans.popular")}</span>
                   ) : (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Discover</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{t("plans.discover")}</span>
                   )}
                 </div>
-                <div className="um-label mt-1">{p.tag}</div>
-                <p className="text-sm text-muted-foreground mt-3">{TIER_DESC[p.value]}</p>
+                <div className="um-label mt-1">{t(`plans.tag.${p.value}`)}</div>
+                <p className="text-sm text-muted-foreground mt-3">{t(`plans.tierDesc.${p.value}`)}</p>
                 <ul className="space-y-2 mt-5 flex-1">
-                  {TIER_FEATURES[p.value].map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm">
-                      <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />{f}
+                  {FEATURE_KEY_LISTS[p.value].map((k) => (
+                    <li key={k} className="flex items-start gap-2 text-sm">
+                      <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />{t(k)}
                     </li>
                   ))}
                 </ul>
@@ -174,15 +168,15 @@ export default function Plans() {
         {billing.mode === "hosted" && billing.configured && billing.subscription && (
           <Card className="p-5 flex items-center justify-between gap-4">
             <div>
-              <div className="font-medium text-sm">Active subscription</div>
+              <div className="font-medium text-sm">{t("plans.activeSub")}</div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {billing.subscription.tier} · status: {billing.subscription.status || "active"}
-                {billing.subscription.renews_at ? ` · renews ${new Date(billing.subscription.renews_at).toLocaleDateString()}` : ""}
-                {billing.subscription.cancel_at_period_end ? " · cancels at period end" : ""}
+                {billing.subscription.renews_at ? ` · ${t("plans.renews")} ${new Date(billing.subscription.renews_at).toLocaleDateString()}` : ""}
+                {billing.subscription.cancel_at_period_end ? ` · ${t("plans.cancelsAtEnd")}` : ""}
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={manageSubscription}>
-              Manage billing <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
+              {t("plans.manage")} <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
             </Button>
           </Card>
         )}
@@ -193,31 +187,31 @@ export default function Plans() {
               <Rocket className="w-5 h-5 text-hud-cyan" />
             </div>
             <div>
-              <div className="font-medium text-sm">Launch waitlist</div>
-              <p className="text-xs text-muted-foreground mt-0.5">Leave your email to stay in the loop — no accounts, no spam, just the launch announcement.</p>
+              <div className="font-medium text-sm">{t("plans.waitlist")}</div>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("plans.waitlist.desc")}</p>
             </div>
           </div>
           {joined ? (
-            <span className="text-sm text-hud-emerald flex items-center gap-1.5 shrink-0"><Check className="w-4 h-4" />You're on the list</span>
+            <span className="text-sm text-hud-emerald flex items-center gap-1.5 shrink-0"><Check className="w-4 h-4" />{t("plans.waitlist.joined")}</span>
           ) : (
             <form
               onSubmit={(e) => { e.preventDefault(); joinWaitlist(); }}
               className="flex gap-2 shrink-0 w-full sm:w-auto"
             >
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email for the launch waitlist" placeholder="you@university.edu" className="sm:w-64" />
-              <Button type="submit" disabled={busy}>{busy ? "Joining…" : "Join"}</Button>
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email for the launch waitlist" placeholder={t("plans.waitlist.email")} className="sm:w-64" />
+              <Button type="submit" disabled={busy}>{busy ? t("plans.waitlist.joining") : t("plans.waitlist.join")}</Button>
             </form>
           )}
         </Card>
 
         <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
-          <p>The free tier is a complete product — not a trial. Pro and Ultimate add intelligence and connection on top of a strong foundation.</p>
+          <p>{t("plans.footer.free")}</p>
           {billing.mode === "hosted" && billing.configured ? (
-            <p>Upgrades open a secure Lemon Squeezy checkout. Your access activates automatically when the payment is verified — never via a plan value you could set in your browser.</p>
+            <p>{t("plans.footer.hostedConfigured")}</p>
           ) : billing.mode === "hosted" ? (
-            <p>Billing isn't enabled for this deployment yet: Pro and Ultimate are architecturally wired but their checkouts are coming soon. Waitlist above is the fastest way to hear about launch.</p>
+            <p>{t("plans.footer.hosted")}</p>
           ) : (
-            <p>You're in the local workspace — upgrades are simulated on this device so you can explore every feature. The hosted app uses a real Lemon Squeezy subscription.</p>
+            <p>{t("plans.footer.local")}</p>
           )}
         </div>
       </div>
