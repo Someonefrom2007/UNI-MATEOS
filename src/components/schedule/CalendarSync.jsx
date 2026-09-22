@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -11,11 +11,13 @@ const LOCAL = isLocalWorkspace();
 export default function CalendarSync({ onSynced }) {
   const { toast } = useToast();
   const [connected, setConnected] = useState(false);
+  const [configured, setConfigured] = useState(false);
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
   // Connection status = whether the backend can reach the user's Google Calendar.
-  const check = async () => {
+  const check = useCallback(async () => {
     if (LOCAL) {
       setLoading(false);
       return;
@@ -24,21 +26,33 @@ export default function CalendarSync({ onSynced }) {
       const res = await supabase.functions.invoke("google-calendar-sync", {
         body: { action: "check" },
       });
+      setConfigured(Boolean(res.data?.configured));
       setConnected(Boolean(res.data?.connected));
+      setEmail(res.data?.email || "");
     } catch {
       setConnected(false);
+      setConfigured(false);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (LOCAL) {
-      setLoading(false);
-      return;
+    const params = new URLSearchParams(window.location.search);
+    const landing = params.get("google");
+    if (landing === "connected") {
+      toast({ title: "Google Calendar connected", description: "Your events can now be pulled into the schedule." });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google");
+      window.history.replaceState({}, "", url);
+    } else if (landing === "error") {
+      toast({ title: "Google connection didn't complete", description: "Close the tab and try again." });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google");
+      window.history.replaceState({}, "", url);
     }
-    check();
-  }, []);
+    if (!LOCAL) check();
+  }, [check, toast]);
 
   const handleConnect = async () => {
     try {
@@ -63,9 +77,15 @@ export default function CalendarSync({ onSynced }) {
         body: { action: "sync" },
       });
       if (res.error) throw res.error;
-      toast({
-        title: `Google Calendar synced — ${res.data?.created ?? 0} new, ${res.data?.updated ?? 0} updated.`,
-      });
+      if (res.data?.connected === false) {
+        toast({ title: "Google Calendar needs attention", description: res.data.message || "Reconnect to keep syncing." });
+        setConnected(false);
+      } else {
+        toast({
+          title: `Google Calendar synced — ${res.data?.created ?? 0} new, ${res.data?.updated ?? 0} updated.`,
+          description: res.data?.skippedAllDay > 0 ? `${res.data.skippedAllDay} all-day events skipped (timetables are time-based).` : undefined,
+        });
+      }
       onSynced?.();
     } catch {
       toast({ title: "Sync failed. Try reconnecting Google Calendar." });
@@ -82,11 +102,31 @@ export default function CalendarSync({ onSynced }) {
       });
     } catch { /* already disconnected */ }
     setConnected(false);
+    setEmail("");
     toast({ title: "Google Calendar disconnected." });
   };
 
   if (loading) {
     return <div className="surface-card h-[76px] mb-6 animate-pulse" />;
+  }
+
+  if (!configured && !LOCAL) {
+    return (
+      <div className="surface-card p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <CalendarDays className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div>
+            <div className="text-sm font-medium">Google Calendar</div>
+            <div className="text-xs text-muted-foreground">
+              Not configured on this deployment — the sync function needs Google OAuth credentials server-side.
+            </div>
+          </div>
+        </div>
+        <span className="text-xs text-muted-foreground text-right sm:text-left">COMING SOON</span>
+      </div>
+    );
   }
 
   return (
@@ -98,9 +138,11 @@ export default function CalendarSync({ onSynced }) {
         <div>
           <div className="text-sm font-medium">Google Calendar</div>
           <div className="text-xs text-muted-foreground">
-            {connected
-              ? "Connected — pull your upcoming Google events into this schedule."
-              : "Connect your account to import upcoming Google events as personal events."}
+            {LOCAL
+              ? "Available when connected to an account"
+              : connected
+                ? (email ? `Connected as ${email} — pull your upcoming Google events into this schedule.` : "Connected — pull your upcoming Google events into this schedule.")
+                : "Connect your account to import upcoming Google events as personal events."}
           </div>
         </div>
       </div>

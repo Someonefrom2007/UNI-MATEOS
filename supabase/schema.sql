@@ -1176,3 +1176,85 @@ ALTER TABLE public.webhook_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.community_posts DROP CONSTRAINT IF EXISTS community_posts_type_check;
 ALTER TABLE public.community_posts ADD CONSTRAINT community_posts_type_check
   CHECK (type IN ('question','tip','win','resource','event','announcement'));
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- GOOGLE INTEGRATIONS — additive. google-calendar-sync edge function backs a
+-- real OAuth flow. Tokens are written by the service role and never exposed to
+-- the browser; RLS only lets the owner read/delete their own row.
+-- ────────────────────────────────────────────────────────────────────────────
+
+-- Idempotent import target: dedupe schedule events by their Google event id.
+-- A plain UNIQUE constraint (not a partial unique index) is intentional so
+-- PostgREST can use `ON CONFLICT (google_event_id)` as an upsert arbiter.
+ALTER TABLE public.schedule_events DROP CONSTRAINT IF EXISTS schedule_events_google_event_id_key;
+ALTER TABLE public.schedule_events ADD CONSTRAINT schedule_events_google_event_id_key
+  UNIQUE (google_event_id);
+
+CREATE TABLE IF NOT EXISTS public.google_calendar_connections (
+  user_id          uuid PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
+  google_email     text NOT NULL DEFAULT '',
+  access_token     text,
+  refresh_token    text,
+  expires_at       timestamptz,
+  calendar_id      text NOT NULL DEFAULT 'primary',
+  last_synced_at   timestamptz,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.google_calendar_connections ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "google_connections_select_own" ON public.google_calendar_connections
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "google_connections_update_own" ON public.google_calendar_connections
+  FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "google_connections_delete_own" ON public.google_calendar_connections
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER google_connections_set_updated_at
+  BEFORE UPDATE ON public.google_calendar_connections
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- Pending OAuth consent states (connect -> callback). No client policies: the
+-- edge function writes and consumes them with the service role only.
+CREATE TABLE IF NOT EXISTS public.google_oauth_states (
+  state      text PRIMARY KEY,
+  user_id    uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.google_oauth_states ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS google_oauth_states_created_at_idx
+  ON public.google_oauth_states (created_at);
+
+-- Dedupe target for Google Drive sync: resources get a stable drive_file_id so
+-- the same file is imported once and updated on later syncs.
+ALTER TABLE public.resources ADD COLUMN IF NOT EXISTS drive_file_id text;
+ALTER TABLE public.resources DROP CONSTRAINT IF EXISTS resources_drive_file_id_key;
+ALTER TABLE public.resources ADD CONSTRAINT resources_drive_file_id_key
+  UNIQUE (drive_file_id);
+
+CREATE TABLE IF NOT EXISTS public.google_drive_connections (
+  user_id          uuid PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
+  google_email     text NOT NULL DEFAULT '',
+  access_token     text,
+  refresh_token    text,
+  expires_at       timestamptz,
+  last_synced_at   timestamptz,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.google_drive_connections ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "google_drive_select_own" ON public.google_drive_connections
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "google_drive_update_own" ON public.google_drive_connections
+  FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "google_drive_delete_own" ON public.google_drive_connections
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER google_drive_set_updated_at
+  BEFORE UPDATE ON public.google_drive_connections
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
