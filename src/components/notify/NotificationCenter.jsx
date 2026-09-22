@@ -27,6 +27,7 @@ import {
   markAllRead,
   unreadCount,
 } from "@/lib/notifications";
+import { loadPrefs, filterNotifs } from "@/lib/notifyPrefs";
 import { relLabel, groupByGroup } from "@/lib/notificationsUi";
 
 const KIND_META = {
@@ -49,6 +50,13 @@ export const useNotifications = () => {
   const { data } = useUserData();
   const [replies, setReplies] = useState([]);
   const [readIds, setReadIds] = useState(() => loadReadIds());
+  const [prefsVersion, setPrefsVersion] = useState(0);
+
+  useEffect(() => {
+    const onPrefs = () => setPrefsVersion((v) => v + 1);
+    window.addEventListener("unimate:notif-prefs", onPrefs);
+    return () => window.removeEventListener("unimate:notif-prefs", onPrefs);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,15 +75,18 @@ export const useNotifications = () => {
 
   const notifs = useMemo(() => {
     if (!data) return [];
-    return buildNotifications({
-      exams: data.Exam || [],
-      tasks: data.Task || [],
-      events: data.ScheduleEvent || [],
-      courses: data.Course || [],
-      focusSessions: data.FocusSession || [],
-      communityReplies: replies,
-    });
-  }, [data, replies]);
+    return filterNotifs(
+      buildNotifications({
+        exams: data.Exam || [],
+        tasks: data.Task || [],
+        events: data.ScheduleEvent || [],
+        courses: data.Course || [],
+        focusSessions: data.FocusSession || [],
+        communityReplies: replies,
+      }),
+      loadPrefs()
+    );
+  }, [data, replies, prefsVersion]);
 
   const unread = unreadCount(notifs, readIds);
 
