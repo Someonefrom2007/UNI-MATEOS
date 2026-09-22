@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { Moon, Sun, Monitor, Globe, Database, LogOut, Download, Loader2, Sparkles, Palette, Bell, BellOff, Trash2, HardDrive } from "lucide-react";
+import { Moon, Sun, Monitor, Globe, Database, LogOut, Download, Upload, Loader2, Sparkles, Palette, Bell, BellOff, Trash2, HardDrive } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -16,6 +16,7 @@ import { useI18n, getLang, setLang } from "@/lib/i18n";
 import { isLocalWorkspace, getAppRepo } from "@/lib/repo/select";
 import { createLocalRepo } from "@/lib/repo/localRepo";
 import { loadPrefs, savePrefs } from "@/lib/notifyPrefs";
+import { parseExport, runImport } from "@/lib/dataImport";
 
 const EXPORT_ENTITIES = [
   "Course", "ScheduleEvent", "Task", "Exam", "Grade", "Note", "Resource",
@@ -43,6 +44,8 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef(null);
   const [usage, setUsage] = useState(null);
   const [notifyPrefs, setNotifyPrefs] = useState(() => loadPrefs());
 
@@ -164,6 +167,34 @@ export default function Settings() {
     }
   };
 
+  const importData = async (e) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = "";
+    if (!file) return;
+    let parsed;
+    try {
+      parsed = parseExport(await file.text());
+    } catch {
+      parsed = { ok: false };
+    }
+    if (!parsed.ok) {
+      toast({ title: t("settings.data.importFailed") });
+      return;
+    }
+    if (!confirm(t("settings.data.importConfirm"))) return;
+    setImporting(true);
+    try {
+      const total = await runImport(getAppRepo(), parsed.bundle.data);
+      const description = `${total.imported} ${t("settings.data.importImported")} · ${total.skipped} ${t("settings.data.importSkipped")} · ${total.failed} ${t("settings.data.importFailures")}`;
+      toast({ title: t("settings.data.importDone"), description });
+      computeUsage();
+    } catch {
+      toast({ title: t("settings.data.importFailed") });
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const wipeAll = async () => {
     if (!confirm(t("settings.confirm.wipe1"))) return;
     if (!confirm(t("settings.confirm.wipe2"))) return;
@@ -274,6 +305,12 @@ export default function Settings() {
             {exporting ? t("settings.data.exporting") : t("settings.data.export")}
           </Button>
           <p className="text-xs text-muted-foreground mt-2">{t("settings.data.exportDesc")}</p>
+          <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={importData} />
+          <Button variant="outline" className="w-full justify-start mt-3" onClick={() => fileRef.current?.click()} disabled={importing}>
+            {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+            {importing ? t("settings.data.importing") : t("settings.data.import")}
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">{t("settings.data.importDesc")}</p>
           <Button variant="outline" className="w-full justify-start mt-3" onClick={loadDemo} disabled={demoLoading}>
             {demoLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2 text-primary" />}
             {demoLoading ? t("settings.data.demoLoading") : t("settings.data.demo")}

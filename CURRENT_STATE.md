@@ -1,15 +1,16 @@
 # UNI·MATE — CURRENT STATE
 
-Evidence-based snapshot from repository inspection + green-gate baseline. This entry updates 2026-09-16 + records the pre-launch hardening work delivered 2026-09-17 → 09-22 (billing, Rescue My Week, Google Calendar/Drive, Settings, full i18n, hygiene). Do not treat this file as a spec — it records what actually exists.
+Evidence-based snapshot from repository inspection + green-gate baseline. This entry updates 2026-09-16 + records the pre-launch hardening work delivered 2026-09-17 → 09-22 (billing, Rescue My Week, Google Calendar/Drive, Settings ± backup import, full i18n, hygiene) + the 09-22 quality pass. Do not treat this file as a spec — it records what actually exists.
 
 ## Verification (all green, 2026-09-22)
 
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` (tsc -p ./jsconfig.json, checkJs) | ✅ 0 errors |
-| Tests | `npm test` (vitest run) | ✅ 43 files / 551 tests pass (deterministic discovery scoped to `src`, agent worktrees excluded) |
+| Tests | `npm test` (vitest run) | ✅ 45 files / 569 tests pass (deterministic discovery scoped to `src`, agent worktrees excluded) |
 | Lint | `npm run lint` (eslint . --quiet) | ✅ 0 errors |
-| Build | `npm run build` | ✅ PASS — PWA, 83 precache entries (1606.01 KiB), chunked vendor split (`vendor-react` / `vendor-data` / `vendor-anim`), no >500 kB chunk |
+| Build | `npm run build` | ✅ PASS — PWA, 83 precache entries (1605.94 KiB), chunked vendor split (`vendor-react` / `vendor-data` / `vendor-anim`), no >500 kB chunk |
+| All-in-one | `npm run verify` | ✅ `typecheck && lint && test && build` in sequence (script added this pass) |
 
 Runtime/browser verification is NOT available in this environment — evidence is compile + test + build. Live OAuth/Lemon Squeezy/OpenAI flows are env-gated and were not exercised against real providers (no external credentials).
 
@@ -42,8 +43,14 @@ Runtime/browser verification is NOT available in this environment — evidence i
 - The four remaining English-only pages are now fully translated via `t()`: **Settings, Plans, Profile, Integrations** — section headers, tier tags/descriptions/feature lists, status labels, CTAs, toasts, and confirm dialogs; `~/src/lib/i18n.js` grew by ~650 lines. Integrations re-checks provider status when the language changes (deps `[lang]`, no loop).
 
 ### Hygiene
-- Vitest discovery is now deterministic: `include: ['src/**/*.{test,spec}...']`, `.kilo/**` excluded — the true suite is **43 files / 551 tests** (the stale agent-worktree copy added 23 files / 349 duplicated tests). Deleted dead `src/utils/index.ts`. Pruned stale `jsconfig.json` excludes (`src/vite-plugins`, `src/api`) and the non-existent `src/Layout.jsx` entry in `eslint.config.js`.
+- Vitest discovery is now deterministic: `include: ['src/**/*.{test,spec}...']`, `.kilo/**` excluded — the true suite is **45 files / 569 tests** (the stale agent-worktree copy added 23 files / 349 duplicated tests). Deleted dead `src/utils/index.ts`. Pruned stale `jsconfig.json` excludes (`src/vite-plugins`, `src/api`) and the non-existent `src/Layout.jsx` entry in `eslint.config.js`.
 - Git: `main` ahead of upstream; milestone commits `e2781bc` (billing), `4c9c10d` (Google Calendar + Drive), rescue, settings, i18n, hygiene.
+
+### 09-22 quality pass
+- **README** rewritten to match reality: real edge functions (`ai-assistant` / `lemon-squeezy` / `google-calendar-sync` / `google-drive`), env-gated secrets, local-vs-hosted behavior, feature list (billing, Rescue My Week, Google connectors, i18n), and the `npm run verify` shortcut. Removed the stale "OAuth not wired" / trailing junk lines.
+- **i18n testability**: extracted a pure `translate(lang, key)` (`src/lib/i18n.js`) reused by `useI18n`; new parity/fallback suite `src/__tests__/i18n.test.js` asserts every shipped Settings/Plans/Profile/Integrations/Rescue anchor resolves in en/ca/es (no raw-key passthrough) and that language switching round-trips and ignores unknown codes. Bad-key detection is locked into the gate.
+- **Backup import (data portability)**: `src/lib/dataImport.js` (pure, 13 tests) — `parseExport` validates a JSON backup, `sanitizeRows` keeps only plain records for known tables, `planImport` skips ids that already exist in the target store (existing copy is authoritative; foreign keys stay stable), `forgetIdentity` strips ownership for re-homing, and `runImport` performs the restore against any repo (create failures counted per row, never aborting the batch). Settings → Data → **Import backup (JSON)** reads a file, confirms, and restores through `getAppRepo()` in both local (restore after wipe / move device) and hosted (move local data into the account) modes; summary toast reports imported / kept / failed. This closes the local→cloud push gap as a user-driven, id-preserving migration path.
+- **Determinism fix**: `generateStudyPlan` no longer stamps nondeterministic per-item `created_at`/`updated_at` — the repo stamps timestamps on persist, so the pure planner output is deterministic and the previously flaky `studyPlan.test.js` determinism test is stable across repeated full-suite runs.
 
 ## Stack (verified in package.json / configs)
 
@@ -103,7 +110,7 @@ Runtime/browser verification is NOT available in this environment — evidence i
 
 ## Gaps vs the 2.0 directive (evidence-based)
 
-1. **Local-first (directive §6/§7): MET (Mission 1, 2026-09).** App runs with zero backend and data survives refresh/restart: repository interface + local adapter (`src/lib/repo/`), env-based adapter selection, local workspace mode (auto-auth, no accounts), 16 new tests (189 total green). Remaining: local→cloud push UX.
+1. **Local-first (directive §6/§7): MET (Mission 1, 2026-09).** App runs with zero backend and data survives refresh/restart: repository interface + local adapter (`src/lib/repo/`), env-based adapter selection, local workspace mode (auto-auth, no accounts). Portability: the 09-22 pass added backup export→import (`src/lib/dataImport.js`, Settings → Data) — id-preserving restore into the same or a hosted store, the user-driven local→cloud push path. Remaining: a deluxe frictionless "one-click push after sign-in" (would need the repo-backed hosted UI from gap 2).
 2. **Repository/service interface (§6/§5): MET-candidate (Mission 2, 2026-09).** UI → `useUserData` stable surface → `src/lib/repo/*`. Both adapters (local + Supabase) now pass the same contract suite, but the UI still calls Supabase directly outside the repository in hosted mode (per-component `supabase.from` calls); moving those under the interface is the follow-up.
 3. **Brand variants (§8): DONE (Mission 3).** Centralized `src/components/Brand/*`; six symbol/wordmark variants; favicon, PNG app icons, apple-touch, OG image, PWA icons, branded splash all wired (see Brand assets). Brand consistency test suite added (6 tests).
 4. **Landing (§23): DONE (Mission 4).** Full cinematic narrative in the required order; product interface as the hero; honest "Illustrative preview" markers on all decorative mocks; initials-only community mock; narrative + copy under test.
