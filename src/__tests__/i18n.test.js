@@ -1,19 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { translate, setLang, getLang, LANGUAGES } from "@/lib/i18n";
-
-const ANCHORS = [
-  "nav.dashboard", "nav.rescue", "nav.integrations", "nav.home",
-  "title.settings.subtitle", "title.profile", "title.plans", "title.rescue.subtitle",
-  "settings.appearance", "settings.theme.dark", "settings.language", "settings.language.saved",
-  "settings.notifications", "settings.notify.on", "settings.data.export", "settings.data.wipe",
-  "settings.data.import", "settings.data.importing", "settings.data.importDesc",
-  "settings.data.importConfirm", "settings.data.importDone", "settings.data.importImported",
-  "settings.data.importSkipped", "settings.data.importFailures", "settings.data.importFailed",
-  "settings.confirm.wipe2", "settings.account",
-  "plans.active", "plans.tag.ultimate", "plans.waitlist.joined", "plans.footer.local",
-  "profile.fields.university", "profile.save", "profile.localNote",
-  "integrations.footer", "integrations.status.synced", "integrations.drive.syncFiles",
-];
+import { translate, setLang, getLang, getDictionary, LANGUAGES } from "@/lib/i18n";
 
 const LANGS = ["en", "ca", "es"];
 
@@ -25,9 +11,28 @@ beforeEach(() => {
 });
 
 describe("i18n: translator", () => {
-  it("resolves every shipped anchor in all three languages with real translations", () => {
-    for (const key of ANCHORS) {
-      for (const lang of LANGS) {
+  it("parity: every shipped key exists in all three languages (no missing, no dangling)", () => {
+    const sets = Object.fromEntries(LANGS.map((lang) => [lang, Object.keys(getDictionary(lang)).sort()]));
+    const [enKeyList] = [sets.en];
+    for (const lang of ["ca", "es"]) {
+      expect(sets[lang]).toEqual(enKeyList);
+    }
+  });
+
+  it("every value in every language is a non-empty string and never the raw key", () => {
+    for (const lang of LANGS) {
+      const dict = getDictionary(lang);
+      for (const [key, value] of Object.entries(dict)) {
+        expect(typeof value, `${lang}/${key} must be a string`).toBe("string");
+        expect(value.trim().length, `${lang}/${key} must not be empty`).toBeGreaterThan(0);
+        expect(value, `${lang}/${key} must not pass through the raw key`).not.toBe(key);
+      }
+    }
+  });
+
+  it("resolves via translate() without surprise passthroughs across languages", () => {
+    for (const lang of LANGS) {
+      for (const key of Object.keys(getDictionary(lang))) {
         const value = translate(lang, key);
         expect(value, `${lang}/${key} should resolve`).toBeDefined();
         expect(value, `${lang}/${key} should not pass through the raw key`).not.toBe(key);
@@ -38,6 +43,10 @@ describe("i18n: translator", () => {
   it("returns the key itself when nothing exists anywhere", () => {
     expect(translate("en", "totally.unknown.key")).toBe("totally.unknown.key");
     expect(translate("ca", "totally.unknown.key")).toBe("totally.unknown.key");
+  });
+
+  it("getDictionary falls back to English for unknown languages", () => {
+    expect(getDictionary("xx")).toBe(getDictionary("en"));
   });
 
   it("recognizes exactly the three supported languages", () => {

@@ -1038,6 +1038,9 @@ export const translate = (lang, key) => {
   return fallback[key] !== undefined ? fallback[key] : key;
 };
 
+/** Raw dictionary for a language (falls back to English); used by the parity suite. */
+export const getDictionary = (lang) => DICT[lang] || DICT.en;
+
 export const useI18n = () => {
   const [lang, setLangState] = useState(getLang);
 
