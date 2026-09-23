@@ -7,12 +7,12 @@ Pre-launch status of the UNI·MATE academic OS (React 18 + Vite/Tailwind + shadc
 | Gate | Command | Result |
 |---|---|---|
 | Typecheck | `npm run typecheck` | 0 errors |
-| Tests | `npm test` | 50 files / 659 tests pass |
+| Tests | `npm test` | 51 files / 664 tests pass |
 | Lint | `npm run lint` | 0 errors |
 | Build | `npm run build` | PASS — PWA `generateSW`, 84 precache entries (~1.61 MB), vendor chunk split, no >500 kB chunk |
 | All-in-one | `npm run verify` | `typecheck && lint && test && build` in one command (added 09-22) |
 
-Runtime: a headless-Chrome sweep covered the signed-in student surface, all 15 `/admin` console sections, and in-app navigation in the local workspace with zero console errors. Two pre-existing local-mode bugs found by that sweep were fixed (the local repo adapter is now promise-returning like the hosted adapter, and the Insights page no longer renders a phantom Risk bucket). Live OAuth, Lemon Squeezy checkout and OpenAI calls were not exercised against real providers — no external credentials.
+Runtime: a headless-Chrome sweep covered the signed-in student surface, all 15 `/admin` console sections, and in-app navigation in the local workspace with zero console errors. A second interactive create-flow sweep clicked every primary creation path end-to-end (QuickAdd for all 12 entities, sticky notes, note editor autosave, focus session, community post, palette quick-add, admin flags/announcements, habit logs, Rescue plan adoption) — all persisted, zero console errors. Two pre-existing local-mode bugs found by these sweeps were fixed (the local repo adapter is now promise-returning like the hosted adapter, and the Insights page no longer renders a phantom Risk bucket; plus `useUserData.mutate` now preserves single-payload creates via `src/lib/mutateArgs.js` — previously sticky notes/focus sessions/habit logs/palette quick-adds/schedule study blocks wrote **empty rows**). Observed UX constraint: Exam/Grade QuickAdd require picking an existing Course (their Course select is required with no valid default) — they silently no-op otherwise. Live OAuth, Lemon Squeezy checkout and OpenAI calls were not exercised against real providers — no external credentials.
 
 ## 2. What exists now
 

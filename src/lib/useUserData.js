@@ -13,6 +13,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { getTable } from "@/lib/tables";
 import { isLocalWorkspace, getAppRepo } from "@/lib/repo/select";
+import { normalizeMutateArgs } from "@/lib/mutateArgs";
 
 const FETCH_ENTITIES = [
   "Course", "ScheduleEvent", "Task", "Exam", "Grade", "Note", "Resource", "Topic",
@@ -129,7 +130,7 @@ export const useUserData = () => {
   const mutate = useCallback(async (entityName, op, ...args) => {
     const table = getTable(entityName);
     if (!table) throw new Error(`Unknown entity: ${entityName}`);
-    const [id, payload] = args;
+    const { id, payload } = normalizeMutateArgs(op, args);
     let result = null;
     try {
       if (op === "create") result = await repo.create(table, toSnakeCase(payload || {}));
