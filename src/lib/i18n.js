@@ -175,6 +175,11 @@ const DICT = {
     "settings.language.deviceNote": "Saved to this device.",
     "settings.language.profileNote": "Saved to your device and your account profile — the next device you sign into inherits it.",
     "settings.language.saved": "Language preference saved",
+    // Settings — Founder console (admins only, server-verified)
+    "settings.founder.title": "Founder Console",
+    "settings.founder.desc": "Server-verified admin access — open the Control Center on demand.",
+    "settings.founder.open": "Open Founder Console",
+    "settings.founder.role": "Role",
     // Settings — Notifications
     "settings.notifications": "Notifications",
     "settings.notify.academic": "Academic (exams, tasks, free time)",
@@ -500,6 +505,10 @@ const DICT = {
     "settings.language.deviceNote": "Desat en aquest dispositiu.",
     "settings.language.profileNote": "Desat al dispositiu i al teu perfil de compte — el proper dispositiu on entres l'hereta.",
     "settings.language.saved": "Preferència d'idioma desada",
+    "settings.founder.title": "Consola del Fundador",
+    "settings.founder.desc": "Accés d'administració verificat al servidor — obre el Control Center quan ho necessitis.",
+    "settings.founder.open": "Obre la Consola del Fundador",
+    "settings.founder.role": "Rol",
     // Settings — Notifications
     "settings.notifications": "Notificacions",
     "settings.notify.academic": "Acadèmic (exàmens, tasques, temps lliure)",
@@ -825,6 +834,10 @@ const DICT = {
     "settings.language.deviceNote": "Guardado en este dispositivo.",
     "settings.language.profileNote": "Guardado en tu dispositivo y en tu perfil de cuenta — el próximo dispositivo donde inicies sesión lo hereda.",
     "settings.language.saved": "Preferencia de idioma guardada",
+    "settings.founder.title": "Consola del Fundador",
+    "settings.founder.desc": "Acceso de administración verificado en el servidor — abre el Centro de Control cuando lo necesites.",
+    "settings.founder.open": "Abrir la Consola del Fundador",
+    "settings.founder.role": "Rol",
     // Settings — Notifications
     "settings.notifications": "Notificaciones",
     "settings.notify.academic": "Académico (exámenes, tareas, tiempo libre)",

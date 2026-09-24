@@ -19,7 +19,7 @@ import { ROLES, PERMISSIONS, principalFrom } from "@/lib/admin/permissions";
  * @returns {object} principal (see principalFrom)
  */
 export const shapeHostedPrincipal = ({ role, permissions } = {}) => {
-  const known = role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN;
+  const known = role === ROLES.FOUNDER || role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN;
   if (!known) {
     return principalFrom({ role: "", source: "hosted" });
   }
@@ -28,12 +28,12 @@ export const shapeHostedPrincipal = ({ role, permissions } = {}) => {
 
 /**
  * Local-workspace identity: the founder operates the console on-device. This is
- * a super-admin here ONLY because there is no server to enforce access — the
+ * the founder role here ONLY because there is no server to enforce access — the
  * banner must surface that it is not server-enforced.
  * @returns {object} principal (source local)
  */
 export const localDevPrincipal = () =>
-  principalFrom({ role: ROLES.SUPER_ADMIN, permissions: [], source: "local" });
+  principalFrom({ role: ROLES.FOUNDER, permissions: [], source: "local" });
 
 /**
  * Resolve whether the console can enforce anything given the runtime env.

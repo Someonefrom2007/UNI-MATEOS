@@ -91,7 +91,7 @@ export default function AdminSettings() {
           {principal?.role === ROLES.SUPER_ADMIN && " — all permissions implied"}
         </p>
         <p className="text-sm text-slate-400 mt-1">
-          Effective permissions: <span className="font-mono text-xs text-slate-300">{permissionsFor(principal?.role).join(", ") || "—"}</span>
+          Effective permissions: <span className="font-mono text-xs text-slate-300">{permissionsFor({ role: principal?.role || "" }).join(", ") || "—"}</span>
         </p>
         <p className="text-[11px] text-slate-600 font-mono mt-3">
           Changing your own role is impossible from the console (guard_admin_role trigger). Roles are granted server-side only.

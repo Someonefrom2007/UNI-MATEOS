@@ -383,8 +383,13 @@ describe("admin/pulse", () => {
 
 describe("admin/metrics", () => {
   it("countsByDay buckets strictly past N days", () => {
-    const rows = [{ created_at: "2026-09-20T00:00:00Z" }, { created_at: "2026-09-21T00:00:00Z" }, { created_at: "2026-09-22T00:00:00Z" }];
-    // Use a fixed "today" by computing relative to now — the function is relative.
+    const at = (offset) => {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - (2 - offset));
+      return d.toISOString();
+    };
+    const rows = [{ created_at: at(0) }, { created_at: at(1) }, { created_at: at(2) }];
+    // Dates are relative to now so the assertion stays strict on any run day.
     const out = countsByDay(rows, "created_at", 3);
     expect(out).toHaveLength(3);
     expect(out.reduce((s, b) => s + b.count, 0)).toBe(3);

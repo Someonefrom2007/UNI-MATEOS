@@ -33,11 +33,11 @@ export const nextContentStatuses = (current) => CONTENT_TRANSITIONS[current] || 
 
 /**
  * May this moderator perform the action on the target? Requires an admin role;
- * super_admin additionally may remove content outright.
+ * founder and super_admin additionally may remove content outright.
  */
 export const canModerate = (principal = {}, action = "") => {
   if (!principal?.isAdmin) return false;
-  if (action === "remove") return principal.role === ROLES.SUPER_ADMIN || principal.isSuper === true;
+  if (action === "remove") return principal.role === ROLES.SUPER_ADMIN || principal.role === ROLES.FOUNDER || principal.isSuper === true;
   return true;
 };
 

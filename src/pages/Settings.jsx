@@ -4,11 +4,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { Moon, Sun, Monitor, Globe, Database, LogOut, Download, Upload, Loader2, Sparkles, Palette, Bell, BellOff, Trash2, HardDrive } from "lucide-react";
+import { Moon, Sun, Monitor, Globe, Database, LogOut, Download, Upload, Loader2, Sparkles, Palette, Bell, BellOff, Trash2, HardDrive, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useAdmin } from "@/lib/admin/useAdmin";
 
 import { applyTheme, applyAccent, ACCENT_PRESETS } from "@/lib/theme";
+import { roleLabel } from "@/lib/admin/permissions";
 import { loadDemoData } from "@/lib/demoData";
 import { supabase } from "@/lib/supabase";
 import { TABLE } from "@/lib/tables";
@@ -36,6 +38,7 @@ export default function Settings() {
   const { t } = useI18n();
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const { principal } = useAdmin();
   const local = isLocalWorkspace();
   const localRepo = local ? createLocalRepo() : null;
   const [theme, setTheme] = useState("dark");
@@ -226,6 +229,19 @@ export default function Settings() {
     <>
       <PageHeader title={t("title.settings")} subtitle={t("title.settings.subtitle")} />
       <div className="max-w-2xl space-y-5">
+        {principal?.isAdmin && (
+          <Card className="p-5 border-primary/30 bg-primary/[0.03]">
+            <div className="flex items-center gap-2 mb-1"><ShieldCheck className="w-4 h-4 text-teal-500" /><h2 className="um-label">{t("settings.founder.title")}</h2></div>
+            <p className="text-xs text-muted-foreground mb-4">{t("settings.founder.desc")}</p>
+            <Button className="w-full justify-start" onClick={() => navigate("/admin")} variant="outline">
+              <ShieldCheck className="w-4 h-4 mr-2 text-teal-500" />
+              {t("settings.founder.open")}
+            </Button>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 mt-3">
+              {t("settings.founder.role")}: {roleLabel(principal.role)} · {principal.source === "hosted" ? "server-verified" : "dev identity (local)"}
+            </p>
+          </Card>
+        )}
         <Card className="p-5">
           <div className="flex items-center gap-2 mb-4"><Sun className="w-4 h-4 text-hud-amber" /><h2 className="um-label">{t("settings.appearance")}</h2></div>
           <div className="grid grid-cols-3 gap-2">

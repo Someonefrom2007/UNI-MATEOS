@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ArrowRight, CheckSquare, FilePlus, Timer, CornerDownLeft } from "lucide-react";
+import { Search, ArrowRight, CheckSquare, FilePlus, Timer, CornerDownLeft, Shield } from "lucide-react";
 import { useUserData } from "@/lib/useUserData";
 import { useToast } from "@/components/ui/use-toast";
+import { useAdmin } from "@/lib/admin/useAdmin";
 import { todayISO } from "@/lib/format";
 import { norm, filterCommandPalette, isPaletteShortcut } from "@/lib/paletteSearch";
 
@@ -45,6 +46,9 @@ const HEADERS = {
   data: "OPEN",
 };
 
+// Shown only to admins; never compiled into the result set for a student.
+const FOUNDER_COMMAND = { label: "Founder Console", to: "/admin", type: "Go to", icon: Shield };
+
 export default function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -56,6 +60,7 @@ export default function CommandPalette() {
   const inputRef = useRef(null);
   const captureRef = useRef(null);
   const { data, loading, mutate } = useUserData();
+  const { principal } = useAdmin();
   const { toast } = useToast();
 
   const close = useCallback(() => {
@@ -106,8 +111,9 @@ export default function CommandPalette() {
       push(data.Exam || [], "Exam", (e) => e.name, (e) => e.date, (e) => `/exams/${e.id}`);
       push(data.Resource || [], "Resource", (r) => r.name, (r) => r.type, () => "/resources");
     }
-    return filterCommandPalette({ query: q, actions: ACTIONS, commands: COMMANDS, dataRows });
-  }, [open, q, data]);
+    const commands = principal?.isAdmin ? [...COMMANDS, FOUNDER_COMMAND] : COMMANDS;
+    return filterCommandPalette({ query: q, actions: ACTIONS, commands, dataRows });
+  }, [open, q, data, principal]);
 
   useEffect(() => {
     setSel(0);

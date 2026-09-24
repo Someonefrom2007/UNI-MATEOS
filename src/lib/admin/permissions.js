@@ -10,10 +10,24 @@
 // RLS policies built on public.is_admin() / admin_accounts, and by the
 // admin-gateway edge function. Feature flags never map to permissions.
 
+// Role hierarchy: FOUNDER > SUPER_ADMIN > ADMIN > (student). Founder is the
+// top UNI·MATE role and always holds the full catalog, like super_admin. The
+// rest of the app treats "admin" as a binary (isAdmin) and these roles only
+// refine which permissions the principal may exercise.
 export const ROLES = Object.freeze({
+  FOUNDER: "founder",
   ADMIN: "admin",
   SUPER_ADMIN: "super_admin",
 });
+
+export const ROLE_LABELS = Object.freeze({
+  [ROLES.FOUNDER]: "Founder",
+  [ROLES.SUPER_ADMIN]: "Super Admin",
+  [ROLES.ADMIN]: "Admin",
+});
+
+/** Human label for a role string (used in the console identity block). */
+export const roleLabel = (role) => ROLE_LABELS[role] || (role || "user").replace(/[-_]/g, " ");
 
 export const PERMISSIONS = Object.freeze({
   USERS_READ: "users.read",
@@ -70,12 +84,17 @@ export const ALL_PERMISSIONS = Object.freeze(
  * @param {{ role?: string, permissions?: string[], isSuper?: boolean }} [membership={}]
  * @returns {string[]}
  */
+// Founder and super_admin always get the full catalog; a plain admin with an
+// explicit set uses it, and one with no explicit set gets the default set.
+// Unknown roles get nothing.
 export const permissionsFor = (membership = {}) => {
   const role = membership.role || "";
   const granted = Array.isArray(membership.permissions)
     ? membership.permissions.filter(Boolean)
     : [];
-  if (role === ROLES.SUPER_ADMIN || membership.isSuper) return [...ALL_PERMISSIONS];
+  if (role === ROLES.FOUNDER || role === ROLES.SUPER_ADMIN || membership.isSuper) {
+    return [...ALL_PERMISSIONS];
+  }
   if (role !== ROLES.ADMIN) return [];
   return granted.length > 0 ? [...new Set(granted)] : [...DEFAULT_ADMIN_PERMISSIONS];
 };
@@ -90,7 +109,7 @@ export const can = (principal = {}, permission) => {
   const membership = {
     role: principal?.role,
     permissions: principal?.permissions,
-    isSuper: principal?.role === ROLES.SUPER_ADMIN,
+    isSuper: principal?.role === ROLES.FOUNDER || principal?.role === ROLES.SUPER_ADMIN,
   };
   return permissionsFor(membership).includes(permission);
 };
@@ -115,8 +134,9 @@ export const principalFrom = (membership = {}) => {
   if (source === "none") {
     return { isAdmin: false, role: "user", permissions: [], source };
   }
-  const isAdmin = source === "hosted" ? role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN
-    : Boolean(membership.isAdmin || role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN);
+  const isAdmin = source === "hosted"
+    ? role === ROLES.FOUNDER || role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN
+    : Boolean(membership.isAdmin || role === ROLES.FOUNDER || role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN);
   return {
     isAdmin,
     role: isAdmin ? role : "user",

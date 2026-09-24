@@ -185,7 +185,7 @@ export default function Dashboard() {
           <div className={cell("attention")}><AttentionCard urgent={d.urgent} /></div>
         </Reveal>
         <Reveal delay={0.09} mode="inView" className="md:col-span-2">
-          <div className={cell("pulse")}><PulseCard gpa={d.semesterGPA} ects={d.totalEcts} grades={d.grades} /></div>
+          <div className={cell("pulse")}><PulseCard gpa={d.semesterGPA} ects={d.totalEcts} grades={d.grades} hasCourses={d.courses.length > 0} /></div>
         </Reveal>
         <Reveal delay={0.14} mode="inView" className="md:col-span-2">
           <div className={cell("focus")}><FocusCard sessions={data.FocusSession} /></div>

@@ -144,7 +144,7 @@ export default function Schedule() {
   return (
     <>
       <PageHeader title={t("title.schedule")} subtitle={t("title.schedule.subtitle")}>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-lg border border-border p-0.5">
             {["day", "week", "month"].map((v) => (
               <button
@@ -157,7 +157,7 @@ export default function Schedule() {
             ))}
           </div>
           <button onClick={() => shift(-1)} aria-label="Previous period" className="p-1.5 rounded-lg hover:bg-muted"><ChevronLeft className="w-4 h-4" /></button>
-          <span className="text-sm font-medium w-40 text-center truncate">{label()}</span>
+          <span className="text-sm font-medium w-32 sm:w-40 text-center truncate">{label()}</span>
           <button onClick={() => shift(1)} aria-label="Next period" className="p-1.5 rounded-lg hover:bg-muted"><ChevronRight className="w-4 h-4" /></button>
           <Button size="sm" variant="outline" onClick={() => setAnchor(new Date())}>Today</Button>
         </div>

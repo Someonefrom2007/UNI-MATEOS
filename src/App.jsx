@@ -11,7 +11,7 @@ import Splash from './components/Brand/Splash';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppShell from '@/components/AppShell';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { AdminLayout, RequireAdmin, RequirePermission } from '@/lib/admin/useAdmin';
+import { AdminLayout, RequireAdmin, RequirePermission, AdminProvider } from '@/lib/admin/useAdmin';
 import AdminShell from '@/components/admin/AdminShell';
 import { SECTIONS } from '@/lib/admin/sections';
 
@@ -97,7 +97,7 @@ const AuthenticatedApp = () => {
         <Route path="/" element={<Landing />} />
 
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-          <Route element={<AppShell />}>
+          <Route element={<AdminProvider><AppShell /></AdminProvider>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/community" element={<Community />} />
             <Route path="/onboarding" element={<Onboarding />} />

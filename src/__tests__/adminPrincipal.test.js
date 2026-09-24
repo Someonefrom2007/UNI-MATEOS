@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { ROLES, PERMISSIONS, can, principalFrom, ALL_PERMISSIONS } from "@/lib/admin/permissions";
+import { ROLES, PERMISSIONS, can, principalFrom, ALL_PERMISSIONS, roleLabel } from "@/lib/admin/permissions";
 import {
   ADMIN_ACCESS_LABELS,
   adminEnv,
@@ -11,6 +11,13 @@ import {
 
 describe("admin/principal", () => {
   it("shapeHostedPrincipal trusts only server-known roles", () => {
+    const founder = shapeHostedPrincipal({ role: ROLES.FOUNDER });
+    expect(founder.isAdmin).toBe(true);
+    expect(founder.role).toBe(ROLES.FOUNDER);
+    expect(founder.source).toBe("hosted");
+    expect(founder.permissions).toEqual(ALL_PERMISSIONS);
+    expect(can(founder, PERMISSIONS.SYSTEM_MANAGE)).toBe(true);
+
     const superAdmin = shapeHostedPrincipal({ role: ROLES.SUPER_ADMIN });
     expect(superAdmin.isAdmin).toBe(true);
     expect(superAdmin.role).toBe(ROLES.SUPER_ADMIN);
@@ -37,12 +44,28 @@ describe("admin/principal", () => {
     expect(denied.permissions).toEqual([]);
   });
 
-  it("localDevPrincipal is a clearly-marked unenforced dev identity", () => {
+  it("localDevPrincipal is the founder, a clearly-marked unenforced dev identity", () => {
     const local = localDevPrincipal();
     expect(local.source).toBe("local");
     expect(local.isAdmin).toBe(true);
-    expect(local.role).toBe(ROLES.SUPER_ADMIN);
+    expect(local.role).toBe(ROLES.FOUNDER);
     expect(can(local, PERMISSIONS.SYSTEM_MANAGE)).toBe(true);
+  });
+
+  it("roleLabel maps the role hierarchy to display names", () => {
+    expect(roleLabel(ROLES.FOUNDER)).toBe("Founder");
+    expect(roleLabel(ROLES.SUPER_ADMIN)).toBe("Super Admin");
+    expect(roleLabel(ROLES.ADMIN)).toBe("Admin");
+    expect(roleLabel("user")).toBe("user");
+    expect(roleLabel(undefined)).toBe("user");
+  });
+
+  it("hosted founder keeps full access after reload (principal is re-derived, not stored)", () => {
+    const first = shapeHostedPrincipal({ role: ROLES.FOUNDER });
+    const second = shapeHostedPrincipal({ role: ROLES.FOUNDER });
+    expect(second).toEqual(first);
+    expect(second.isAdmin).toBe(true);
+    expect(second.permissions).toEqual(ALL_PERMISSIONS);
   });
 
   it("adminEnv distinguishes local (unenforced) from hosted (enforced)", () => {

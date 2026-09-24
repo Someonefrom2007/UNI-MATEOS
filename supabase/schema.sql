@@ -1293,17 +1293,31 @@ CREATE TRIGGER user_profiles_guard_admin_role
   BEFORE INSERT OR UPDATE ON public.user_profiles
   FOR EACH ROW EXECUTE FUNCTION public.guard_admin_role();
 
--- 2. Admin membership — the ONLY place that says who is an admin.
+-- 2. Admin membership — the ONLY place that says who is an admin. Roles are
+--    FOUNDER > SUPER_ADMIN > ADMIN. `enabled` is an independent kill-switch:
+--    is_admin() refuses disabled rows, so disabling an admin revokes access at
+--    the server instantly. The client can never write here (no policies).
 CREATE TABLE IF NOT EXISTS public.admin_accounts (
   user_id     uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  role        text NOT NULL DEFAULT 'admin' CHECK (role IN ('admin','super_admin')),
+  role        text NOT NULL DEFAULT 'admin' CHECK (role IN ('founder','admin','super_admin')),
   permissions text[] NOT NULL DEFAULT '{}',
+  enabled     boolean NOT NULL DEFAULT true,
   created_by  uuid REFERENCES auth.users(id),
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now(),
-  CHECK (role = 'super_admin' OR EXISTS (SELECT 1 FROM unnest(permissions) AS x WHERE x = 'system.manage') = false
+  CHECK (role IN ('super_admin','founder') OR 'system.manage' = ANY (permissions) = false
          OR array_length(permissions, 1) IS NULL)
 );
+
+-- Idempotent upgrade for rows created before founder/enabled existed.
+ALTER TABLE public.admin_accounts ADD COLUMN IF NOT EXISTS enabled boolean NOT NULL DEFAULT true;
+ALTER TABLE public.admin_accounts DROP CONSTRAINT IF EXISTS admin_accounts_role_check;
+ALTER TABLE public.admin_accounts ADD CONSTRAINT admin_accounts_role_check
+  CHECK (role IN ('founder','admin','super_admin'));
+ALTER TABLE public.admin_accounts DROP CONSTRAINT IF EXISTS admin_accounts_check;
+ALTER TABLE public.admin_accounts ADD CONSTRAINT admin_accounts_check
+  CHECK (role IN ('super_admin','founder') OR 'system.manage' = ANY (permissions) = false
+         OR array_length(permissions, 1) IS NULL);
 
 ALTER TABLE public.admin_accounts ENABLE ROW LEVEL SECURITY;
 
@@ -1313,20 +1327,23 @@ CREATE POLICY "admin_accounts_select_own" ON public.admin_accounts
 
 -- 3. Security-definer admin helpers. SECURITY DEFINER runs as the table owner,
 --    bypassing RLS, and each helper re-verifies the caller internally before
---    releasing any information.
+--    releasing any information. All honor `enabled`.
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT EXISTS (SELECT 1 FROM public.admin_accounts WHERE user_id = auth.uid())
+  SELECT EXISTS (SELECT 1 FROM public.admin_accounts
+                 WHERE user_id = auth.uid() AND enabled)
 $$;
 
 CREATE OR REPLACE FUNCTION public.current_admin_role()
 RETURNS text LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT role FROM public.admin_accounts WHERE user_id = auth.uid()
+  SELECT role FROM public.admin_accounts
+  WHERE user_id = auth.uid() AND enabled
 $$;
 
 CREATE OR REPLACE FUNCTION public.current_admin_permissions()
 RETURNS text[] LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT permissions FROM public.admin_accounts WHERE user_id = auth.uid()
+  SELECT permissions FROM public.admin_accounts
+  WHERE user_id = auth.uid() AND enabled
 $$;
 
 -- Admin roster — returns membership rows to admins only (checked inside).
@@ -1498,3 +1515,48 @@ BEGIN
     EXECUTE format('CREATE POLICY admin_read ON public.%I FOR SELECT USING (public.is_admin())', t);
   END LOOP;
 END $$;
+
+-- 11. Founder bootstrap — idempotent, server-side only.
+-- The initial founder role is provisioned by resolving the FOUNDER_EMAIL to a
+-- real auth.users id and inserting the founder membership. It is a no-op until
+-- that account has registered (run apply again after signup). Re-runs never
+-- create duplicates (the ON CONFLICT targets the user_id primary key) and never
+-- downgrade or overwrite an existing membership.
+CREATE OR REPLACE FUNCTION public.bootstrap_founder(p_email text)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, pg_temp AS $$
+DECLARE
+  v_uid uuid;
+BEGIN
+  IF p_email IS NULL OR btrim(p_email) = '' THEN
+    RAISE EXCEPTION 'bootstrap_founder: an email is required';
+  END IF;
+  IF auth.uid() IS NOT NULL THEN
+    RAISE EXCEPTION 'bootstrap_founder: only a no-auth context may bootstrap the founder';
+  END IF;
+  SELECT id INTO v_uid FROM auth.users
+  WHERE lower(email) = lower(btrim(p_email))
+  LIMIT 1;
+  IF v_uid IS NULL THEN
+    RETURN false; -- founder has not registered yet; call again after signup
+  END IF;
+  INSERT INTO public.admin_accounts (user_id, role, permissions, enabled, created_by)
+  VALUES (v_uid, 'founder', NULL, true, v_uid)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN true;
+END $$;
+
+-- Only the service role / SQL owner may bootstrap. The client (anon and
+-- authenticated roles) can never call it, so no browser session can ever
+-- promote itself.
+REVOKE ALL ON FUNCTION public.bootstrap_founder(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.bootstrap_founder(text) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.bootstrap_founder(text) TO service_role;
+
+-- Initial founder seed for this deployment. Replace this email with your own
+-- FOUNDER_EMAIL for a different project — this value is server-side only and is
+-- never shipped to the browser.
+INSERT INTO public.admin_accounts (user_id, role, permissions, enabled, created_by)
+SELECT u.id, 'founder', NULL, true, u.id
+FROM auth.users u
+WHERE lower(u.email) = 'miquel.rocas25@gmail.com'
+ON CONFLICT (user_id) DO NOTHING;

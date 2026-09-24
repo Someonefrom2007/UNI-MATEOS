@@ -7,6 +7,7 @@ import EnvBanner from "@/components/admin/EnvBanner";
 import AdminCommandPalette from "@/components/admin/AdminCommandPalette";
 import { useAdmin } from "@/lib/admin/useAdmin";
 import { SECTIONS, permittedSections } from "@/lib/admin/sections";
+import { roleLabel } from "@/lib/admin/permissions";
 import { loadPrefs } from "@/lib/admin/prefs";
 import {
   LayoutDashboard, Users, CreditCard, MessageSquare, BarChart3, Sparkles, Plug,
@@ -101,7 +102,7 @@ export default function AdminShell() {
       <div className="px-3 mb-1.5 text-[10px] font-mono uppercase tracking-[0.25em] text-slate-500">{g.group}</div>
       <div className="space-y-0.5">
         {g.items.map((s) => (
-          <NavItem key={s.id} section={s} active={isActive(s.path)} onClick={closeMobile ? setMobileNav(false) : undefined} />
+          <NavItem key={s.id} section={s} active={isActive(s.path)} onClick={closeMobile ? () => setMobileNav(false) : undefined} />
         ))}
       </div>
     </div>
@@ -141,7 +142,7 @@ export default function AdminShell() {
               </button>
             )}
             <div className="px-2 pt-1 text-[10px] font-mono text-slate-600 truncate">
-              {principal?.source === "hosted" ? "server-verified admin" : "dev identity (local)"}
+              {principal?.source === "hosted" ? "server-verified" : "dev identity (local)"} · {roleLabel(principal?.role)}
             </div>
           </div>
         </aside>
@@ -182,9 +183,10 @@ export default function AdminShell() {
               </button>
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              <span className="hidden sm:inline text-[11px] font-mono text-slate-500 truncate max-w-[180px]">
-                {user?.email}
-              </span>
+              <div className="hidden sm:flex flex-col items-end leading-tight">
+                <span className="text-sm text-slate-200 truncate max-w-[180px]">{user?.full_name || "Operator"}</span>
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-teal-400">{roleLabel(principal?.role)}</span>
+              </div>
               <div className="w-8 h-8 rounded-lg bg-teal-500/15 ring-1 ring-teal-400/30 flex items-center justify-center text-teal-300 text-xs font-semibold">
                 {(user?.full_name || user?.email || "A").charAt(0).toUpperCase()}
               </div>

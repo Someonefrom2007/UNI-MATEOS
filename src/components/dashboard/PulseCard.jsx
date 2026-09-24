@@ -21,7 +21,7 @@ function Sparkline({ grades }) {
 }
 
 // The academic pulse: where you stand, and the shape of your trajectory.
-export default function PulseCard({ gpa, ects, grades = [] }) {
+export default function PulseCard({ gpa, ects, grades = [], hasCourses = false }) {
   const navigate = useNavigate();
   const hasGpa = gpa !== null && gpa !== undefined;
   const hasGrades = (grades || []).some((g) => g.grade !== null && g.grade !== undefined);
@@ -59,8 +59,8 @@ export default function PulseCard({ gpa, ects, grades = [] }) {
       {!hasGrades && (
         <div className="mt-4">
           <p className="text-xs text-muted-foreground mb-2">No grades logged yet — your first one lights this up.</p>
-          <Button size="sm" variant="outline" onClick={() => navigate("/courses")}>
-            <Plus className="w-3.5 h-3.5 mr-1.5" />Add your first course
+          <Button size="sm" variant="outline" onClick={() => navigate(hasCourses ? "/grades" : "/courses")}>
+            <Plus className="w-3.5 h-3.5 mr-1.5" />{hasCourses ? "Log a grade" : "Add your first course"}
           </Button>
         </div>
       )}

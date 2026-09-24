@@ -1,0 +1,15 @@
+{
+ "errorState": [],
+ "final": {
+  "passed": 17,
+  "failed": 0,
+  "total": 17
+ },
+ "expectedFails": [],
+ "totals": {
+  "consoleErrors": 0,
+  "pageErrors": 0,
+  "failedRequests": 0,
+  "badResponses": 0
+ }
+}

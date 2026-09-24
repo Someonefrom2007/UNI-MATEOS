@@ -39,7 +39,7 @@ export default function AdminSecurity() {
         id: principal?.id || null,
         role: principal?.role || "none",
         source: principal?.source || "none",
-        permissions: principal ? permissionsFor(principal.role) : [],
+        permissions: principal ? permissionsFor({ role: principal.role }) : [],
       },
     });
     setLoading(false);
