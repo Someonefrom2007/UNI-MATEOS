@@ -1,83 +1,111 @@
 # UNI·MATE — HOSTED SECURITY MATRIX
 
-Status: **NOT EXECUTED — HOSTED ENVIRONMENT REQUIRED**
+Status: **FIRST REAL HOSTED RUN EXECUTED 2026-09-24 — 0 PASS / 2 FAIL / 27 NOT EXECUTED (of 29)**
 
-This matrix records the live, hosted security boundary once a real Supabase project and deployed
-environment are available. Per project rule, results are only ever `PASS`, `FAIL`, or
-`NOT EXECUTED`. An unexecuted hosted test is **never** marked PASS, regardless of local-mode
-evidence.
+Per project rule, results are exactly one of `PASS`, `FAIL`, or `NOT EXECUTED`. An unexecuted hosted
+test is **never** marked PASS regardless of local-mode evidence. The harness (`qa/hosted/verify-security.mjs`)
+never mocks auth, JWTs, RLS, or Supabase responses; every row is recorded from the real hosted
+boundary, or truthfully reported as NOT EXECUTED with its reason.
 
-The local Founder/Admin implementation is considered verified within local-environment limits
-(`QA_MASTER_MATRIX.md`, `QA_FAILURES.md`, `QA_FINAL_REPORT.md`, reviewer run `3a1f038`). This
-document is exclusively about the **real hosted boundary**: real auth, real JWT, real Supabase,
-real RLS, real server authorization, the real Founder account, and a real student account.
+The local Founder/Admin implementation remains verified within local-environment limits
+(`QA_MASTER_MATRIX.md`, `QA_FAILURES.md`, `QA_FINAL_REPORT.md`, reviewer run `3a1f038`).
 
-## Required real resources (none present in this workspace)
+## Required real resources
 
-| Resource | Value location | Present here |
+| Resource | Value location | Present this run |
 |---|---|---|
-| Hosted Supabase URL | `VITE_SUPABASE_URL` | ❌ (no `.env.local`) |
-| Hosted anon key | `VITE_SUPABASE_ANON_KEY` | ❌ |
-| Founder account `miquel.rocas25@gmail.com` + password | `HOSTED_FOUNDER_*` (runner env) | ❌ |
-| Separate hosted student account + password | `HOSTED_STUDENT_*` (runner env) | ❌ |
-| Service-role key (owner only — bootstrap authority) | `SUPABASE_SERVICE_ROLE_KEY` (owner env only) | ❌ |
-| Apply `supabase/schema.sql` to the hosted project | migration | ❌ |
+| Hosted Supabase URL | `VITE_SUPABASE_URL` | ✅ `https://tqmhmpmfqmrtpizgluox.supabase.co` |
+| Hosted anon key | `VITE_SUPABASE_ANON_KEY` | ✅ (never printed) |
+| Founder account `miquel.rocas25@gmail.com` + password | `HOSTED_FOUNDER_*` | ✅ provided (never printed) |
+| Separate student account + password | `HOSTED_STUDENT_*` | ✅ provided (never printed) |
+| Service-role key (owner only) | `SUPABASE_SERVICE_ROLE_KEY` | ❌ not provided → idempotency row gated NOT EXECUTED |
+| UNI·MATE schema applied to hosted project | migration | ❌ NOT applied — zero tables |
 
-## Final security matrix
+## First hosted run — observed evidence (2026-09-24)
 
-Founder = `miquel.rocas25@gmail.com` (role `founder`, `enabled = true`). Status column is the only
-official batch; the per-actor columns are the record state, all currently `NOT EXECUTED`.
+Harness result: `0 pass / 2 fail / 27 NOT EXECUTED (of 29)`.
+
+- **2 FAIL — founder.login / student.login.** Real `signInWithPassword` against the real hosted
+  auth service returned `400 invalid_credentials` for both accounts. No matching user/password
+  exists on this project.
+- **5 anon rows — `NOT EXECUTED-missing-resource`.** Server returned `PGRST202` (function not found:
+  `current_admin_role`, `bootstrap_founder`) and `PGRST205` (table not found: `admin_accounts`,
+  `announcements`, `audit_log`). Independent probe: `GET /rest/v1/?apikey=anon` → **0 tables visible**.
+  Conclusion: the hosted project is **empty** — `supabase/schema.sql` has **not** been applied.
+- **15 founder + 7 student rows — NOT EXECUTED (`PREREQ-FAILED login`).**
+- **1 row — boot.service-repeats-idempotent — NOT EXECUTED** (service-role gate).
+
+Root cause (two, both environmental — no application defect found):
+1. **Schema not applied to the hosted project.** No tables, no security functions, no RLS. This is a
+   migration/configuration issue, not an authorization defect. Applying schema requires the owner's
+   safe migration process (service-role key / SQL editor); NOT executed from this run.
+2. **Login credentials invalid / accounts absent.** The provided founder and student passwords do not
+   authenticate on this project. The correct accounts may live on a different project. Creating or
+   promoting users here was not attempted (never fabricate identity).
+
+## Final security matrix (evidence of 2026-09-24 run)
 
 | Test | Founder | Student | Unauthenticated | Status |
 |------|---------|---------|-----------------|--------|
-| Login | NOT EXECUTED | NOT EXECUTED | n/a (no session) | ❌ hosted login unrun |
-| /admin (UI + route) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ needs hosted browser session |
-| Admin read (roster, users, subscriptions) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ |
-| Admin create (announcement, flag) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ |
-| Admin update (announcement, flag) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ |
-| Admin delete (announcement, flag) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ |
-| Feature flags | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ |
-| Announcements | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ |
-| Audit logs | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ |
+| Login | FAIL | FAIL | n/a | ❌ 400 invalid_credentials (real hosted auth) |
+| /admin (UI + route) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ login prereq failed / browser run |
+| Admin read (roster, users, subscriptions) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ schema missing on hosted |
+| Admin create (announcement, flag) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ schema missing on hosted |
+| Admin update (announcement, flag) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ schema missing on hosted |
+| Admin delete (announcement, flag) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ schema missing on hosted |
+| Feature flags | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ schema missing on hosted |
+| Announcements | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED-missing-resource | ❌ |
+| Audit logs | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED-missing-resource | ❌ |
 | User administration (roster, lifecycle) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ |
-| Bootstrap (client-execution attempt) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ NEED service role to re-run idempotency |
-| Session expiry (revoked/invalid token) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ |
+| Bootstrap (client-execution attempt) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED-missing-resource | ❌ service idempotency ungated |
+| Session expiry (revoked/invalid token) | NOT EXECUTED | NOT EXECUTED | NOT EXECUTED | ❌ login prereq failed |
 
 ## Test-by-test status (spec §2–§12)
 
-| # | Test | Result |
+| # | Test | Result (2026-09-24) |
 |---|---|---|
-| 2 | Founder account receives intended authorization | NOT EXECUTED — hosted login + RPC required |
-| 3 | Live founder login flow (sign in, session, hydrate, authorisation, console, 9 sections) | NOT EXECUTED — real password + hosted app run required |
-| 4 | Live logout → /admin and all admin routes blocked; old session unusable | NOT EXECUTED |
-| 5 | Separate real student: app works, console absent, /admin + every route denied, admin data/mutations blocked (direct API) | NOT EXECUTED — need second real account |
-| 6 | RLS verify: founder permitted / student denied / unauthenticated denied per table (admin_accounts, announcements, flags, admin/user data, audit, others) for SELECT/INSERT/UPDATE/DELETE | NOT EXECUTED |
-| 7 | Server-side authorization with UI bypassed: direct admin mutations as student (announcements, flags, privileged user ops, dev/admin ops) | NOT EXECUTED |
-| 8 | JWT/role tampering: localStorage/IndexedDB/UI/plan state changes never change server authz | NOT EXECUTED (by-construction only, see note) |
-| 9 | Founder role persists in hosted DB; reload; sign out; re-sign-in; no duplicate rows | NOT EXECUTED |
-| 10 | Bootstrap safety: repeated execution idempotent, no dupes, no escalation, no client-accessible bootstrap, service-role-only | NOT EXECUTED — service role required for the safe repeat pass |
-| 11 | Session expiration/invalid → /admin denied/redirect; stale client state cannot preserve access | NOT EXECUTED |
-| 12 | Admin data isolation: non-admin never receives admin data via route/table/network/local-state/direct API | NOT EXECUTED |
+| 2 | Founder account receives intended authorization | NOT EXECUTED — founder.login FAILs (invalid_credentials); role rescue unverifiable |
+| 3 | Live founder login flow | FAIL at login: real auth service 400 invalid_credentials; remainder NOT EXECUTED |
+| 4 | Live logout → /admin blocked; old session unusable | NOT EXECUTED — founder login prereq failed |
+| 5 | Real student: console absent, /admin + routes denied, admin data/mutations blocked | NOT EXECUTED — student.login FAILs (invalid_credentials) |
+| 6 | RLS verify: founder permitted / student denied / anon denied per table | NOT EXECUTED — schema absent on hosted (PGRST202/205) |
+| 7 | Server-side authorization with UI bypassed: direct admin mutations as student | NOT EXECUTED — login prereq failed |
+| 8 | JWT/role tampering: client state changes never change server authz | NOT EXECUTED — requires live admin session (by-construction only so far) |
+| 9 | Founder role persists; reload; sign out; re-sign-in; no duplicates | NOT EXECUTED — login prereq failed |
+| 10 | Bootstrap safety: idempotent, no dupes, no escalation, service-role-only | NOT EXECUTED — function absent on hosted; service-role gate not armed |
+| 11 | Session expiration/invalid → /admin denied | NOT EXECUTED — login prereq failed |
+| 12 | Admin data isolation: non-admin never receives admin data | NOT EXECUTED — requires live student sessions + schema |
 
-## Execution plan once credentials are available
+## How to complete the remaining rows
 
-1. Export the real hosted `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` and the two account
-   passwords; configure the app build with the hosted env; apply `supabase/schema.sql` to the project.
-2. Run the turnkey harness (real auth + real RLS, no mocks):
-   `HOSTED_URL=… HOSTED_ANON_KEY=… HOSTED_FOUNDER_EMAIL=miquel.rocas25@gmail.com HOSTED_FOUNDER_PASSWORD=… HOSTED_STUDENT_EMAIL=… HOSTED_STUDENT_PASSWORD=… node qa/hosted/verify-security.mjs`
-   → writes `qa/hosted/hosted-security-report.json` with PASS/FAIL/NOT EXECUTED per row + evidence.
-3. Browser pass on the hosted app (login as founder: console visible, all sections; login as student:
-   no console, direct `/admin` + every route denied; logout: `/admin` denied).
-4. Owner-only (never in CI, never committed): run `SELECT bootstrap_founder('miquel.rocas25@gmail.com')`
-   twice and confirm one row, no escalation.
-5. Update this matrix to PASS/FAIL accordingly.
+1. **Apply `supabase/schema.sql` to `https://tqmhmpmfqmrtpizgluox.supabase.co`** (owner / SQL editor /
+   service role). Re-run the harness; the 5 missing-resource anon rows then become real RLS verdicts.
+2. **Provision the real Founder + Student accounts on this project** (register/confirm + set the
+   passwords that match `HOSTED_FOUNDER_PASSWORD` / `HOSTED_STUDENT_PASSWORD`), then run:
+   `node qa/hosted/verify-security.mjs` with `.env.local` loaded. Login rows resolve first.
+3. Founder browser pass (login → Console visible, all sections; logout → `/admin` denied).
+4. Owner-only (never in CI): set `SUPABASE_SERVICE_ROLE_KEY` + `HOSTED_BOOTSTRAP_RUN=1` for the
+   idempotency row, or run the bootstrap through the SQL editor as documented.
+5. Only then are any additional rows convertible to PASS/FAIL with evidence.
+
+## Failures — permanent record
+
+| Test | Observed | Root cause | Affected layer | Status |
+|------|----------|------------|----------------|--------|
+| founder.login | 400 `invalid_credentials` (real auth service) | account absent/password mismatch on this project | environment/configuration | recorded FAIL; no app change |
+| student.login | 400 `invalid_credentials` (real auth service) | account absent/password mismatch on this project | environment/configuration | recorded FAIL; no app change |
+
+No application/schema authorization defect was discovered by the run. No security policy was
+weakened. No behavior was changed to force PASS. No credentials were printed or committed.
 
 ## Hard rules honored here
 
 - No mocked auth/JWT/RLS; no hosted request replaced by local-mode behaviour.
-- No substitute evidence for missing hosted reality is converted into PASS.
+- `PGRST202/205` (resource not found) is reported as `NOT EXECUTED-missing-resource`, never PASS.
+  (Harness classifier removed the earlier false `PASS-denied` reading of "table/function not found";
+  privileged-login downstream rows are now explicitly `NOT EXECUTED — PREREQ-FAILED`.)
 - The client never reads authorization from localStorage/IndexedDB/plan/UI state
-  (by construction — see `src/lib/admin/*`); the live proof is loaded only by the hosted run.
-- Runner secrets live in the environment, never in this repository.
+  (by construction — see `src/lib/admin/*`); live proof awaits a working hosted session.
+- Runner secrets live in the environment / `.env.local` (gitignored), never in this repository.
 
-_Last updated: 2026-09-24 (all rows NOT EXECUTED)._
+_Last updated: 2026-09-24 — after first real hosted run (0 PASS / 2 FAIL / 27 NOT EXECUTED)._

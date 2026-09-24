@@ -61,7 +61,28 @@ const requireHosted = () => {
   return null;
 };
 
-const denied = (out) => out && (out.error?.code === "42501" || /permission|denied|policy|PGRST|401|403/i.test(JSON.stringify(out.error)));
+// Classify a PostgREST/Supabase error for denial checks.
+// - "denied":  the server refused via the REAL security boundary (RLS 42501,
+//              permission denied, 401/403, invalid key).
+// - "missing": the resource/function does NOT exist on the hosted project
+//              (PGRST202/205). Absence is NOT a security denial and must be
+//              surfaced as NOT EXECUTED, never PASS.
+// - null:      no error was returned.
+// - "other":   any other server error.
+const classifyErr = (out) => {
+  if (!out || !out.error) return null;
+  const code = out.error?.code || "";
+  const msg = JSON.stringify(out.error);
+  if (code === "42501" || /permission denied/i.test(msg) || /RLS violation/i.test(msg) ||
+      /forbidden|unauthorized|invalid api key/i.test(msg)) return "denied";
+  if (code === "PGRST202" || code === "PGRST205" || /could not find the/i.test(msg)) return "missing";
+  return "other";
+};
+const denyStatus = (kind) => {
+  if (kind === "denied") return "PASS-denied";
+  if (kind === "missing") return "NOT EXECUTED-missing-resource";
+  return null;
+};
 
 let cleanup = [];
 
@@ -77,7 +98,7 @@ const main = async () => {
     return;
   }
 
-  console.log(`Hosted project: ${URL} (schema: found)`);
+  console.log(`Hosted project: ${URL}`);
 
   // ── unauthenticated client (no session) ──
   const anon = createClient(URL, ANON);
@@ -93,8 +114,18 @@ const main = async () => {
   // denied = the server refused (RLS/PGRST/auth error) — the expected state.
 
   // ── founder real login ──
+  const FOUNDER_DEPS = [
+    "founder.authorization", "founder.roster-row", "founder.roster-rpc", "founder.users-read",
+    "founder.audit-log-read", "founder.announcements-create", "founder.announcements-update",
+    "founder.announcements-delete", "founder.feature-flags-create", "founder.feature-flags-update",
+    "founder.feature-flags-delete", "founder.audit-log-write", "founder.bootstrap-client-attempt",
+    "founder.logout-client-supply",
+  ];
   const founderRes = await anon.auth.signInWithPassword({ email: FOUNDER, password: FOUNDER_PASS });
-  if (founderRes.error) { row("founder.login", "FAIL", JSON.stringify(founderRes.error), { founder: "run" }); }
+  if (founderRes.error) {
+    row("founder.login", "FAIL", JSON.stringify(founderRes.error), { founder: "run" });
+    for (const k of FOUNDER_DEPS) row(k, "NOT EXECUTED", "PREREQ-FAILED founder.login", { founder: "run" });
+  }
   else {
     row("founder.login", "PASS", `email=${founderRes.data.user?.email}`, { founder: "run" });
     const founder = createClient(URL, ANON, { global: { headers: { Authorization: `Bearer ${founderRes.data.session.access_token}` } } });
@@ -143,7 +174,7 @@ const main = async () => {
     row("founder.audit-log-write", aud.error ? "FAIL" : "PASS", JSON.stringify(aud.data ?? aud.error), { founder: "run" });
     // bootstrap from the app user must be denied
     const boot = await founder.rpc("bootstrap_founder", { p_email: FOUNDER });
-    row("founder.bootstrap-client-attempt", boot.error && /permission.*denied|42501|PGRST/i.test(JSON.stringify(boot.error)) ? "PASS-denied" : "FAIL-unexpected", JSON.stringify(boot.data ?? boot.error), { founder: "run" });
+    row("founder.bootstrap-client-attempt", boot.error ? (denyStatus(classifyErr(boot)) ?? "FAIL-unexpected") : "FAIL-unexpected", JSON.stringify(boot.data ?? boot.error), { founder: "run" });
 
     // ── real logout: old client cannot continue ──
     await anon.auth.signOut(); // same anon client held the founder session
@@ -158,8 +189,16 @@ const main = async () => {
   }
 
   // ── real student login ──
+  const STUDENT_DEPS = [
+    "student.authorization", "student.admin_accounts-read", "student.announcements-create",
+    "student.feature-flags-create", "student.audit-log-read", "student.roster-rpc",
+    "student.bootstrap-client-attempt",
+  ];
   const studRes = await createClient(URL, ANON).auth.signInWithPassword({ email: STUDENT_EMAIL, password: STUDENT_PASS });
-  if (studRes.error) row("student.login", "FAIL", JSON.stringify(studRes.error), { student: "run" });
+  if (studRes.error) {
+    row("student.login", "FAIL", JSON.stringify(studRes.error), { student: "run" });
+    for (const k of STUDENT_DEPS) row(k, "NOT EXECUTED", "PREREQ-FAILED student.login", { student: "run" });
+  }
   else {
     row("student.login", "PASS", `email=${studRes.data.user?.email}`, { student: "run" });
     const student = createClient(URL, ANON, { global: { headers: { Authorization: `Bearer ${studRes.data.session.access_token}` } } });
@@ -167,30 +206,30 @@ const main = async () => {
     const isAdm = await student.rpc("is_admin");
     row("student.authorization", (!role.error && (role.data == null || role.data === "")) && isAdm.data === false ? "PASS" : "FAIL", JSON.stringify({ role: role.data ?? role.error, isAdmin: isAdm.data ?? isAdm.error }), { student: "run" });
     const accts = await student.from("admin_accounts").select("user_id");
-    row("student.admin_accounts-read", accts.error || accts.data?.length === 0 ? "PASS-denied" : "FAIL-visible", JSON.stringify(accts.data?.length ?? accts.error), { student: "run" });
+    row("student.admin_accounts-read", accts.error ? (denyStatus(classifyErr(accts)) ?? "FAIL") : accts.data?.length === 0 ? "PASS-denied" : "FAIL-visible", JSON.stringify(accts.data?.length ?? accts.error), { student: "run" });
     const annIns = await student.from("announcements").insert({ title: "x", body: "y", severity: "info", audience: "all" });
-    row("student.announcements-create", denied(annIns) ? "PASS-denied" : "FAIL-over-granted", JSON.stringify(annIns.error ?? "inserted"), { student: "run" });
+    row("student.announcements-create", annIns.error ? (denyStatus(classifyErr(annIns)) ?? "FAIL") : "FAIL-over-granted", JSON.stringify(annIns.error ?? "inserted"), { student: "run" });
     const flagIns = await student.from("feature_flags").insert({ key: `x_${Date.now()}`, enabled: false });
-    row("student.feature-flags-create", denied(flagIns) ? "PASS-denied" : "FAIL-over-granted", JSON.stringify(flagIns.error ?? "inserted"), { student: "run" });
+    row("student.feature-flags-create", flagIns.error ? (denyStatus(classifyErr(flagIns)) ?? "FAIL") : "FAIL-over-granted", JSON.stringify(flagIns.error ?? "inserted"), { student: "run" });
     const audRead = await student.from("audit_log").select("id").limit(1);
-    row("student.audit-log-read", audRead.error ? "PASS-denied" : "FAIL-visible", JSON.stringify(audRead.data?.length ?? audRead.error), { student: "run" });
+    row("student.audit-log-read", audRead.error ? (denyStatus(classifyErr(audRead)) ?? "FAIL") : "FAIL-visible", JSON.stringify(audRead.data?.length ?? audRead.error), { student: "run" });
     const roster = await student.rpc("admin_roster");
-    row("student.roster-rpc", roster.error ? "PASS-denied" : "FAIL-visible", JSON.stringify(roster.data ?? roster.error), { student: "run" });
+    row("student.roster-rpc", roster.error ? (denyStatus(classifyErr(roster)) ?? "FAIL") : "FAIL-visible", JSON.stringify(roster.data ?? roster.error), { student: "run" });
     const boot = await student.rpc("bootstrap_founder", { p_email: FOUNDER });
-    row("student.bootstrap-client-attempt", boot.error && /permission.*denied|42501|PGRST/i.test(JSON.stringify(boot.error)) ? "PASS-denied" : "FAIL-unexpected", JSON.stringify(boot.data ?? boot.error), { student: "run" });
+    row("student.bootstrap-client-attempt", boot.error ? (denyStatus(classifyErr(boot)) ?? "FAIL-unexpected") : "FAIL-unexpected", JSON.stringify(boot.data ?? boot.error), { student: "run" });
   }
 
   // ── unauthenticated (no session) ──
   const anonRole = await anon.rpc("current_admin_role");
-  row("anon.admin-role", anonRole.error ? "PASS-denied" : (anonRole.data == null || anonRole.data === "") ? "PASS-denied" : "FAIL", JSON.stringify(anonRole.data ?? anonRole.error), { anon: "run" });
+  row("anon.admin-role", anonRole.error ? (denyStatus(classifyErr(anonRole)) ?? "FAIL") : (anonRole.data == null || anonRole.data === "") ? "PASS-denied" : "FAIL", JSON.stringify(anonRole.data ?? anonRole.error), { anon: "run" });
   const anonAccts = await anon.from("admin_accounts").select("user_id");
-  row("anon.admin_accounts-read", anonAccts.error || anonAccts.data?.length === 0 ? "PASS-denied" : "FAIL", JSON.stringify(anonAccts.data?.length ?? anonAccts.error), { anon: "run" });
+  row("anon.admin_accounts-read", anonAccts.error ? (denyStatus(classifyErr(anonAccts)) ?? "FAIL") : anonAccts.data?.length === 0 ? "PASS-denied" : "FAIL", JSON.stringify(anonAccts.data?.length ?? anonAccts.error), { anon: "run" });
   const anonAnn = await anon.from("announcements").select("id").limit(1);
-  row("anon.announcements-read", anonAnn.error ? "PASS-denied" : "FAIL-visible", JSON.stringify(anonAnn.data?.length ?? anonAnn.error), { anon: "run" });
+  row("anon.announcements-read", anonAnn.error ? (denyStatus(classifyErr(anonAnn)) ?? "FAIL") : anonAnn.data?.length === 0 ? "PASS-denied" : "FAIL-visible", JSON.stringify(anonAnn.data?.length ?? anonAnn.error), { anon: "run" });
   const anonAud = await anon.from("audit_log").select("id").limit(1);
-  row("anon.audit-log-read", anonAud.error ? "PASS-denied" : "FAIL-visible", JSON.stringify(anonAud.data?.length ?? anonAud.error), { anon: "run" });
+  row("anon.audit-log-read", anonAud.error ? (denyStatus(classifyErr(anonAud)) ?? "FAIL") : "FAIL-visible", JSON.stringify(anonAud.data?.length ?? anonAud.error), { anon: "run" });
   const anonBoot = await anon.rpc("bootstrap_founder", { p_email: FOUNDER });
-  row("anon.bootstrap-client-attempt", anonBoot.error && /permission.*denied|42501|PGRST/i.test(JSON.stringify(anonBoot.error)) ? "PASS-denied" : "FAIL-unexpected", JSON.stringify(anonBoot.data ?? anonBoot.error), { anon: "run" });
+  row("anon.bootstrap-client-attempt", anonBoot.error ? (denyStatus(classifyErr(anonBoot)) ?? "FAIL-unexpected") : "FAIL-unexpected", JSON.stringify(anonBoot.data ?? anonBoot.error), { anon: "run" });
 
   // ── service-role bootstrap repeat (owner-only, opt-in) ──
   if (SERVICE_KEY && process.env.HOSTED_BOOTSTRAP_RUN === "1") {
