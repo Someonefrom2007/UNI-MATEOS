@@ -12,6 +12,15 @@ import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Plus, Zap, Clock
 import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { toLocalISO } from "@/lib/format";
+import {
+  EVENT_TYPES,
+  TASK_STATUSES,
+  courseFilterOptions,
+  emptyFilters,
+  toggleValue,
+  hasActiveFilters,
+  applyScheduleFilters,
+} from "@/lib/scheduleFilters";
 import QuickAdd from "@/components/QuickAdd";
 import ErrorState from "@/components/ErrorState";
 import CalendarSync from "@/components/schedule/CalendarSync";
@@ -35,12 +44,26 @@ export default function Schedule() {
   const [qaOpen, setQaOpen] = useState(false);
   const [icsOpen, setIcsOpen] = useState(false);
   const [scheduling, setScheduling] = useState(false);
+  const [filters, setFilters] = useState(emptyFilters);
 
   const events = data?.ScheduleEvent || [];
   const courses = data?.Course || [];
   const tasks = data?.Task || [];
   const exams = data?.Exam || [];
   const todayStr = toLocalISO(new Date());
+
+  // Filters apply to what the calendar draws. Conflict banners are derived from
+  // these same events, so hiding a course also hides the clashes it caused —
+  // consistent with "I am not looking at that course right now".
+  const filtered = useMemo(
+    () => applyScheduleFilters({ events, tasks, exams }, filters),
+    [events, tasks, exams, filters],
+  );
+  const courseOptions = useMemo(() => courseFilterOptions(courses), [courses]);
+  const filtersActive = hasActiveFilters(filters);
+
+  const toggleFacet = (facet, value) =>
+    setFilters((f) => ({ ...f, [facet]: toggleValue(f[facet], value) }));
 
   useEffect(() => {
     if (!data) return;
@@ -173,6 +196,81 @@ export default function Schedule() {
 
       <CalendarSync onSynced={refresh} />
 
+      {(courseOptions.length > 0 || filtersActive) && (
+        <Card className="p-3 flex flex-col gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="um-label">Filters</span>
+            {filtersActive && (
+              <button
+                onClick={() => setFilters(emptyFilters())}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+
+          {courseOptions.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="um-label w-16 shrink-0">Course</span>
+              {courseOptions.map((o) => {
+                const on = filters.courseIds.includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    onClick={() => toggleFacet("courseIds", o.id)}
+                    aria-pressed={on}
+                    className={`chip transition-colors ${on ? "border-primary bg-primary/15 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {o.code}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="um-label w-16 shrink-0">Type</span>
+            {EVENT_TYPES.map((ty) => {
+              const on = filters.types.includes(ty);
+              return (
+                <button
+                  key={ty}
+                  onClick={() => toggleFacet("types", ty)}
+                  aria-pressed={on}
+                  className={`chip capitalize transition-colors ${on ? "border-primary bg-primary/15 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {ty}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="um-label w-16 shrink-0">Done</span>
+            {TASK_STATUSES.map((st) => {
+              const on = filters.statuses.includes(st);
+              return (
+                <button
+                  key={st}
+                  onClick={() => toggleFacet("statuses", st)}
+                  aria-pressed={on}
+                  className={`chip transition-colors ${on ? "border-primary bg-primary/15 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {st.replace("_", " ")}
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {filtersActive && filtered.events.length === 0 && (
+        <Card className="p-4 text-sm text-muted-foreground">
+          No events match the current filters.
+        </Card>
+      )}
+
       {urgentExams.length > 0 && (
         <Card className="p-4 border-hud-rose/20 bg-hud-rose/5 glow-hover">
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -209,9 +307,9 @@ export default function Schedule() {
         />
       ) : (
         <>
-          {view === "week" && <WeekView anchor={anchor} events={events} courses={courses} todayStr={todayStr} />}
-          {view === "day" && <DayView date={anchor} events={events} courses={courses} tasks={tasks} exams={exams} todayStr={todayStr} />}
-          {view === "month" && <MonthView anchor={anchor} events={events} courses={courses} todayStr={todayStr} onPickDay={(d) => { setAnchor(d); chooseView("day"); }} />}
+          {view === "week" && <WeekView anchor={anchor} events={filtered.events} courses={courses} todayStr={todayStr} />}
+          {view === "day" && <DayView date={anchor} events={filtered.events} courses={courses} tasks={filtered.tasks} exams={filtered.exams} todayStr={todayStr} />}
+          {view === "month" && <MonthView anchor={anchor} events={filtered.events} courses={courses} todayStr={todayStr} onPickDay={(d) => { setAnchor(d); chooseView("day"); }} />}
         </>
       )}
       <QuickAdd open={qaOpen} onClose={() => setQaOpen(false)} />
