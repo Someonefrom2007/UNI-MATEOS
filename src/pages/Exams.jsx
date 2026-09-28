@@ -6,7 +6,7 @@ import EmptyState from "@/components/EmptyState";
 import { courseColor, fmtGrade, relativeExam } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Plus, ArrowLeft, Check } from "lucide-react";
+import { GraduationCap, Plus, ArrowLeft, Check, CalendarClock } from "lucide-react";
 import QuickAdd from "@/components/QuickAdd";
 import { useToast } from "@/components/ui/use-toast";
 import { useI18n } from "@/lib/i18n";
@@ -15,6 +15,8 @@ import PlanLocked from "@/components/PlanLocked";
 import { usePlan } from "@/lib/usePlan";
 import { BrainCircuit } from "lucide-react";
 import { predictedScore, scoreBand, stepsToPass } from "@/lib/examIntelligence";
+import { planRevisionSchedule, readinessScore, examPriority } from "@/lib/examReadiness";
+import { todayISO } from "@/lib/format";
 
 export default function Exams() {
   const { id } = useParams();
@@ -154,6 +156,18 @@ function ExamDetail({ id }) {
   const prediction = predictedScore(exam, grades);
   const band = scoreBand(prediction?.value ?? null);
   const steps = stepsToPass(prediction?.value ?? null, topics);
+
+  // Time-aware readiness: the topic average above ignores how much time is
+  // left, so it can read "100% ready" three hours before the exam.
+  const live = readinessScore({
+    exam,
+    course,
+    focusSessions: (data?.FocusSession || []).filter((s) => s.exam_id === exam.id),
+    masteryScore: topics.length ? readiness : null,
+    todayStr: todayISO(),
+  });
+  const priority = examPriority({ exam, course, readiness: live, predicted: prediction?.value ?? null, todayStr: todayISO() });
+  const plan = planRevisionSchedule({ exam, todayStr: todayISO() });
   const PRO_INTRO = "Walk into every exam with a predicted score band and a concrete to-pass plan — a Pro feature layered on the countdowns you already track.";
 
   return (
@@ -177,6 +191,42 @@ function ExamDetail({ id }) {
           )}
         </div>
       </div>
+
+      {can("exam_intelligence") ? (
+        <Card className="p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <CalendarClock className="w-4 h-4 text-hud-cyan" />
+            <h2 className="um-label">Revision plan</h2>
+          </div>
+          {plan.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {live.past ? "This exam has already happened — nothing left to plan." : "Add an exam date to get a revision schedule."}
+            </p>
+          ) : (
+            <>
+              <ol className="space-y-1.5">
+                {plan.map((b) => (
+                  <li key={b.date} className="flex items-center gap-3 text-sm">
+                    <span className="w-20 shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {b.daysOut === 0 ? "Today" : `In ${b.daysOut}d`}
+                    </span>
+                    <span className="flex-1">{b.focus}</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">{b.minutes} min</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/60">
+                {live.minutesDone} of {live.minutesNeeded} recommended minutes logged
+                {priority.reasons.length > 0 && (
+                  <span className={priority.level === "critical" ? " text-rose-500" : " text-hud-amber"}>
+                    {" · "}{priority.reasons.map((r) => r.label).join(" · ")}
+                  </span>
+                )}
+              </p>
+            </>
+          )}
+        </Card>
+      ) : null}
 
       {can("exam_intelligence") ? (
         <Card className="p-5">

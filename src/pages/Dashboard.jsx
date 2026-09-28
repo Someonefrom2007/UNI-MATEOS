@@ -9,6 +9,7 @@ import { generateInsights, recommendNow } from "@/lib/insightsEngine";
 import { weeklyVelocity } from "@/lib/burnout";
 import { statusBanner, studyVelocity, markIcsTimeline } from "@/lib/dashboardRadar";
 import { nextUrgent } from "@/lib/nextUrgent";
+import { readinessBoard } from "@/lib/examReadiness";
 import { todayISO } from "@/lib/format";
 import { useAuth } from "@/lib/AuthContext";
 import { useI18n } from "@/lib/i18n";
@@ -25,6 +26,7 @@ import QuickActions from "@/components/dashboard/QuickActions";
 import SpotlightCard from "@/components/dashboard/SpotlightCard";
 import TodayTimeline from "@/components/dashboard/TodayTimeline";
 import AttentionCard from "@/components/dashboard/AttentionCard";
+import ExamReadinessCard from "@/components/dashboard/ExamReadinessCard";
 import PulseCard from "@/components/dashboard/PulseCard";
 import FocusCard from "@/components/dashboard/FocusCard";
 import WorkloadCard from "@/components/dashboard/WorkloadCard";
@@ -113,8 +115,9 @@ export default function Dashboard() {
     const insights = generateInsights({ tasks, exams, focusSessions: focus, courses, grades, habits, habitLogs });
     const rec = recommendNow({ tasks, exams, courses, events });
     const urgent = nextUrgent(exams, tasks, courses, todayStr);
+    const examBoard = readinessBoard({ exams, courses, focusSessions: focus, todayStr, withinDays: 7 });
 
-    return { courses, tasks, exams, grades, courseGrades, semesterGPA, totalEcts, nc, timeline, timelineIcs, wl, velocity, radar, insights, rec, urgent, goals, habits, habitLogs, sticky, todayStr };
+    return { courses, tasks, exams, grades, courseGrades, semesterGPA, totalEcts, nc, timeline, timelineIcs, wl, velocity, radar, insights, rec, urgent, examBoard, goals, habits, habitLogs, sticky, todayStr };
   }, [data]);
 
   if (error) return <ErrorState onRetry={refresh} />;
@@ -183,6 +186,9 @@ export default function Dashboard() {
         {/* Mid-shot: attention, pulse, focus */}
         <Reveal delay={0.04} mode="inView" className="md:col-span-2">
           <div className={cell("attention")}><AttentionCard urgent={d.urgent} /></div>
+        </Reveal>
+        <Reveal delay={0.09} mode="inView" className="md:col-span-2">
+          <div className={cell("attention")}><ExamReadinessCard board={d.examBoard} /></div>
         </Reveal>
         <Reveal delay={0.09} mode="inView" className="md:col-span-2">
           <div className={cell("pulse")}><PulseCard gpa={d.semesterGPA} ects={d.totalEcts} grades={d.grades} hasCourses={d.courses.length > 0} /></div>
