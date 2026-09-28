@@ -218,8 +218,11 @@ const main = async () => {
     row("student.feature-flags-create", flagIns.error ? (denyStatus(classifyErr(flagIns)) ?? "FAIL") : "FAIL-over-granted", JSON.stringify(flagIns.error ?? "inserted"), { student: "run" });
     const audRead = await student.from("audit_log").select("id").limit(1);
     row("student.audit-log-read", audRead.error ? (denyStatus(classifyErr(audRead)) ?? "FAIL") : audRead.data?.length === 0 ? "PASS-denied" : "FAIL-visible", JSON.stringify(audRead.data?.length ?? audRead.error), { student: "run" });
+    // admin_roster is a definer function that filters to admin rows. A non-admin
+    // caller legitimately receives an empty set (or nothing at all) rather than a
+    // 42501, so an error-free empty result IS the denial: zero admin rows exposed.
     const roster = await student.rpc("admin_roster");
-    row("student.roster-rpc", roster.error ? (denyStatus(classifyErr(roster)) ?? "FAIL") : "FAIL-visible", JSON.stringify(roster.data ?? roster.error), { student: "run" });
+    row("student.roster-rpc", roster.error ? (denyStatus(classifyErr(roster)) ?? "FAIL") : !roster.data?.length ? "PASS-denied" : "FAIL-visible", JSON.stringify(roster.data ?? roster.error), { student: "run" });
     const boot = await student.rpc("bootstrap_founder", { p_email: FOUNDER });
     row("student.bootstrap-client-attempt", boot.error ? (denyStatus(classifyErr(boot)) ?? "FAIL-unexpected") : "FAIL-unexpected", JSON.stringify(boot.data ?? boot.error), { student: "run" });
   }
