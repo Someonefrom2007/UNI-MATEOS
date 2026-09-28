@@ -19,6 +19,7 @@ import { isLocalWorkspace, getAppRepo } from "@/lib/repo/select";
 import { createLocalRepo } from "@/lib/repo/localRepo";
 import { loadPrefs, savePrefs } from "@/lib/notifyPrefs";
 import { parseExport, runImport } from "@/lib/dataImport";
+import { buildBackup, toBackupJSON, entityToCSV, CSV_ENTITIES } from "@/lib/dataExporter";
 
 const EXPORT_ENTITIES = [
   "Course", "ScheduleEvent", "Task", "Exam", "Grade", "Note", "Resource",
@@ -121,38 +122,63 @@ export default function Settings() {
     savePrefs(next);
   };
 
+  const download = (contents, filename, type) => {
+    const url = URL.createObjectURL(new Blob([contents], { type }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const collectExportRows = async () => {
+    const out = {};
+    if (local) {
+      for (const name of EXPORT_ENTITIES) {
+        out[name] = (await localRepo.list(TABLE[name])) || [];
+      }
+    } else {
+      await Promise.all(EXPORT_ENTITIES.map(async (name) => {
+        try {
+          out[name] = (await getAppRepo().list(TABLE[name])) || [];
+        } catch {
+          out[name] = [];
+        }
+      }));
+    }
+    return out;
+  };
+
   const exportData = async () => {
     setExporting(true);
     try {
-      const out = {};
-      if (local) {
-        for (const name of EXPORT_ENTITIES) {
-          out[name] = (await localRepo.list(TABLE[name])) || [];
-        }
-      } else {
-        await Promise.all(EXPORT_ENTITIES.map(async (name) => {
-          try {
-            out[name] = (await getAppRepo().list(TABLE[name])) || [];
-          } catch {
-            out[name] = [];
-          }
-        }));
-      }
-      const blob = new Blob(
-        [JSON.stringify({ exported_at: new Date().toISOString(), data: out }, null, 2)],
-        { type: "application/json" }
+      const backup = buildBackup(await collectExportRows());
+      download(
+        toBackupJSON(backup),
+        `unimate-export-${new Date().toISOString().slice(0, 10)}.json`,
+        "application/json"
       );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `unimate-export-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
       toast({ title: t("settings.data.exported") });
     } catch {
       toast({ title: t("settings.data.exportFailed") });
     } finally {
       setExporting(false);
+    }
+  };
+
+  const exportEntityCSV = async (entity) => {
+    try {
+      const table = TABLE[entity];
+      const rows = local ? (await localRepo.list(table)) || [] : (await getAppRepo().list(table)) || [];
+      const csv = entityToCSV(entity, rows);
+      if (!csv) {
+        toast({ title: "Nothing to export yet" });
+        return;
+      }
+      download(csv, `unimate-${entity.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv");
+      toast({ title: t("settings.data.exported") });
+    } catch {
+      toast({ title: t("settings.data.exportFailed") });
     }
   };
 
@@ -321,6 +347,17 @@ export default function Settings() {
             {exporting ? t("settings.data.exporting") : t("settings.data.export")}
           </Button>
           <p className="text-xs text-muted-foreground mt-2">{t("settings.data.exportDesc")}</p>
+          <div className="mt-3">
+            <span className="um-label">Export as CSV</span>
+            <div className="flex gap-2 mt-1.5 flex-wrap">
+              {CSV_ENTITIES.map((entity) => (
+                <Button key={entity} variant="outline" size="sm" onClick={() => exportEntityCSV(entity)}>
+                  {entity === "ScheduleEvent" ? "Schedule" : entity}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">For spreadsheets — schedule, tasks and exams.</p>
+          </div>
           <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={importData} />
           <Button variant="outline" className="w-full justify-start mt-3" onClick={() => fileRef.current?.click()} disabled={importing}>
             {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
