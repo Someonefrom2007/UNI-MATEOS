@@ -6,9 +6,14 @@
 //
 // Required (environment variables, never committed):
 //   VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY   (hosted project, or .env.local)
-//   HOSTED_FOUNDER_EMAIL / HOSTED_FOUNDER_PASSWORD
-//   HOSTED_STUDENT_EMAIL / HOSTED_STUDENT_PASSWORD
+//   HOSTED_FOUNDER_EMAIL / HOSTED_FOUNDER_PASSWORD        (or .env.local)
+//   HOSTED_STUDENT_EMAIL / HOSTED_STUDENT_PASSWORD        (or .env.local)
 //   SUPABASE_SERVICE_ROLE_KEY                    (optional; owner-only bootstrap repeat)
+//
+// Every key above is read from the real environment first and from .env.local as a
+// fallback, so `node qa/hosted/verify-security.mjs` works with no manual exporting.
+// SUPABASE_SERVICE_ROLE_KEY is deliberately NOT read from .env.local: it bypasses
+// RLS entirely, so it stays an explicit, opt-in environment variable.
 //
 // Output: qa/hosted/hosted-security-report.json + printed matrix.
 // Any row that cannot be exercised live against the real project is reported as
@@ -32,10 +37,10 @@ const loadEnvLocal = () => {
 const fileEnv = loadEnvLocal();
 const URL = process.env.VITE_SUPABASE_URL || fileEnv.VITE_SUPABASE_URL || process.env.HOSTED_URL;
 const ANON = process.env.VITE_SUPABASE_ANON_KEY || fileEnv.VITE_SUPABASE_ANON_KEY || process.env.HOSTED_ANON_KEY;
-const FOUNDER_EMAIL = process.env.HOSTED_FOUNDER_EMAIL || process.env.FOUNDER_EMAIL;
-const FOUNDER_PASS = process.env.HOSTED_FOUNDER_PASSWORD;
-const STUDENT_EMAIL = process.env.HOSTED_STUDENT_EMAIL;
-const STUDENT_PASS = process.env.HOSTED_STUDENT_PASSWORD;
+const FOUNDER_EMAIL = process.env.HOSTED_FOUNDER_EMAIL || fileEnv.HOSTED_FOUNDER_EMAIL || process.env.FOUNDER_EMAIL;
+const FOUNDER_PASS = process.env.HOSTED_FOUNDER_PASSWORD || fileEnv.HOSTED_FOUNDER_PASSWORD;
+const STUDENT_EMAIL = process.env.HOSTED_STUDENT_EMAIL || fileEnv.HOSTED_STUDENT_EMAIL;
+const STUDENT_PASS = process.env.HOSTED_STUDENT_PASSWORD || fileEnv.HOSTED_STUDENT_PASSWORD;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const FOUNDER = FOUNDER_EMAIL || "miquel.rocas25@gmail.com";
@@ -212,7 +217,7 @@ const main = async () => {
     const flagIns = await student.from("feature_flags").insert({ key: `x_${Date.now()}`, enabled: false });
     row("student.feature-flags-create", flagIns.error ? (denyStatus(classifyErr(flagIns)) ?? "FAIL") : "FAIL-over-granted", JSON.stringify(flagIns.error ?? "inserted"), { student: "run" });
     const audRead = await student.from("audit_log").select("id").limit(1);
-    row("student.audit-log-read", audRead.error ? (denyStatus(classifyErr(audRead)) ?? "FAIL") : "FAIL-visible", JSON.stringify(audRead.data?.length ?? audRead.error), { student: "run" });
+    row("student.audit-log-read", audRead.error ? (denyStatus(classifyErr(audRead)) ?? "FAIL") : audRead.data?.length === 0 ? "PASS-denied" : "FAIL-visible", JSON.stringify(audRead.data?.length ?? audRead.error), { student: "run" });
     const roster = await student.rpc("admin_roster");
     row("student.roster-rpc", roster.error ? (denyStatus(classifyErr(roster)) ?? "FAIL") : "FAIL-visible", JSON.stringify(roster.data ?? roster.error), { student: "run" });
     const boot = await student.rpc("bootstrap_founder", { p_email: FOUNDER });
@@ -226,8 +231,12 @@ const main = async () => {
   row("anon.admin_accounts-read", anonAccts.error ? (denyStatus(classifyErr(anonAccts)) ?? "FAIL") : anonAccts.data?.length === 0 ? "PASS-denied" : "FAIL", JSON.stringify(anonAccts.data?.length ?? anonAccts.error), { anon: "run" });
   const anonAnn = await anon.from("announcements").select("id").limit(1);
   row("anon.announcements-read", anonAnn.error ? (denyStatus(classifyErr(anonAnn)) ?? "FAIL") : anonAnn.data?.length === 0 ? "PASS-denied" : "FAIL-visible", JSON.stringify(anonAnn.data?.length ?? anonAnn.error), { anon: "run" });
+  // audit_log is RLS-enabled with NO client policies (deny-all, by design — reads
+  // go through the admin-checked audit_recent() definer). A deny-all policy table
+  // returns an empty set rather than raising 42501, so an error-free 0-row result
+  // IS the denial. Same contract as admin_accounts/announcements above.
   const anonAud = await anon.from("audit_log").select("id").limit(1);
-  row("anon.audit-log-read", anonAud.error ? (denyStatus(classifyErr(anonAud)) ?? "FAIL") : "FAIL-visible", JSON.stringify(anonAud.data?.length ?? anonAud.error), { anon: "run" });
+  row("anon.audit-log-read", anonAud.error ? (denyStatus(classifyErr(anonAud)) ?? "FAIL") : anonAud.data?.length === 0 ? "PASS-denied" : "FAIL-visible", JSON.stringify(anonAud.data?.length ?? anonAud.error), { anon: "run" });
   const anonBoot = await anon.rpc("bootstrap_founder", { p_email: FOUNDER });
   row("anon.bootstrap-client-attempt", anonBoot.error ? (denyStatus(classifyErr(anonBoot)) ?? "FAIL-unexpected") : "FAIL-unexpected", JSON.stringify(anonBoot.data ?? anonBoot.error), { anon: "run" });
 
@@ -252,6 +261,7 @@ const MATRIX_KEYS = [
   "founder.announcements-update", "founder.announcements-delete", "founder.feature-flags-create",
   "founder.feature-flags-update", "founder.feature-flags-delete", "founder.audit-log-write",
   "founder.bootstrap-client-attempt", "founder.logout-client-supply",
+  "founder.no-duplicate-rows", "founder.logout-stale-token",
   "student.login", "student.authorization", "student.admin_accounts-read",
   "student.announcements-create", "student.feature-flags-create", "student.audit-log-read",
   "student.roster-rpc", "student.bootstrap-client-attempt",
@@ -264,10 +274,14 @@ const emit = async () => {
     const fn = cleanup.pop();
     try { await fn(); } catch { /* best-effort cleanup */ }
   }
+  // Statuses are prefix-matched so suffixed verdicts (PASS-visible, PASS-denied,
+  // FAIL-visible, FAIL-over-granted, NOT EXECUTED-stateless-access-valid, ...) are
+  // each counted exactly once. Exact-string matching silently dropped them, so the
+  // pass/fail totals could not be reconciled against `total`.
   const summary = {
-    pass: recorder.rows.filter((r) => r.status === "PASS" || r.status === "PASS-denied").length,
-    fail: recorder.rows.filter((r) => r.status === "FAIL").length,
-    notExecuted: recorder.rows.filter((r) => r.status === "NOT EXECUTED" || r.status.startsWith("NOT EXECUTED")).length,
+    pass: recorder.rows.filter((r) => r.status.startsWith("PASS")).length,
+    fail: recorder.rows.filter((r) => r.status.startsWith("FAIL")).length,
+    notExecuted: recorder.rows.filter((r) => r.status.startsWith("NOT EXECUTED")).length,
     total: recorder.rows.length,
     rows: recorder.rows,
   };
