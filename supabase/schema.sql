@@ -690,15 +690,50 @@ ALTER TABLE public.community_posts
 
 -- Community-wide discovery of active posts (own posts remain visible to their
 -- author regardless of status via the pre-existing own-select policy).
-CREATE POLICY IF NOT EXISTS "community_posts_select_discover" ON public.community_posts
-  FOR SELECT USING (status = 'active');
+-- PostgreSQL has no CREATE POLICY ... IF NOT EXISTS, so each "create only when
+-- missing" policy below is guarded by a pg_policies existence check instead.
+-- Name, table, command and USING expression are unchanged; a re-run is a no-op
+-- and never drops, replaces or loosens an already-present policy.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'community_posts'
+      AND policyname = 'community_posts_select_discover'
+  ) THEN
+    CREATE POLICY "community_posts_select_discover" ON public.community_posts
+      FOR SELECT USING (status = 'active');
+  END IF;
+END $$;
 
 -- Replies and likes must be readable to render threads and counts on others'
 -- posts; every write (insert/update/delete) stays own-only.
-CREATE POLICY IF NOT EXISTS "community_replies_select_discover" ON public.community_replies
-  FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "community_likes_select_discover" ON public.community_likes
-  FOR SELECT USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'community_replies'
+      AND policyname = 'community_replies_select_discover'
+  ) THEN
+    CREATE POLICY "community_replies_select_discover" ON public.community_replies
+      FOR SELECT USING (true);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'community_likes'
+      AND policyname = 'community_likes_select_discover'
+  ) THEN
+    CREATE POLICY "community_likes_select_discover" ON public.community_likes
+      FOR SELECT USING (true);
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- Mission 5: community_saves  (bookmarks, multi-user ready)
@@ -919,10 +954,31 @@ CREATE TRIGGER community_replies_set_author
 -- Discovery renders active posts community-wide, but a post's community/study
 -- group chips need the grouping entities' names to resolve. Opens SELECT on
 -- communities and study_groups (name lookups only); every write stays own-only.
-CREATE POLICY IF NOT EXISTS "communities_select_discover" ON public.communities
-  FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "study_groups_select_discover" ON public.study_groups
-  FOR SELECT USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'communities'
+      AND policyname = 'communities_select_discover'
+  ) THEN
+    CREATE POLICY "communities_select_discover" ON public.communities
+      FOR SELECT USING (true);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'study_groups'
+      AND policyname = 'study_groups_select_discover'
+  ) THEN
+    CREATE POLICY "study_groups_select_discover" ON public.study_groups
+      FOR SELECT USING (true);
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- Phase 8 follow-up: community membership — join/leave communities & study
@@ -1539,8 +1595,11 @@ BEGIN
   IF v_uid IS NULL THEN
     RETURN false; -- founder has not registered yet; call again after signup
   END IF;
+  -- permissions is text[] NOT NULL: pass the column default explicitly (never
+  -- NULL, which would raise not_null_violation and abort the bootstrap). Founder
+  -- authority is role-based, so an empty grant array is the intended value.
   INSERT INTO public.admin_accounts (user_id, role, permissions, enabled, created_by)
-  VALUES (v_uid, 'founder', NULL, true, v_uid)
+  VALUES (v_uid, 'founder', '{}'::text[], true, v_uid)
   ON CONFLICT (user_id) DO NOTHING;
   RETURN true;
 END $$;
@@ -1554,9 +1613,10 @@ GRANT EXECUTE ON FUNCTION public.bootstrap_founder(text) TO service_role;
 
 -- Initial founder seed for this deployment. Replace this email with your own
 -- FOUNDER_EMAIL for a different project — this value is server-side only and is
--- never shipped to the browser.
+-- never shipped to the browser. permissions is text[] NOT NULL, so the column
+-- default is passed explicitly as an empty array (never NULL).
 INSERT INTO public.admin_accounts (user_id, role, permissions, enabled, created_by)
-SELECT u.id, 'founder', NULL, true, u.id
+SELECT u.id, 'founder', '{}'::text[], true, u.id
 FROM auth.users u
 WHERE lower(u.email) = 'miquel.rocas25@gmail.com'
 ON CONFLICT (user_id) DO NOTHING;
