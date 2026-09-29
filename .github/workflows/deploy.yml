@@ -1,0 +1,72 @@
+name: Deploy production
+
+# Publishes the app to GitHub Pages. This is the real production URL; the
+# repository has no other deploy target configured.
+#
+# Why a workflow and not a plain `vite build && upload`: the Pages site is
+# served from a repository sub-path, and the base path has to be baked in at
+# build time. Doing it here keeps one build definition for everyone instead of
+# relying on a machine-local command.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege: read the repo, write only to Pages, mint an OIDC token for
+# the Pages deployment. No package publishing, no repo writes.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push supersedes an in-flight one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Only PUBLIC values live here. VITE_* vars are inlined into the client
+      # bundle by definition, so the anon key is expected to be public — it is
+      # protected by RLS, not by secrecy. The service-role key and every
+      # Lemon Squeezy secret are Edge Function secrets on the Supabase project
+      # and must never be added to this workflow.
+      - name: Build
+        env:
+          BASE_PATH: /UNI-MATEOS/
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      # GitHub Pages has no SPA rewrite. A hard load of /analytics has no file
+      # on disk, so Pages serves 404.html; making that the built index.html
+      # lets the client router resolve the real path.
+      - name: SPA fallback
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

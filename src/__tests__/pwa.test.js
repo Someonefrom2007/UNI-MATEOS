@@ -20,9 +20,20 @@ describe("PWA: manifest validity", () => {
 
   it("declares an offline-capable install surface", () => {
     expect(manifest.display).toBe("standalone");
-    expect(manifest.start_url).toBe("/");
+    // Base-aware, not a hardcoded "/": the production build runs under
+    // BASE_PATH=/UNI-MATEOS/, and a start_url of "/" would launch the
+    // installed app outside the deployment root.
+    expect(manifest.start_url).toMatch(/^\//);
+    expect(manifest.start_url).toMatch(/\/$/);
     expect(manifest.background_color).toBe("#07080D");
     expect(manifest.theme_color).toBe("#07080D");
+  });
+
+  it("keeps every icon on the same path prefix as start_url", () => {
+    const prefix = manifest.start_url;
+    manifest.icons.forEach((i) => {
+      expect(i.src.startsWith(prefix)).toBe(true);
+    });
   });
 
   it("declares icons covering any + maskable purposes", () => {
@@ -51,7 +62,10 @@ describe("PWA: offline asset fallback contract", () => {
     const cfg = read("vite.config.js");
     expect(cfg).toContain("VitePWA");
     expect(cfg).toContain("registerType: 'autoUpdate'");
-    expect(cfg).toContain("navigateFallback: '/index.html'");
+    // Derived from the deploy base, not the literal '/index.html'. The service
+    // worker lives in dist/, so a '/' fallback is a 404 under the
+    // /UNI-MATEOS/ production path and silently breaks every hard navigation.
+    expect(cfg).toContain("navigateFallback: `${baseSlash}index.html`");
     expect(cfg).toContain("navigateFallbackDenylist");
     expect(cfg).toContain("#07080D");
     expect(cfg).toContain("runtimeCaching");
@@ -60,9 +74,10 @@ describe("PWA: offline asset fallback contract", () => {
   it("excludes dynamic API routes from the offline navigation fallback", () => {
     const cfg = read("vite.config.js");
     expect(cfg).toMatch(/navigateFallbackDenylist/);
-    expect(cfg).toMatch(/\/auth\//);
-    expect(cfg).toMatch(/\/api\//);
-    expect(cfg).toMatch(/\.ics\$/);
+    // The deny-list matches the full path, which now carries the deploy base,
+    // so it has to be constructed from `base` rather than assuming "/".
+    expect(cfg).toContain("new RegExp(`^${baseSlash}(auth|api)`)");
+    expect(cfg).toMatch(/\\\.ics\$/);
   });
 
   it("produces a generated service worker after build (dist/sw.js)", () => {

@@ -3,7 +3,17 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
+// BASE_PATH exists for the one real deployment target: GitHub Pages serves this
+// app from a repository sub-path (/UNI-MATEOS/). Everything PWA-related is
+// derived from `base` instead of being hardcoded to "/", because otherwise the
+// service worker's navigateFallback and the manifest start_url silently point
+// off the deployment root and every hard load of /analytics 404s. It defaults
+// to "/", so a normal local/dev build is unchanged.
+const base = process.env.BASE_PATH || '/';
+const baseSlash = base.endsWith('/') ? base : `${base}/`;
+
 export default defineConfig({
+  base,
   test: {
     environment: 'node',
     // Deterministic discovery: only the app's own tests, never agent worktrees.
@@ -25,7 +35,7 @@ export default defineConfig({
         name: 'UNI\u00b7MATE \u2014 Academic OS',
         short_name: 'UNI\u00b7MATE',
         description: 'Your university, organized around you. The personal academic operating system \u2014 installable, offline-first, dark by design.',
-        start_url: '/',
+        start_url: baseSlash,
         display: 'standalone',
         background_color: '#07080D',
         theme_color: '#07080D',
@@ -34,13 +44,13 @@ export default defineConfig({
         categories: ['education', 'productivity'],
         icons: [
           {
-            src: '/icon.svg',
+            src: `${baseSlash}icon.svg`,
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any',
           },
           {
-            src: '/icon.svg',
+            src: `${baseSlash}icon.svg`,
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'maskable',
@@ -50,8 +60,11 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         globIgnores: ['**/icons/og-image.png'],
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/auth/, /^\/api/, /\.ics$/],
+        navigateFallback: `${baseSlash}index.html`,
+        // Deny-list paths the service worker must never answer for. Matched
+        // against the full path, which now carries the deploy base, so the
+        // prefixes have to be built from it rather than assumed to start at "/".
+        navigateFallbackDenylist: [new RegExp(`^${baseSlash}(auth|api)`), /\.ics$/],
         runtimeCaching: [
           {
             // Keep Supabase/Hosted API traffic runtime-cached (stale-while-revalidate)
