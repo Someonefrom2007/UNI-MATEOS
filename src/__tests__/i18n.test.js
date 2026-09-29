@@ -54,6 +54,30 @@ describe("i18n: translator", () => {
   });
 });
 
+describe("i18n: AI offline indicator strings", () => {
+  const OFFLINE_KEYS = ["ai.offline.banner", "ai.offline.hint", "ai.offline.badge"];
+
+  it("resolves every offline-indicator key in all three languages", () => {
+    for (const lang of LANGS) {
+      const dict = getDictionary(lang);
+      for (const key of OFFLINE_KEYS) {
+        expect(dict[key], `${lang}/${key} missing`).toBeTypeOf("string");
+        expect(dict[key].trim(), `${lang}/${key} empty`).not.toBe("");
+        expect(translate(lang, key), `${lang}/${key} passthrough`).not.toBe(key);
+      }
+    }
+  });
+
+  it("actually translates them — no English copied into ca/es", () => {
+    // The parity suite only proves the keys exist. This proves they differ, so
+    // a "translation" that is just the English string still gets caught.
+    for (const key of OFFLINE_KEYS) {
+      const values = LANGS.map((lang) => getDictionary(lang)[key]);
+      expect(new Set(values).size, `${key} is identical across all languages`).toBe(3);
+    }
+  });
+});
+
 describe("i18n: language switching", () => {
   it("persists the current language and round-trips", () => {
     setLang("es");

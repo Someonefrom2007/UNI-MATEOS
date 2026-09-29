@@ -149,10 +149,11 @@ export default function AIAssistant() {
             className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl border border-hud-amber/30 bg-hud-amber/5 text-xs text-hud-amber"
           >
             <WifiOff className="w-3.5 h-3.5 shrink-0" />
+            {/* The status itself (OFFLINE MODE (HEURISTIC) / DEGRADED /
+                UNAVAILABLE) is deliberately left untranslated — it is a fixed
+                diagnostic label, not prose. The explanation around it is not. */}
             <span className="font-semibold tracking-wide">{status}</span>
-            <span className="text-muted-foreground">
-              — answers below are computed on this device from your own data, not by a model.
-            </span>
+            <span className="text-muted-foreground">{t("ai.offline.banner")}</span>
           </div>
         )}
         {messages.length === 0 && (
@@ -167,9 +168,7 @@ export default function AIAssistant() {
                 : "Add a course or two first — the copilot only answers from your real data, never guesses."}
             </p>
             {status && isHeuristic(status) && (
-              <p className="text-xs text-hud-amber mt-2">
-                Still useful without a server: ask for a priority order, a study plan, or flashcards.
-              </p>
+              <p className="text-xs text-hud-amber mt-2">{t("ai.offline.hint")}</p>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-6">
               {SUGGESTIONS.map((s) => (
@@ -188,7 +187,7 @@ export default function AIAssistant() {
                 <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border"}`}>
                   {m.heuristic && (
                     <div className="text-[10px] uppercase tracking-wide text-hud-amber mb-1.5 font-semibold">
-                      Heuristic · on-device
+                      {t("ai.offline.badge")}
                     </div>
                   )}
                   <div className="whitespace-pre-wrap">{m.text}</div>
