@@ -30,6 +30,18 @@ npm run dev        # Vite dev server (hosted backend when env is present, otherw
 
 Open `http://localhost:5173`. Auth, database, and Edge Functions are served by your Supabase project directly when configured.
 
+## Production
+
+**https://someonefrom2007.github.io/UNI-MATEOS/**
+
+Deployed from `main` by `.github/workflows/deploy.yml` (GitHub Pages, `build_type: workflow`). Every push to `main` rebuilds and republishes; the deploy commit is the commit that is live.
+
+- **Backend:** `tqmhmpmfqmrtpizgluox` (the only project with the full schema). The client bundle references that URL and no other.
+- **Env configured:** `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, as repository Actions *variables*. Both are public by design — the anon key is protected by RLS, not by secrecy. The service-role key and the `LEMON_SQUEEZY_*` secrets live on the Supabase project as Edge Function secrets and must never be added to the workflow or the repo.
+- **Sub-path hosting:** GitHub Pages serves a repository from `/UNI-MATEOS/`, so the build base is baked in via `BASE_PATH`. Anything that bypasses React Router — `window.location.href`, Supabase `redirectTo` — must go through `src/lib/appBase.js` (`appPath`/`appUrl`) or it will resolve against the origin root and 404. A test walks `src/` and fails on any regression of that.
+- **Deep links return HTTP 404.** Pages has no SPA rewrite, so the workflow copies the built `index.html` to `404.html`; the app boots and routes client-side, which works but serves a 404 status. Fine behind login, worth knowing before relying on status codes or SEO. A custom domain would fix it properly.
+- **Verify a deploy:** `node qa/hosted/verify-browser.mjs --base https://someonefrom2007.github.io/UNI-MATEOS` runs the real browser against the live URL.
+
 ## Local workspace (no backend, no env)
 
 The app is local-first: the data adapter is chosen by environment at startup.
