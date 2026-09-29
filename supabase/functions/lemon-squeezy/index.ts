@@ -13,8 +13,13 @@
 //      - verifies the HMAC-SHA256 signature against LEMON_SQUEEZY_WEBHOOK_SECRET
 //      - dedupes every event via the webhook_events table (idempotent)
 //      - maps variant -> tier and persists the subscription, then updates the
-//        user's entitlement plan in auth user_metadata — the single source the
-//        rest of the app (entitlement engine, Pro gates, ai-assistant) reads.
+//        user's entitlement plan in auth user_metadata.
+//
+//      AUTHORITATIVE SOURCE: `subscriptions.tier` — it is written only here
+//      (service role) and has no client INSERT/UPDATE policy, so a user cannot
+//      grant themselves a tier. The `user_metadata.plan` mirror below is a
+//      DISPLAY convenience only; nothing authorizes on it, because
+//      user_metadata is writable by the account owner.
 //
 //      The signature header decrypts... the body hash is verified BEFORE any
 //      billing state is touched. Unverified webhooks are rejected outright.
@@ -78,14 +83,17 @@ const safeUpsert = async (supabase, table, payload, onConflict) => {
 };
 
 const setEntitlement = async (supabase, userId, plan) => {
+  // Display mirror only — see the header note. `subscriptions.tier` is the
+  // authoritative entitlement; this keeps the profile badge in sync but is
+  // never used for an authorization decision.
   try {
     const { error } = await supabase.auth.admin.updateUserById(userId, {
       user_metadata: { plan },
     });
-    if (error) console.error("[billing] entitlement update failed:", error.message);
+    if (error) console.error(`[billing] entitlement mirror update failed:`, error.message);
     return !error;
   } catch (e) {
-    console.error("[billing] entitlement update failed:", e.message);
+    console.error(`[billing] entitlement mirror update failed:`, e.message);
     return false;
   }
 };

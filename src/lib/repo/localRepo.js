@@ -3,6 +3,7 @@
 // snake_case records with id / user_id / created_at / updated_at injected on
 // create — mirroring what useUserData returns today.
 import { getDefaultStorage } from "@/lib/repo/storage";
+import { resolveTable, usesIdentityPrimaryKey } from "@/lib/tables";
 
 export const newId = () =>
   typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -34,7 +35,12 @@ export const createLocalRepo = ({
   now = () => new Date().toISOString(),
   idFactory = newId,
 } = {}) => {
-  const readTable = (table) => {
+  // Every table argument is resolved here, once, so no caller has to remember
+  // to map entity names. Storage keys are the physical table names, which is
+  // what useUserData has always written — so resolving fixes previously
+  // unreachable keys (e.g. reading "user_profiles" instead of "User").
+  const readTable = (name) => {
+    const table = resolveTable(name);
     const raw = storage.getItem(table);
     if (raw == null) return [];
     try {
@@ -45,8 +51,8 @@ export const createLocalRepo = ({
     }
   };
 
-  const writeTable = (table, rows) => {
-    storage.setItem(table, JSON.stringify(rows));
+  const writeTable = (name, rows) => {
+    storage.setItem(resolveTable(name), JSON.stringify(rows));
   };
 
   // All methods are async so the local adapter honors the same promise-returning
@@ -60,7 +66,9 @@ export const createLocalRepo = ({
       const rows = readTable(table);
       const row = {
         ...toSnakeCase(record),
-        id: record.id || idFactory(),
+        // Identity tables get their id from the database; sending one would be
+        // a type error hosted, and wrong-but-harmless locally.
+        ...(usesIdentityPrimaryKey(table) ? {} : { id: record.id || idFactory() }),
         user_id: record.user_id || userId,
         created_at: record.created_at || now(),
         updated_at: record.updated_at || now(),
@@ -104,7 +112,7 @@ export const createLocalRepo = ({
     },
 
     async clear(table) {
-      storage.removeItem(table);
+      storage.removeItem(resolveTable(table));
     },
   };
 };

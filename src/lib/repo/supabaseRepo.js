@@ -14,6 +14,7 @@
 // - clear() is intentionally unsupported on the hosted backend to prevent
 //   accidental full-table deletes; scoped removals go through deleteWhere().
 import { newId, toSnakeCase } from "@/lib/repo/localRepo";
+import { resolveTable, usesIdentityPrimaryKey } from "@/lib/tables";
 
 const isMissingRow = (error) =>
   Boolean(
@@ -46,7 +47,10 @@ export const createSupabaseRepo = ({
     return userId || null;
   };
 
-  const clientFor = (table) => client.from(table);
+  // Single choke point where a caller-supplied table name becomes a physical
+  // table. Entity names ("User") are mapped to snake_case here, so a caller
+  // can never issue a query against a table that does not exist.
+  const clientFor = (table) => client.from(resolveTable(table));
 
   return {
     async list(table) {
@@ -59,7 +63,10 @@ export const createSupabaseRepo = ({
       const owner = await resolveOwner();
       const row = {
         ...toSnakeCase(record),
-        id: record.id || idFactory(),
+        // bigint IDENTITY tables (waitlist, audit_log) are assigned server
+        // side. Injecting a UUID there is Postgres 22P02 invalid input syntax
+        // for type bigint — the hosted waitlist signup died on this.
+        ...(usesIdentityPrimaryKey(table) ? {} : { id: record.id || idFactory() }),
         created_at: record.created_at || now(),
         updated_at: record.updated_at || now(),
       };

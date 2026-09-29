@@ -69,10 +69,24 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "Unauthorized" }, 401);
 
     // Pro entitlement: the copilot is a paid feature, enforced server-side so a
-    // modified client still can't call it on a free account. Mirrors the plan
-    // tier living on the auth profile (user_metadata.plan). Accepts the legacy
-    // "ultra" spelling so grandfathered Pre-2.0 profiles keep access. Unlock: upgrade.
-    const plan = String(user.user_metadata?.plan || "free").toLowerCase();
+    // modified client still can't call it on a free account.
+    //
+    // SECURITY: this must read a source the caller cannot write. It used to
+    // read `user_metadata.plan`, which is part of the caller's own profile and
+    // is client-writable via `supabase.auth.updateUser({ data: { plan } })` —
+    // so the gate could be satisfied by the very client it was meant to stop.
+    //
+    // `subscriptions.tier` is the authoritative record: it has RLS with
+    // SELECT-own and no client INSERT/UPDATE policy, and is written only by the
+    // `lemon-squeezy` webhook using the service role. We query it with the
+    // service role and pin it to the verified JWT's own user id, so a caller
+    // cannot read (or be denied) someone else's entitlement.
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("tier")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const plan = String(sub?.tier || "free").toLowerCase();
     if (!["pro", "ultra", "ultimate"].includes(plan)) {
       return json({ locked: true, plan, error: "AI Assistant is a Pro feature" }, 402);
     }

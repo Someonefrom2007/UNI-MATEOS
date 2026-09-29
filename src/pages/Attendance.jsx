@@ -17,14 +17,14 @@ const rateLabel = (rate) => (rate === null ? "–" : `${Math.round(rate * 100)}%
 export default function Attendance() {
   const { t, lang } = useI18n();
   const { data, loading, error, refresh } = useUserData();
-  const attRows = data?.attendance || [];
+  const attRows = data?.Attendance || [];
 
   const summary = useMemo(() => {
     if (loading || error) return null;
     const rows = attRows;
-    const courses = (data?.courses || []).map((c) => ({ id: c.id, name: c.name }));
+    const courses = (data?.Course || []).map((c) => ({ id: c.id, name: c.name }));
     const requiredByCourse = Object.fromEntries(
-      (data?.courses || []).map((c) => [c.id, typeof c.attendance_required === "number" ? c.attendance_required : 80])
+      (data?.Course || []).map((c) => [c.id, typeof c.attendance_required === "number" ? c.attendance_required : 80])
     );
     return buildAttendanceSummary({ rows, courses, requiredByCourse, today: todayISO() });
   }, [loading, error, attRows, data]);
