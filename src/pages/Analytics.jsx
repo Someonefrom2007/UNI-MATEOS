@@ -63,6 +63,7 @@ const Sparkline = ({ points, width = 180, height = 44 }) => {
 export default function Analytics() {
   const { t } = useI18n();
   const { can } = usePlan();
+  const allowed = can("advanced_analytics");
 
   const [data, setData] = useState({ sessions: [], tasks: [], grades: [], courses: [] });
 
@@ -77,8 +78,13 @@ export default function Analytics() {
   }, []);
 
   useEffect(() => {
+    // Skip the raw-table reads unless entitled. This gates the fetch, not the
+    // tables: focus_sessions/tasks/grades/courses are also free-tier data, and
+    // their RLS is deliberately unchanged so Grades/Focus/Courses keep working
+    // for free users. `allowed` is a stable boolean dep; `can` must not be one.
+    if (!allowed) return;
     load();
-  }, [load]);
+  }, [load, allowed]);
 
   if (!can("advanced_analytics")) {
     return (

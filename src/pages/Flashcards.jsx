@@ -39,6 +39,7 @@ export default function Flashcards() {
   const { t } = useI18n();
   const { can } = usePlan();
   const { toast } = useToast();
+  const allowed = can("flashcards");
 
   const [decks, setDecks] = useState([]);
   const [cards, setCards] = useState([]);
@@ -62,8 +63,14 @@ export default function Flashcards() {
   }, []);
 
   useEffect(() => {
+    // Do not issue the deck/card/course SELECTs for a user who cannot use the
+    // feature. The lock screen below is an early return, so without this the
+    // fetch effect still runs and a free user gets real rows off the wire just
+    // by navigating here. `allowed` is a boolean (and so a stable dep);
+    // `can` itself is a fresh closure each render and must not be a dep.
+    if (!allowed) return;
     load();
-  }, [load]);
+  }, [load, allowed]);
 
   const deck = decks.find((d) => d.id === deckId) || null;
   const deckCards = useMemo(() => cards.filter((c) => c.deck_id === deckId), [cards, deckId]);

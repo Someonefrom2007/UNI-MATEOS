@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     // is client-writable via `supabase.auth.updateUser({ data: { plan } })` —
     // so the gate could be satisfied by the very client it was meant to stop.
     //
-    // `subscriptions.tier` is the authoritative record: RLS grants SELECT-own
+    // `subscriptions` is the authoritative record: RLS grants SELECT-own
     // and no client INSERT/UPDATE, and it is written only by the
     // `lemon-squeezy` webhook using the service role.
     //
@@ -91,10 +91,31 @@ Deno.serve(async (req) => {
     // to bypass RLS.
     const { data: sub } = await supabase
       .from("subscriptions")
-      .select("tier")
+      .select("tier, status, renews_at")
       .eq("user_id", user.id)
       .maybeSingle();
-    const plan = String(sub?.tier || "free").toLowerCase();
+
+    // Mirror of effectiveTier() in the lemon-squeezy function. Both copies are
+    // deliberate for now: these are two independently deployed functions with
+    // no shared module, and the rule is short. It must stay byte-equivalent in
+    // behaviour — see src/__tests__/entitlement.test.js, which asserts both.
+    const entitledTier = (() => {
+      if (!sub) return "free";
+      const tier = String(sub.tier || "free").toLowerCase();
+      if (tier === "free") return "free";
+      const status = String(sub.status || "");
+      if (!["on_trial", "active", "paused", "cancelled", "unpaid"].includes(status)) return "free";
+      // A `cancelled` row is entitled only until the period it was paid for
+      // ends. Without this the row stays at tier='pro' forever if no further
+      // webhook arrives, which is exactly the case after a lapse.
+      if (status === "cancelled" && sub.renews_at) {
+        const endsAt = new Date(sub.renews_at).getTime();
+        if (Number.isFinite(endsAt) && endsAt <= Date.now()) return "free";
+      }
+      return tier;
+    })();
+
+    const plan = entitledTier;
     if (!["pro", "ultra", "ultimate"].includes(plan)) {
       return json({ locked: true, plan, error: "AI Assistant is a Pro feature" }, 402);
     }

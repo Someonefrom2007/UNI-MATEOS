@@ -18,8 +18,11 @@
 //      AUTHORITATIVE SOURCE: `subscriptions.tier` — it is written only here
 //      (service role) and has no client INSERT/UPDATE policy, so a user cannot
 //      grant themselves a tier. The `user_metadata.plan` mirror below is a
-//      DISPLAY convenience only; nothing authorizes on it, because
-//      user_metadata is writable by the account owner.
+//      DISPLAY convenience only: it is written here for the profile UI, and
+//      nothing authorizes on it, because the account owner can rewrite it via
+//      auth.updateUser(). The `status` action therefore derives `plan` from
+//      the subscription row via effectiveTier() below — the client feeds that
+//      value straight into can(), so it has to be server-owned.
 //
 //      The signature header decrypts... the body hash is verified BEFORE any
 //      billing state is touched. Unverified webhooks are rejected outright.
@@ -72,6 +75,32 @@ const tierForVariant = (variantId) => {
 // the period ends). Only "expired" revokes access — Lemonsqueezy fires it
 // when the subscription truly ends.
 const KEEPS_ENTITLEMENT = new Set(["on_trial", "active", "paused", "cancelled", "unpaid"]);
+
+// Single definition of "is this subscription row actually entitled right now".
+// Mirrors the webhook's own rule (tier present AND status keeps entitlement)
+// and adds the guard that rule was missing: a `cancelled` row keeps access
+// until `renews_at`, and not one instant longer. Without it a lapsed
+// cancellation left the row at tier='pro' indefinitely, because the row is
+// only rewritten when a webhook fires.
+//
+// Exported to the `status` action so the client's can() gate is decided from
+// the server-owned row rather than from user_metadata, which the account
+// owner can write for themselves via auth.updateUser().
+const effectiveTier = (subscription) => {
+  if (!subscription) return "free";
+  const tier = String(subscription.tier || "free").toLowerCase();
+  if (tier === "free") return "free";
+  const status = String(subscription.status || "");
+  if (!KEEPS_ENTITLEMENT.has(status)) return "free";
+  // Only terminating states are expiry-checked. For `active`/`on_trial`,
+  // `renews_at` is the next billing date and reading it here would risk
+  // revoking a paying customer on a stale value.
+  if (status === "cancelled" && subscription.renews_at) {
+    const endsAt = new Date(subscription.renews_at).getTime();
+    if (Number.isFinite(endsAt) && endsAt <= Date.now()) return "free";
+  }
+  return tier;
+};
 
 const safeUpsert = async (supabase, table, payload, onConflict) => {
   try {
@@ -353,12 +382,18 @@ Deno.serve(async (req) => {
 
     if (action === "status") {
       const configured = isConfigured();
-      if (!configured) return json({ configured: false, subscription: null, plan: String(user.user_metadata?.plan || "free") });
+      // Read the subscription regardless of `configured`: a user entitled
+      // before Lemon Squeezy lost its env vars must not silently drop to
+      // "free" because this deployment is currently unconfigured.
       const sub = await readSubscriptionForUser(supabase, user.id);
       return json({
-        configured: true,
+        configured,
         subscription: sub,
-        plan: String(user.user_metadata?.plan || "free"),
+        // SECURITY: sourced from the server-owned `subscriptions` row, never
+        // from `user.user_metadata.plan`. The client feeds this straight into
+        // can(), so reading the self-writable mirror here would let any user
+        // unlock the paid UI for themselves.
+        plan: effectiveTier(sub),
       });
     }
 

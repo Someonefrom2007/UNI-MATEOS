@@ -32,6 +32,10 @@ export-report.json
 # run and embeds real hosted project data, so it stays out of the repo)
 qa/hosted/hosted-security-report.json
 
+# Supabase CLI per-developer state (linked project ref, version check). Written
+# by `supabase functions deploy` / `supabase link`; machine-local, not source.
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

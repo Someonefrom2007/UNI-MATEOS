@@ -44,6 +44,7 @@ const formattedDay = (date) => {
 export default function StudyPlanner() {
   const { t } = useI18n();
   const { can } = usePlan();
+  const allowed = can("smart_planning");
   const { toast } = useToast();
 
   const [plans, setPlans] = useState([]);
@@ -69,8 +70,13 @@ export default function StudyPlanner() {
   }, []);
 
   useEffect(() => {
+    // Skip the study_plan/study_plan_items/exams/topics SELECTs unless the user
+    // is entitled — the lock screen is an early return, so the fetch effect
+    // would otherwise run for a free user. `allowed` is a stable boolean dep;
+    // `can` is a fresh closure each render and must not be a dep.
+    if (!allowed) return;
     load();
-  }, [load]);
+  }, [load, allowed]);
 
   const sortedPlans = plans.slice().sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
   const upcoming = exams
