@@ -90,11 +90,16 @@ The console never fires a live completion.
 ## 6. Billing reconciliation
 
 `reconcile.js` models the chain
-`Lemon Squeezy (webhook/payment source of truth) → subscriptions row →
-auth user_metadata.plan (entitlement)`.
-It returns `{ ok, matches, mismatches, suggestedPlan }`. The only mutating
-console step is `reconcileEntitlement`, which sets the entitlement plan; every
-real write runs inside `withAudit` and lands in `audit_log`.
+`Lemon Squeezy (webhook/payment source of truth) → subscriptions row
+(entitlement, authoritative) → auth user_metadata.plan (display mirror)`.
+The `subscriptions.tier` row is the entitlement of record: RLS grants the
+client SELECT-own only, with no client INSERT/UPDATE, so a user cannot grant
+themselves a tier. `user_metadata.plan` is a display convenience written by the
+webhook and must never be used for an authorization decision — the account
+owner can write their own metadata.
+`reconcile.js` returns `{ ok, matches, mismatches, suggestedPlan }`. The only
+mutating console step is `reconcileEntitlement`, which sets the entitlement
+plan; every real write runs inside `withAudit` and lands in `audit_log`.
 
 ## 7. Student-app consumption
 
