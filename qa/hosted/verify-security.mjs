@@ -181,6 +181,13 @@ const main = async () => {
     const boot = await founder.rpc("bootstrap_founder", { p_email: FOUNDER });
     row("founder.bootstrap-client-attempt", boot.error ? (denyStatus(classifyErr(boot)) ?? "FAIL-unexpected") : "FAIL-unexpected", JSON.stringify(boot.data ?? boot.error), { founder: "run" });
 
+    // Staff are not paywalled (has_paid_entitlement ORs in is_admin), so the paid
+    // derived read must still work for the founder even with no subscription row.
+    // This is the regression that matters most: tightening RLS must not lock
+    // admins out of their own app.
+    const adv = await founder.rpc("advanced_analytics", { p_today: null });
+    row("founder.advanced-analytics-rpc", adv.error ? "FAIL-admin-must-be-entitled" : "PASS-visible", JSON.stringify(adv.error ?? Object.keys(adv.data || {})), { founder: "run" });
+
     // ── real logout: old client cannot continue ──
     await anon.auth.signOut(); // same anon client held the founder session
     const stale = createClient(URL, ANON, { global: { headers: { Authorization: `Bearer ${founderRes.data.session.access_token}` } } });
@@ -197,7 +204,10 @@ const main = async () => {
   const STUDENT_DEPS = [
     "student.authorization", "student.admin_accounts-read", "student.announcements-create",
     "student.feature-flags-create", "student.audit-log-read", "student.roster-rpc",
-    "student.bootstrap-client-attempt",
+    "student.bootstrap-client-attempt", "student.advanced-analytics-rpc",
+    "student.flashcards-insert", "student.paid-read-flashcards",
+    "student.paid-read-flashcard_decks", "student.paid-read-study_plans",
+    "student.paid-read-study_plan_items", "student.free-tables-readable",
   ];
   const studRes = await createClient(URL, ANON).auth.signInWithPassword({ email: STUDENT_EMAIL, password: STUDENT_PASS });
   if (studRes.error) {
@@ -225,6 +235,34 @@ const main = async () => {
     row("student.roster-rpc", roster.error ? (denyStatus(classifyErr(roster)) ?? "FAIL") : !roster.data?.length ? "PASS-denied" : "FAIL-visible", JSON.stringify(roster.data ?? roster.error), { student: "run" });
     const boot = await student.rpc("bootstrap_founder", { p_email: FOUNDER });
     row("student.bootstrap-client-attempt", boot.error ? (denyStatus(classifyErr(boot)) ?? "FAIL-unexpected") : "FAIL-unexpected", JSON.stringify(boot.data ?? boot.error), { student: "run" });
+
+    // ── paid entitlement, enforced in the database ──
+    // This account is a free user, so the denial direction is exercisable with no
+    // fixtures at all. The two strongest checks are the ones that cannot be
+    // faked by an empty table: the derived read and the write.
+    const adv = await student.rpc("advanced_analytics", { p_today: null });
+    row("student.advanced-analytics-rpc", adv.error ? (denyStatus(classifyErr(adv)) ?? "FAIL") : "FAIL-over-granted", JSON.stringify(adv.error ?? adv.data), { student: "run" });
+
+    const cardIns = await student.from("flashcards").insert({ front: "qa", back: "qa" });
+    row("student.flashcards-insert", cardIns.error ? (denyStatus(classifyErr(cardIns)) ?? "FAIL") : "FAIL-over-granted", JSON.stringify(cardIns.error ?? "inserted"), { student: "run" });
+
+    // Row-count checks: RLS filters silently, so an empty set is the denial. A free
+    // user who happens to own no rows also yields 0, so this is necessary but not
+    // sufficient — qa/hosted/verify-entitlement.mjs plants fixtures and proves
+    // these same policies hide real rows, and proves the probe is non-vacuous.
+    for (const t of ["flashcards", "flashcard_decks", "study_plans", "study_plan_items"]) {
+      const r = await student.from(t).select("*").limit(5);
+      row(`student.paid-read-${t}`, r.error ? (denyStatus(classifyErr(r)) ?? "FAIL") : r.data?.length === 0 ? "PASS-denied" : "FAIL-visible", `rows=${r.data?.length ?? r.error}`, { student: "run" });
+    }
+
+    // Free-tier data must stay readable for the same free user; over-gating these
+    // would break Grades/Focus/Tasks/Courses for everyone on the free plan.
+    const freeOk = [];
+    for (const t of ["focus_sessions", "tasks", "grades", "courses"]) {
+      const r = await student.from(t).select("*").limit(1);
+      freeOk.push(`${t}:${r.error ? "error" : "ok"}`);
+    }
+    row("student.free-tables-readable", freeOk.every((x) => x.endsWith(":ok")) ? "PASS" : "FAIL", freeOk.join(" "), { student: "run" });
   }
 
   // ── unauthenticated (no session) ──
@@ -242,6 +280,13 @@ const main = async () => {
   row("anon.audit-log-read", anonAud.error ? (denyStatus(classifyErr(anonAud)) ?? "FAIL") : anonAud.data?.length === 0 ? "PASS-denied" : "FAIL-visible", JSON.stringify(anonAud.data?.length ?? anonAud.error), { anon: "run" });
   const anonBoot = await anon.rpc("bootstrap_founder", { p_email: FOUNDER });
   row("anon.bootstrap-client-attempt", anonBoot.error ? (denyStatus(classifyErr(anonBoot)) ?? "FAIL-unexpected") : "FAIL-unexpected", JSON.stringify(anonBoot.data ?? anonBoot.error), { anon: "run" });
+
+  // The paid derived read is reachable over PostgREST by anyone holding the public
+  // anon key, so it must refuse rather than serve an unauthenticated caller.
+  const anonAdv = await anon.rpc("advanced_analytics", { p_today: null });
+  row("anon.advanced-analytics-rpc", anonAdv.error ? (denyStatus(classifyErr(anonAdv)) ?? "FAIL") : "FAIL-over-granted", JSON.stringify(anonAdv.error ?? anonAdv.data), { anon: "run" });
+  const anonFlash = await anon.from("flashcards").select("*").limit(1);
+  row("anon.flashcards-read", anonFlash.error ? (denyStatus(classifyErr(anonFlash)) ?? "FAIL") : anonFlash.data?.length === 0 ? "PASS-denied" : "FAIL-visible", anonFlash.error ? `denied: ${anonFlash.error.code}` : `rows=${anonFlash.data?.length}`, { anon: "run" });
 
   // ── service-role bootstrap repeat (owner-only, opt-in) ──
   if (SERVICE_KEY && process.env.HOSTED_BOOTSTRAP_RUN === "1") {
@@ -265,11 +310,17 @@ const MATRIX_KEYS = [
   "founder.feature-flags-update", "founder.feature-flags-delete", "founder.audit-log-write",
   "founder.bootstrap-client-attempt", "founder.logout-client-supply",
   "founder.no-duplicate-rows", "founder.logout-stale-token",
+  "founder.advanced-analytics-rpc",
   "student.login", "student.authorization", "student.admin_accounts-read",
   "student.announcements-create", "student.feature-flags-create", "student.audit-log-read",
   "student.roster-rpc", "student.bootstrap-client-attempt",
+  "student.advanced-analytics-rpc", "student.flashcards-insert",
+  "student.paid-read-flashcards", "student.paid-read-flashcard_decks",
+  "student.paid-read-study_plans", "student.paid-read-study_plan_items",
+  "student.free-tables-readable",
   "anon.admin-role", "anon.admin_accounts-read", "anon.announcements-read", "anon.audit-log-read",
-  "anon.bootstrap-client-attempt", "boot.service-repeats-idempotent",
+  "anon.bootstrap-client-attempt", "anon.advanced-analytics-rpc", "anon.flashcards-read",
+  "boot.service-repeats-idempotent",
 ];
 
 const emit = async () => {

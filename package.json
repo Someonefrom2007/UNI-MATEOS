@@ -11,6 +11,9 @@
     "typecheck": "tsc -p ./jsconfig.json",
     "test": "vitest run",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build",
+    "verify:hosted": "node qa/hosted/verify-security.mjs",
+    "verify:entitlement": "node qa/hosted/verify-entitlement.mjs",
+    "verify:hosted:all": "npm run verify:hosted && npm run verify:entitlement",
     "preview": "vite preview"
   },
   "dependencies": {

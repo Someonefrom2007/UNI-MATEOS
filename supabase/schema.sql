@@ -1,5 +1,29 @@
 -- UNI·MATE — Supabase schema (migration from base44/entities)
 -- Generated from the 18 Base44 entity definitions. No application code changed.
+--
+-- ─────────────────────────────────────────────────────────────────────────────
+-- BASELINE SNAPSHOT — NOT THE SOURCE OF TRUTH AFTER 2026-09-29
+--
+-- This file is the bootstrap baseline: it reproduces the project as it stood
+-- before the paid-entitlement migration. Apply it FIRST, then apply
+-- supabase/migrations/ in order.
+--
+-- From 20260929000000_paid_entitlement_enforcement.sql onward, supabase/migrations/
+-- is authoritative and this snapshot is frozen. The migration tightens the RLS
+-- policies on flashcards / flashcard_decks / study_plans / study_plan_items (the
+-- ownership-only policies still declared below are deliberately superseded) and
+-- adds public.has_paid_entitlement(), public.week_start() and
+-- public.advanced_analytics().
+--
+-- The policies declared here are intentionally NOT edited to match the migration.
+-- Editing both would create two places to update and one of them would silently
+-- drift; a re-run of this baseline followed by the migrations always converges on
+-- the same state instead. Section 10's admin_read loop is still the only
+-- declaration of those policies, because it covers 21 tables dynamically.
+--
+-- The parity of this snapshot against the hosted project is asserted by
+-- src/__tests__/dbEntitlement.test.js, so it cannot quietly fall behind again.
+-- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 

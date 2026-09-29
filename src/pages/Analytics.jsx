@@ -4,25 +4,23 @@ import PlanLocked from "@/components/PlanLocked";
 import { Card } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
 import { usePlan } from "@/lib/usePlan";
-import { getAppRepo } from "@/lib/repo/select";
+import { supabase } from "@/lib/supabase";
 import { todayISO, fmtDuration } from "@/lib/format";
-import {
-  studyStreaks,
-  weeklyFocus,
-  completionStats,
-  gradeTrajectory,
-  focusVelocity,
-} from "@/lib/analytics";
 import { Flame, Timer, CheckSquare, TrendingUp, BarChart3, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
-const repo = getAppRepo();
-
-const listOrZero = async (table) => {
-  try {
-    return (await repo.list(table)) || [];
-  } catch {
-    return [];
-  }
+const EMPTY = {
+  streaks: { current: 0, best: 0 },
+  velocity: {
+    weekMinutes: 0,
+    lastWeekMinutes: 0,
+    sessionsThisWeek: 0,
+    sessionsLastWeek: 0,
+    changePct: 0,
+    avgSession: null,
+  },
+  weeks: [],
+  completion: { done: 0, inProgress: 0, open: 0, total: 0, pct: 0, overdue: 0 },
+  trajectory: { points: [], current: null, count: 0, best: null, worst: null },
 };
 
 const fmtWeek = (iso) => {
@@ -65,23 +63,31 @@ export default function Analytics() {
   const { can } = usePlan();
   const allowed = can("advanced_analytics");
 
-  const [data, setData] = useState({ sessions: [], tasks: [], grades: [], courses: [] });
+  const [data, setData] = useState(EMPTY);
+  const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
-    const [sessions, tasks, grades, courses] = await Promise.all([
-      listOrZero("focus_sessions"),
-      listOrZero("tasks"),
-      listOrZero("grades"),
-      listOrZero("courses"),
-    ]);
-    setData({ sessions, tasks, grades, courses });
+    // Advanced Analytics is derived server-side by `advanced_analytics()`. The
+    // client used to pull raw focus_sessions/tasks/grades/courses and run the
+    // same maths in src/lib/analytics.js, which meant the Pro computation was
+    // fully reproducible from free-tier tables any user can read. The RPC keeps
+    // the maths authoritative and refuses non-entitled callers with 42501.
+    // Course names are resolved in SQL too, so no join is needed on the client.
+    const { data: result, error: rpcError } = await supabase.rpc("advanced_analytics", {
+      p_today: todayISO(),
+    });
+    if (rpcError) {
+      setError(rpcError);
+      setData(EMPTY);
+      return;
+    }
+    setError(null);
+    setData({ ...EMPTY, ...(result || {}) });
   }, []);
 
   useEffect(() => {
-    // Skip the raw-table reads unless entitled. This gates the fetch, not the
-    // tables: focus_sessions/tasks/grades/courses are also free-tier data, and
-    // their RLS is deliberately unchanged so Grades/Focus/Courses keep working
-    // for free users. `allowed` is a stable boolean dep; `can` must not be one.
+    // `allowed` gates the request only. focus_sessions/tasks/grades/courses
+    // stay untiered so Grades/Focus/Courses keep working for free users.
     if (!allowed) return;
     load();
   }, [load, allowed]);
@@ -98,12 +104,7 @@ export default function Analytics() {
     );
   }
 
-  const today = todayISO();
-  const streaks = studyStreaks(data.tasks, data.sessions, { today });
-  const velocity = focusVelocity(data.sessions, { today });
-  const weeks = weeklyFocus(data.sessions, { today, weeks: 8 });
-  const completion = completionStats(data.tasks, { today });
-  const trajectory = gradeTrajectory(data.grades, data.courses);
+  const { streaks, velocity, weeks, completion, trajectory } = data;
   const maxWeek = Math.max(...weeks.map((w) => w.minutes), 1);
 
   const statCard = (icon, label, value, sub, accent) => (
@@ -123,6 +124,13 @@ export default function Analytics() {
     <>
       <PageHeader title={t("title.analytics")} subtitle={t("title.analytics.subtitle")} />
       <div className="max-w-5xl space-y-4">
+        {error && (
+          <Card className="p-4 text-sm text-muted-foreground">
+            {error.code === "42501"
+              ? "Advanced Analytics is a Pro feature. Your plan may have lapsed — refresh to re-check."
+              : "Could not load analytics right now."}
+          </Card>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {statCard(<Flame className="w-4 h-4" />, "Study streak", `${streaks.current} days`, `Best: ${streaks.best}`, "bg-hud-amber/10 text-hud-amber")}
           {statCard(<Timer className="w-4 h-4" />, "Focus this week", fmtDuration(velocity.weekMinutes), `Last week ${fmtDuration(velocity.lastWeekMinutes)}`, "bg-hud-violet/10 text-hud-violet")}

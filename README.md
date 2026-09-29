@@ -51,7 +51,11 @@ The repository layer lives in `src/lib/repo/` (`storage.js`, `localRepo.js`, `su
 
 ## Database & Edge Functions
 
-- **Schema**: `supabase/schema.sql` is the single source of truth (tables, RLS policies, triggers, additive migrations). Apply it in the Supabase dashboard (SQL editor) or via the Supabase CLI before going live.
+- **Schema**: `supabase/schema.sql` is the bootstrap **baseline** snapshot (tables, RLS policies, triggers). Apply it first via the Supabase dashboard (SQL editor) or the Supabase CLI.
+- **Migrations**: `supabase/migrations/` is the **source of truth** once a database exists. Apply in filename order, before `schema.sql` ever gets re-run.
+  - `20260929000000_paid_entitlement_enforcement.sql` — makes the database the paywall: `has_paid_entitlement()` reads `subscriptions` only (never the client-writable `user_metadata.plan`), and every CRUD policy on `flashcards` / `flashcard_decks` / `study_plans` / `study_plan_items` becomes `auth.uid() = user_id AND has_paid_entitlement()`. Admin is exempt. Focus sessions, tasks, grades and courses stay ungated — they are free-tier data.
+  - It also adds `advanced_analytics()`, a `SECURITY DEFINER` derived read that computes the paid Analytics numbers server-side and returns `42501` for non-entitled callers, so the Pro maths is no longer reproducible from free-tier tables in the browser.
+  - The migration is written to be re-runnable: it narrows policies by `DROP` + `CREATE`, and every replacement is strictly narrower than the policy it replaces, so a re-run can never widen access.
 - **Edge Functions** (`supabase/functions/`):
   - `ai-assistant` — grounded academic copilot. Set `OPENAI_API_KEY` as a function secret for model answers (deterministic summary without it).
   - `lemon-squeezy` — checkout / status / manage + HMAC-verified webhook → entitlements.
@@ -71,9 +75,23 @@ npm run verify
 
 (equivalent to `npm run typecheck && npm run lint && npm test && npm run build`).
 
+### Hosted checks
+
+`npm run verify` is fully local. To prove the security posture against the **real** hosted project:
+
+```bash
+npm run verify:hosted:all   # or verify:hosted / verify:entitlement individually
+```
+
+- `verify:hosted` — real logins, real JWTs, real PostgREST. Proves a free user cannot read or write the paid tables, cannot call `advanced_analytics`, that a founder still can, and that anon is refused.
+- `verify:entitlement` — database-level. The paywall lives in RLS, so it has to impersonate `authenticated` and flip subscription rows, which no client may legitimately do. It runs inside a single transaction that always ends in `ROLLBACK`, so no fixture or subscription ever reaches production. It reads the Supabase CLI token from the macOS keychain (never printed, never written); no service-role key is required.
+
+Both report `PASS` / `FAIL` / `NOT EXECUTED` and exit non-zero on any failure. `NOT EXECUTED` is never rounded up to a pass — a missing credential degrades a whole matrix rather than quietly going green. `verify-entitlement` additionally asserts its own **non-vacuity**: it reinstates the pre-migration ownership-only policy inside a rolled-back transaction and confirms a free caller can then read the row, which proves the denial checks can actually detect the hole they claim to close.
+
 ## Notes
 
 - **RLS**: every data table has row-level security scoped to `auth.uid()`. The `user_profiles` row for `auth.users` is auto-provisioned by the `handle_new_user()` trigger.
+- **Entitlement is server-authoritative**: `subscriptions.tier` (written only by the `lemon-squeezy` webhook with the service role) is the single source of truth, checked by both edge functions and now by RLS. `user_metadata.plan` is writable by the account owner via `auth.updateUser()`, so it can neither grant nor revoke a paid feature.
 - **Profile fields** (university, degree, target GPA, language, etc.) are stored in auth user metadata via `supabase.auth.updateUser({ data: ... })`.
 - The grade/schedule/workload/insights engines in `src/lib/*Engine.js` and their tests are pinned — do not modify them.
 - The test suite runs from `src` only (`vite.config.js`), so agent worktrees never inflate or break it.

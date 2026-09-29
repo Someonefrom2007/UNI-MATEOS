@@ -1,6 +1,21 @@
-// Advanced Analytics — Pro engine. Pure derivations over the raw study data
-// (focus sessions, tasks, grades) that power the Analytics hub. Deterministic,
-// timezone-safe (Europe/Madrid via toLocalISO / weekStartOf semantics).
+// Advanced Analytics — parity reference. NOT the implementation any more.
+//
+// These derivations used to run in the browser and power the Analytics hub.
+// They were pure functions over focus_sessions/tasks/grades/courses — all
+// FREE-tier tables with deliberately untouched RLS — so a free user could
+// reproduce every Pro number by hand, which made the paywall cosmetic.
+//
+// The authoritative implementation is now public.advanced_analytics(), a
+// SECURITY DEFINER function in
+// supabase/migrations/20260929000000_paid_entitlement_enforcement.sql, which
+// computes the same figures server-side and refuses non-entitled callers with
+// 42501. src/pages/Analytics.jsx calls that RPC and no longer imports this file.
+//
+// This copy is retained as the readable specification the SQL is checked
+// against. It is intentionally NOT exported to the app: there is no parity
+// harness comparing the two implementations line by line, so a second copy can
+// only drift. Treat the SQL as the source of truth; if you change a rule here,
+// change it there too, and re-run `npm run verify:hosted:all`.
 import { toLocalISO } from "@/lib/format";
 
 const DAY_MS = 86400000;
