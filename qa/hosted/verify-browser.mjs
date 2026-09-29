@@ -109,12 +109,16 @@ const main = async () => {
     const res = await fetch(`${BASE}/`);
     const html = await res.text();
     record("browser.live_root_served", res.status === 200, `GET ${BASE}/ -> HTTP ${res.status}`);
-    const main = html.match(/\/assets\/index-[A-Za-z0-9_-]+\.js/)?.[0];
-    const chunk = main ? await (await fetch(origin + main)).text() : "";
-    const found = [...new Set(chunk.match(/https:\/\/[a-z]{20}\.supabase\.co/g) || [])];
+    // Keep the FULL served path. Stripping it to "/assets/..." silently drops
+    // the deployment base and fetches a 404 page, which then looks like "the
+    // bundle has no Supabase URL" rather than "this check is wrong".
+    const chunks = [...new Set([...html.matchAll(/\/[^\s"']*?assets\/[A-Za-z0-9_.-]+\.js/g)].map((m) => m[0]))];
+    let served = "";
+    for (const c of chunks) served += await (await fetch(origin + c)).text();
+    const found = [...new Set(served.match(/https:\/\/[a-z]{20}\.supabase\.co/g) || [])];
     // Exactly one project, and it must be the real one. More than one means
     // the bundle is pointed at the wrong database; zero means it is misbuilt.
-    record("browser.live_targets_expected_project", found.length === 1 && found[0] === URL_, `supabase URLs in served bundle: ${found.join(",") || "none"}`);
+    record("browser.live_targets_expected_project", found.length === 1 && found[0] === URL_, `chunks scanned=${chunks.length} supabase URLs: ${found.join(",") || "none"}`);
   } else {
     const probe = await browser.newPage();
     await probe.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 30000 });

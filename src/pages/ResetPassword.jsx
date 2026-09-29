@@ -8,6 +8,7 @@ import { Lock, Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
+import { appPath } from "@/lib/appBase";
 
 export default function ResetPassword() {
   const { localWorkspace } = useAuth();
@@ -75,7 +76,7 @@ export default function ResetPassword() {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       await supabase.auth.signOut();
-      window.location.href = "/login";
+      window.location.href = appPath("/login");
     } catch (err) {
       setError(err.message || "Failed to reset password");
     } finally {

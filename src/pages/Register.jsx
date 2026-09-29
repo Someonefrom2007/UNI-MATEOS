@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
+import { appUrl } from "@/lib/appBase";
 
 export default function Register() {
   const { isAuthenticated, localWorkspace } = useAuth();
@@ -33,7 +34,7 @@ export default function Register() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: appUrl("/") },
       });
       if (error) throw error;
       if (data.session) {
@@ -56,7 +57,7 @@ export default function Register() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: appUrl("/") },
       });
       if (error) throw error;
       toast({

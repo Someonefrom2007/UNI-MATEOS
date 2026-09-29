@@ -8,6 +8,7 @@ import { Mail, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
+import { appUrl } from "@/lib/appBase";
 
 export default function ForgotPassword() {
   const { localWorkspace } = useAuth();
@@ -20,7 +21,7 @@ export default function ForgotPassword() {
     setLoading(true);
     try {
       await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + "/reset-password",
+        redirectTo: appUrl("/reset-password"),
       });
     } catch {
       // Always show success regardless

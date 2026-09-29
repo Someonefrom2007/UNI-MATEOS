@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 
 import { supabase } from '@/lib/supabase';
 import { isLocalWorkspace, LOCAL_WORKSPACE_USER, loadLocalProfile } from '@/lib/repo/select';
+import { appPath } from "@/lib/appBase";
 
 const AuthContext = createContext(null);
 
@@ -101,13 +102,13 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       if (shouldRedirect) {
-        window.location.href = '/login';
+        window.location.href = appPath('/login');
       }
     });
   };
 
   const navigateToLogin = () => {
-    window.location.href = '/login';
+    window.location.href = appPath('/login');
   };
 
   return (
