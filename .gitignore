@@ -33,6 +33,7 @@ export-report.json
 # data, so they stay out of the repo)
 qa/hosted/hosted-security-report.json
 qa/hosted/entitlement-report.json
+qa/hosted/browser-report.json
 
 # Supabase CLI per-developer state (linked project ref, version check). Written
 # by `supabase functions deploy` / `supabase link`; machine-local, not source.

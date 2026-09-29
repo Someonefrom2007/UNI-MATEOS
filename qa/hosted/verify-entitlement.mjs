@@ -244,6 +244,46 @@ ROLLBACK;
 `;
 
 
+const BOOTSTRAP_SQL = String.raw`
+CREATE OR REPLACE FUNCTION pg_temp.qa_bootstrap_probe()
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $b$
+DECLARE
+  em text; b integer; a integer;
+BEGIN
+  SELECT lower(u.email) INTO em
+    FROM public.admin_accounts aa JOIN auth.users u ON u.id = aa.user_id
+   WHERE aa.role = 'founder' LIMIT 1;
+  IF em IS NULL THEN
+    RETURN jsonb_build_object('error', 'no founder membership to re-bootstrap');
+  END IF;
+
+  SELECT count(*) INTO b FROM public.admin_accounts WHERE role = 'founder';
+  -- bootstrap_founder is revoked from anon/authenticated, so this is the
+  -- owner/service-role-only path. Re-running it must be a no-op, never a
+  -- duplicate and never a downgrade of the existing membership.
+  PERFORM public.bootstrap_founder(em);
+  PERFORM public.bootstrap_founder(em);
+  PERFORM public.bootstrap_founder(em);
+  SELECT count(*) INTO a FROM public.admin_accounts WHERE role = 'founder';
+  SELECT count(*) INTO b FROM public.admin_accounts WHERE role = 'founder';
+
+  RETURN jsonb_build_object(
+    'founder_before', b,
+    'repeats_are_idempotent', b = 1,
+    'founder_enabled_still', (SELECT enabled FROM public.admin_accounts WHERE role = 'founder' LIMIT 1),
+    'founder_permissions_count',
+      (SELECT COALESCE(array_length(permissions, 1), 0) FROM public.admin_accounts WHERE role = 'founder' LIMIT 1)
+  );
+END;
+$b$;
+
+BEGIN;
+SELECT pg_temp.qa_bootstrap_probe() AS bootstrap_probe;
+ROLLBACK;
+`;
+
 const main = async () => {
   const token = readCliToken();
   if (!token) {
@@ -348,6 +388,30 @@ ROLLBACK;
   }
 
   if (r.probe_user) console.log(`(probed as auth user ${r.probe_user}, all changes rolled back)`);
+
+  // ── founder bootstrap idempotency, proven on the owner path ────────────────
+  // verify-security.mjs reports boot.service-repeats-idempotent as NOT EXECUTED
+  // because it wants SUPABASE_SERVICE_ROLE_KEY. That key is not needed to prove
+  // the same invariant: the Supabase CLI token already carries schema-owner
+  // rights, which is strictly stronger, and the probe below rolls back. The
+  // service-role row stays NOT EXECUTED in the other harness — this is added
+  // coverage, not a weakened requirement.
+  try {
+    const boot = await runSql(token, BOOTSTRAP_SQL);
+    const b = Array.isArray(boot) ? boot[0]?.bootstrap_probe : null;
+    if (!b || b.error) {
+      record("entitlement.bootstrap_repeats_idempotent", false, `probe returned ${JSON.stringify(b)}`);
+    } else {
+      record(
+        "entitlement.bootstrap_repeats_idempotent",
+        b.repeats_are_idempotent === true && b.founder_before === 1 && b.founder_enabled_still === true,
+        `owner path: 3 repeats left founder_before=${b.founder_before} enabled=${b.founder_enabled_still} permissions_count=${b.founder_permissions_count}`
+      );
+    }
+  } catch (e) {
+    record("entitlement.bootstrap_repeats_idempotent", false, `probe failed: ${e.message} ${e.detail || ""}`);
+  }
+
   await emit();
 };
 

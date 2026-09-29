@@ -364,6 +364,15 @@ describe("Analytics page", () => {
     expect(pageUnderTest).not.toMatch(/from\s+"@\/lib\/analytics"/);
     expect(pageUnderTest).not.toMatch(/studyStreaks|focusVelocity|gradeTrajectory/);
   });
+
+  it("declares the browser harness's own dependency", () => {
+    // qa/helpers.mjs and qa/hosted/verify-browser.mjs both import
+    // puppeteer-core. It was never added to package.json, so every browser
+    // harness in the repo failed at import time and the "headless sweep" it
+    // claims to have run could not have come from a clean checkout.
+    const pkg = JSON.parse(read("package.json"));
+    expect(pkg.devDependencies?.["puppeteer-core"] ?? pkg.dependencies?.["puppeteer-core"]).toBeTruthy();
+  });
 });
 
 // ── bootstrap snapshot parity ────────────────────────────────────────────────

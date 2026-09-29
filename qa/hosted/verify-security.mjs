@@ -198,6 +198,40 @@ const main = async () => {
     // the 401. We record the exact observed behaviour and never assert beyond it.
     row("founder.logout-client-supply", "PASS", "session removed from client; signOut succeeded", { founder: "run" });
     row("founder.logout-stale-token", stillUsable ? "NOT EXECUTED-stateless-access-valid" : "PASS", `staleRole=${JSON.stringify(staleRole.data ?? staleRole.error)}`, { founder: "run" });
+
+    // The row above is a property of stateless JWTs, not a defect: an already-issued
+    // access token stays verifiable until it expires (~1h) no matter what the client
+    // does. The claim that actually matters is that signOut REVOKES the refresh token,
+    // so a stolen/live session cannot be renewed into fresh access. That is provable
+    // without waiting for an expiry, and it is the real logout guarantee.
+    let refreshStatus = "not attempted";
+    try {
+      const r = await fetch(`${URL}/auth/v1/token?grant_type=refresh_token`, {
+        method: "POST",
+        headers: { apikey: ANON, "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: founderRes.data.session.refresh_token }),
+      });
+      refreshStatus = `HTTP ${r.status}`;
+      row("founder.logout-revokes-refresh", r.ok ? "FAIL-revoked-refresh-still-mints-access" : "PASS", `refresh after signOut -> ${refreshStatus}`, { founder: "run" });
+    } catch (e) {
+      row("founder.logout-revokes-refresh", false, `refresh probe failed: ${e.message}`);
+    }
+
+    // Control: the same call must SUCCEED for a live session, otherwise the check
+    // above would pass for the wrong reason (e.g. a malformed request).
+    try {
+      const live = await createClient(URL, ANON).auth.signInWithPassword({ email: FOUNDER, password: FOUNDER_PASS });
+      const r = await fetch(`${URL}/auth/v1/token?grant_type=refresh_token`, {
+        method: "POST",
+        headers: { apikey: ANON, "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: live.data.session.refresh_token }),
+      });
+      row("founder.refresh-works-while-signed-in", r.ok ? "PASS" : "FAIL", `refresh while signed in -> HTTP ${r.status}`, { founder: "run" });
+      // Leave no lingering session: revoke the one we just minted.
+      await createClient(URL, ANON).auth.signOut();
+    } catch (e) {
+      row("founder.refresh-works-while-signed-in", false, `control probe failed: ${e.message}`);
+    }
   }
 
   // ── real student login ──
@@ -310,6 +344,7 @@ const MATRIX_KEYS = [
   "founder.feature-flags-update", "founder.feature-flags-delete", "founder.audit-log-write",
   "founder.bootstrap-client-attempt", "founder.logout-client-supply",
   "founder.no-duplicate-rows", "founder.logout-stale-token",
+  "founder.logout-revokes-refresh", "founder.refresh-works-while-signed-in",
   "founder.advanced-analytics-rpc",
   "student.login", "student.authorization", "student.admin_accounts-read",
   "student.announcements-create", "student.feature-flags-create", "student.audit-log-read",
