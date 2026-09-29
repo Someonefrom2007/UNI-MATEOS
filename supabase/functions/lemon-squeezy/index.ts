@@ -292,6 +292,28 @@ const readSubscriptionForUser = async (supabase, userId) => {
   }
 };
 
+// An enabled `admin_accounts` row is staff, not a paying customer, but it IS
+// entitled to the paid features: Postgres has always said so, because
+// `has_paid_entitlement()` is `is_admin() OR <live subscription>`. This mirrors
+// that same rule so the client's `can()` gate agrees with the database instead
+// of paywalling a staff account the API would happily serve.
+//
+// Read with the service role purely to *report* access; this grants nothing.
+// Every real boundary stays in the RLS policies and in has_paid_entitlement().
+const isEnabledAdmin = async (supabase, userId) => {
+  try {
+    const { data } = await supabase
+      .from("admin_accounts")
+      .select("user_id")
+      .eq("user_id", userId)
+      .eq("enabled", true)
+      .maybeSingle();
+    return Boolean(data);
+  } catch {
+    return false;
+  }
+};
+
 const createCheckout = async (tier, userId, email) => {
   const variantId =
     tier === "ultimate" ? Deno.env.get("LEMON_SQUEEZY_ULTIMATE_VARIANT_ID") : Deno.env.get("LEMON_SQUEEZY_PRO_VARIANT_ID");
@@ -386,6 +408,8 @@ Deno.serve(async (req) => {
       // before Lemon Squeezy lost its env vars must not silently drop to
       // "free" because this deployment is currently unconfigured.
       const sub = await readSubscriptionForUser(supabase, user.id);
+      const admin = await isEnabledAdmin(supabase, user.id);
+      const plan = effectiveTier(sub);
       return json({
         configured,
         subscription: sub,
@@ -393,7 +417,14 @@ Deno.serve(async (req) => {
         // from `user.user_metadata.plan`. The client feeds this straight into
         // can(), so reading the self-writable mirror here would let any user
         // unlock the paid UI for themselves.
-        plan: effectiveTier(sub),
+        plan,
+        // ACCESS truth, deliberately separate from the BILLING truth above.
+        // `plan` stays what the customer actually paid for, so Plans/Profile
+        // keep showing "Free" for a staff member who has never subscribed;
+        // `entitled` is the gate the client should use, matching
+        // has_paid_entitlement() exactly.
+        entitled: admin || plan !== "free",
+        admin,
       });
     }
 

@@ -16,6 +16,11 @@ export const useSubscription = () => {
     configured: false,
     subscription: null,
     plan: local ? planOf((loadLocalProfile() || {}).plan) : "free",
+    // Server-decided access, kept apart from `plan` (the billing fact). Starts
+    // false so a hosted user is never briefly entitled before the server has
+    // actually answered.
+    entitled: false,
+    admin: false,
     mode: local ? "local" : "hosted",
   });
 
@@ -27,6 +32,8 @@ export const useSubscription = () => {
       configured: status.configured,
       subscription: status.subscription,
       plan: status.plan,
+      entitled: Boolean(status.entitled),
+      admin: Boolean(status.admin),
       mode: "hosted",
     });
     return status;
@@ -42,6 +49,8 @@ export const useSubscription = () => {
           configured: status.configured,
           subscription: status.subscription,
           plan: status.plan,
+          entitled: Boolean(status.entitled),
+          admin: Boolean(status.admin),
           mode: "hosted",
         })
       )

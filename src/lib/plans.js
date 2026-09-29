@@ -106,3 +106,30 @@ export const upgradeTo = (value) => PLAN_TIERS.find((t) => t.rank > planRank(val
  * @returns {{value: string, rank: number, label: string, tag: string}|null}
  */
 export const downgradeTo = (value) => [...PLAN_TIERS].reverse().find((t) => t.rank < planRank(value)) || null;
+
+/**
+ * The plan to run feature gates against — which is NOT always the plan the
+ * customer actually bought.
+ *
+ * Staff hold an enabled `admin_accounts` row rather than a subscription, and
+ * Postgres has always counted that as paid: `has_paid_entitlement()` is
+ * `is_admin() OR <live subscription>`. Gating a staff member on their billing
+ * plan would therefore paywall someone the database already serves, so the
+ * client follows the server's `entitled` answer instead.
+ *
+ * "pro" is the floor on purpose: has_paid_entitlement() is boolean and does not
+ * separate Pro from Ultimate, so this grants the least the database grants. The
+ * billing plan is returned untouched — nothing here fabricates a purchase for
+ * the Plans/Profile UI to display.
+ *
+ * Not a security boundary: RLS and has_paid_entitlement() remain authoritative,
+ * and `entitled` is server-owned, never client-set.
+ *
+ * @param {string|object|null|undefined} profileOrPlan billing plan
+ * @param {boolean} entitled server-decided paid access
+ * @returns {string} canonical tier value: "free", "pro" or "ultimate"
+ */
+export const gatePlanFor = (profileOrPlan, entitled) => {
+  const plan = planOf(profileOrPlan);
+  return entitled && !isPremium(plan) ? "pro" : plan;
+};

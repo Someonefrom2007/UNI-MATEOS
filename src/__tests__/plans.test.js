@@ -1,6 +1,6 @@
 // Tier entitlement engine — pure.
 import { describe, it, expect } from "vitest";
-import { PLAN_TIERS, PLAN_FEATURES, planTier, planRank, planOf, isPremium, can, neededTier, upgradeTo, downgradeTo } from "@/lib/plans";
+import { PLAN_TIERS, PLAN_FEATURES, planTier, planRank, planOf, isPremium, can, neededTier, upgradeTo, downgradeTo, gatePlanFor } from "@/lib/plans";
 
 describe("planTier / planRank / planOf", () => {
   it("normalizes valid tiers (case-insensitive) and rejects unknown values", () => {
@@ -94,5 +94,45 @@ describe("neededTier / upgrade math", () => {
     expect(downgradeTo("ultimate").value).toBe("pro");
     expect(downgradeTo("pro").value).toBe("free");
     expect(downgradeTo("free")).toBeNull();
+  });
+});
+
+// Staff hold an enabled `admin_accounts` row instead of a subscription, and
+// has_paid_entitlement() has always counted that as paid. These lock the two
+// properties that matter: an entitled staff member is not paywalled, and
+// entitlement NEVER fabricates a purchased plan for display.
+describe("gatePlanFor — staff entitlement", () => {
+  it("unlocks the paid features for an entitled staff member on no subscription", () => {
+    expect(gatePlanFor("free", true)).toBe("pro");
+    expect(can(gatePlanFor("free", true), "flashcards")).toBe(true);
+    expect(can(gatePlanFor("free", true), "advanced_analytics")).toBe(true);
+    expect(can(gatePlanFor("free", true), "ai_assistant")).toBe(true);
+  });
+
+  it("stops at pro, because has_paid_entitlement() does not separate pro/ultimate", () => {
+    // The database would serve an entitled admin exactly as it serves a pro
+    // subscriber, so the client must not silently hand out ultimate-only
+    // features (study_groups, university_integrations) it cannot back.
+    expect(gatePlanFor("free", true)).not.toBe("ultimate");
+    expect(can(gatePlanFor("free", true), "study_groups")).toBe(false);
+  });
+
+  it("still paywalls a non-entitled free user", () => {
+    expect(gatePlanFor("free", false)).toBe("free");
+    expect(can(gatePlanFor("free", false), "flashcards")).toBe(false);
+    expect(can(gatePlanFor("free", false), "advanced_analytics")).toBe(false);
+  });
+
+  it("never downgrades or fabricates a real subscription", () => {
+    expect(gatePlanFor("pro", true)).toBe("pro");
+    expect(gatePlanFor("pro", false)).toBe("pro");
+    expect(gatePlanFor("ultimate", false)).toBe("ultimate");
+    expect(gatePlanFor("ultimate", true)).toBe("ultimate");
+  });
+
+  it("treats a missing or unknown plan as free", () => {
+    expect(gatePlanFor(undefined, true)).toBe("pro");
+    expect(gatePlanFor("nonsense", true)).toBe("pro");
+    expect(gatePlanFor(null, false)).toBe("free");
   });
 });

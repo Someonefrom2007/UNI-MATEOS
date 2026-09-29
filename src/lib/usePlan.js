@@ -15,10 +15,17 @@
 //
 // Nothing in this module can raise a hosted user's tier. Upgrades only happen
 // through a real, webhook-confirmed subscription.
+//
+// The one thing this module does read is `entitled`, the server's own access
+// decision. It is not a client-controlled field: an enabled `admin_accounts`
+// row counts as entitled because Postgres has always treated staff that way in
+// has_paid_entitlement() (`is_admin() OR <live subscription>`). Mirroring it
+// here removes a UI-only contradiction — it grants no database access, and a
+// client cannot set it.
 import { useCallback } from "react";
 import { isLocalWorkspace, loadLocalProfile, saveLocalProfile } from "@/lib/repo/select";
 import { useSubscription } from "@/lib/billing/useSubscription";
-import { planOf, planTier, can as canFeature, isPremium as isPaid } from "@/lib/plans";
+import { planOf, planTier, can as canFeature, isPremium as isPaid, gatePlanFor } from "@/lib/plans";
 
 // Local/demo sandbox defaults to Ultimate so every Pro/Ultimate feature is
 // explorable offline. This is device-local and carries no server entitlement.
@@ -27,7 +34,7 @@ const LOCAL_DEFAULT_PLAN = "ultimate";
 export const usePlan = () => {
   const local = isLocalWorkspace();
   // Server-resolved on hosted; already handles the local sandbox internally.
-  const { plan: serverPlan, loading, configured } = useSubscription();
+  const { plan: serverPlan, loading, configured, entitled, admin } = useSubscription();
 
   const localPlan = (() => {
     if (!local) return undefined;
@@ -38,6 +45,16 @@ export const usePlan = () => {
   // Local workspace takes precedence so the demo never waits on a network
   // round trip; hosted trusts whatever the server last reported.
   const plan = local ? localPlan : planOf(serverPlan);
+
+  // Gating plan, which is NOT the billing plan. Postgres has always entitled an
+  // enabled `admin_accounts` row to the paid features — has_paid_entitlement()
+  // is `is_admin() OR <live subscription>` — so a staff account used to be
+  // paywalled by this hook while the database would have served it happily.
+  // `entitled` is the server's own answer to that same question, so the client
+  // follows it instead of second-guessing it. `plan` above stays the billing
+  // fact, so Plans and Profile keep showing "Free" until something is genuinely
+  // purchased. See gatePlanFor() for the pro floor and why.
+  const gatePlan = gatePlanFor(plan, local ? isPaid(localPlan) : Boolean(entitled));
 
   const setPlan = useCallback(
     async (next) => {
@@ -59,8 +76,8 @@ export const usePlan = () => {
   return {
     plan,
     tier: planTier(plan),
-    can: (feature) => canFeature(plan, feature),
-    isPremium: isPaid(plan),
+    can: (feature) => canFeature(gatePlan, feature),
+    isPremium: isPaid(gatePlan),
     setPlan,
     /** True while the hosted entitlement is still being resolved. */
     loading: local ? false : Boolean(loading),
@@ -69,5 +86,14 @@ export const usePlan = () => {
     /** Local plans are a demo sandbox; never treat them as real entitlement. */
     simulated: local,
     defaultPlan: local ? LOCAL_DEFAULT_PLAN : "free",
+    /**
+     * Server-decided paid access: a live subscription OR an enabled
+     * admin_accounts row. Distinct from `plan`/`tier`, which stay billing
+     * truth. This is presentation only — RLS and has_paid_entitlement() are
+     * the real boundary.
+     */
+    entitled: local ? isPaid(localPlan) : Boolean(entitled),
+    /** Whether the account holds an enabled admin_accounts row. */
+    staff: local ? false : Boolean(admin),
   };
 };

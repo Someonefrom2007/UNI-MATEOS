@@ -117,7 +117,18 @@ describe("lemon-squeezy status action sources the plan server-side", () => {
 
   it("derives the status plan from the subscription row", () => {
     const source = readCode(LEMON);
-    expect(source).toMatch(/plan:\s*effectiveTier\(sub\)/);
+    expect(source).toMatch(/const plan = effectiveTier\(sub\)/);
+  });
+
+  it("derives staff entitlement server-side, never from anything the client sends", () => {
+    const source = readCode(LEMON);
+    // `entitled` is the gate the client runs on, so it has to stay the same
+    // rule the database enforces: is_admin() OR a live subscription. The admin
+    // side is read with the service role from admin_accounts, which the caller
+    // cannot write.
+    expect(source).toMatch(/entitled:\s*admin \|\| plan !== "free"/);
+    expect(source).toMatch(/from\("admin_accounts"\)/);
+    expect(source).toMatch(/\.eq\("enabled", true\)/);
   });
 
   it("still reads the subscription when billing is unconfigured", () => {

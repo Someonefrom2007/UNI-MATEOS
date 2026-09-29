@@ -58,17 +58,26 @@ export const LemonSqueezyBillingProvider = {
 
   async status() {
     if (isLocalWorkspace()) {
-      return { configured: false, subscription: null, plan: "free" };
+      return { configured: false, subscription: null, plan: "free", entitled: false, admin: false };
     }
     try {
       const res = await invoke({ action: "status" });
+      const plan = planOf((res && res.plan) || "free");
       return {
         configured: Boolean(res && res.configured),
         subscription: (res && res.subscription) || null,
-        plan: (res && res.plan) || "free",
+        plan,
+        // `entitled` is the access decision and `plan` is the billing fact, so
+        // the UI can unlock paid features for staff without ever claiming they
+        // bought a plan. A function build that predates this field omits it —
+        // falling back to `plan` keeps such a deploy strictly MORE restrictive
+        // (a staff member sees the paywall again) rather than accidentally
+        // granting access to everyone.
+        entitled: res && typeof res.entitled === "boolean" ? res.entitled : plan !== "free",
+        admin: Boolean(res && res.admin),
       };
     } catch {
-      return { configured: false, subscription: null, plan: "free" };
+      return { configured: false, subscription: null, plan: "free", entitled: false, admin: false };
     }
   },
 };
