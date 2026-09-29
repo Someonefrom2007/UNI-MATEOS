@@ -100,20 +100,36 @@ const main = async () => {
     protocolTimeout: 90000,
   });
 
-  // ── 0. the build must actually target the hosted project ──
-  const probe = await browser.newPage();
-  await probe.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 30000 });
-  const bundleHasProject = await probe.evaluate(async (u) => {
-    const srcs = [...document.querySelectorAll("script[type=module]")].map((s) => s.src);
-    for (const s of srcs) {
-      const t = await (await fetch(s)).text();
-      if (t.includes(u)) return true;
-    }
-    return false;
-  }, URL_);
-  record("browser.build_targets_hosted_project", bundleHasProject, `dist bundle references ${URL_}`);
-  record("browser.not_local_workspace", await probe.evaluate(() => !!window.localStorage), "localStorage present (hosted auth uses it)");
-  await probe.close();
+  // ── 0. the served app must actually target the hosted project ──
+  const isLive = !/localhost|127\.0\.0\.1/.test(BASE);
+  if (isLive) {
+    // On a real deployment the question is what the SERVER is serving, not what
+    // this machine happens to have in dist/.
+    const origin = new URL(BASE).origin;
+    const res = await fetch(`${BASE}/`);
+    const html = await res.text();
+    record("browser.live_root_served", res.status === 200, `GET ${BASE}/ -> HTTP ${res.status}`);
+    const main = html.match(/\/assets\/index-[A-Za-z0-9_-]+\.js/)?.[0];
+    const chunk = main ? await (await fetch(origin + main)).text() : "";
+    const found = [...new Set(chunk.match(/https:\/\/[a-z]{20}\.supabase\.co/g) || [])];
+    // Exactly one project, and it must be the real one. More than one means
+    // the bundle is pointed at the wrong database; zero means it is misbuilt.
+    record("browser.live_targets_expected_project", found.length === 1 && found[0] === URL_, `supabase URLs in served bundle: ${found.join(",") || "none"}`);
+  } else {
+    const probe = await browser.newPage();
+    await probe.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const bundleHasProject = await probe.evaluate(async (u) => {
+      const srcs = [...document.querySelectorAll("script[type=module]")].map((s) => s.src);
+      for (const s of srcs) {
+        const t = await (await fetch(s)).text();
+        if (t.includes(u)) return true;
+      }
+      return false;
+    }, URL_);
+    record("browser.build_targets_hosted_project", bundleHasProject, `dist bundle references ${URL_}`);
+    record("browser.not_local_workspace", await probe.evaluate(() => !!window.localStorage), "localStorage present (hosted auth uses it)");
+    await probe.close();
+  }
 
   // ── 1. FREE user: the paywall must hold in the browser ──
   const p1 = await browser.newPage();
@@ -171,6 +187,19 @@ const main = async () => {
   record("browser.entitled.analytics_not_paywalled", !/compare plans/i.test(body2), "no paywall copy for an entitled user");
   record("browser.entitled.analytics_renders_numbers", /study streak/i.test(body2) && /grade avg/i.test(body2), "stat cards rendered from the RPC payload");
   record("browser.entitled.analytics_no_raw_table_reads", paid.filter((s) => /from (flashcards|study_plans|grades|tasks|focus_sessions)/.test(s.url)).length === 0, "no direct reads of source tables by the Analytics page");
+
+  // The second paid surface. Entitlement must reach the page gate, and the
+  // owner's RLS must let the row through rather than 42501/400.
+  const fcBefore = paid.length;
+  await p2.goto(`${BASE}/flashcards`, { waitUntil: "domcontentloaded" });
+  await gap(3500);
+  const fcText = await p2.evaluate(() => document.body.innerText);
+  record("browser.entitled.flashcards_not_paywalled", !/compare plans|planlocked/i.test(fcText), "no paywall for an entitled user");
+  const fcCalls = paid.slice(fcBefore);
+  const fcDenied = fcCalls.filter((s) => s.status === 400 || s.status === 403);
+  record("browser.entitled.flashcards_no_rls_denial", fcDenied.length === 0, `requests=${fcCalls.length} 4xx=${fcDenied.length}`);
+  record("browser.entitled.flashcards_reads_paid_table", fcCalls.some((s) => /flashcard/.test(s.url)), "entitled user actually issued a flashcard read");
+
   await signOut(p2);
   await p2.close();
 

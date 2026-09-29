@@ -4,6 +4,12 @@ import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+
+// The router must know the deployment's base path. Production serves the app
+// from a repository sub-path (/UNI-MATEOS/), so without this every request for
+// /login arrives as /UNI-MATEOS/login, matches no route, and renders the 404
+// page instead of the app. BASE_URL is Vite's own `base`, so it tracks the
+// build automatically and stays "/" for a local or root-hosted build.
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
@@ -161,7 +167,7 @@ function App() {
     <MotionConfig reducedMotion="user">
       <AuthProvider>
         <QueryClientProvider client={queryClientInstance}>
-          <Router>
+          <Router basename={import.meta.env.BASE_URL}>
             <ScrollToTop />
             <ErrorBoundary>
               <AuthenticatedApp />

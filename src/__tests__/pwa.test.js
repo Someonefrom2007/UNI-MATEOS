@@ -100,3 +100,27 @@ describe("PWA: offline asset fallback contract", () => {
     expect(tryRead("public/icon.svg")).not.toBeNull();
   });
 });
+
+describe("Deployment: the app survives a sub-path host", () => {
+  // GitHub Pages serves this app from /UNI-MATEOS/. A router without a basename
+  // matches nothing there and renders the 404 page, so the whole app looks
+  // dead while the bundle, the API and the database are all fine. This is
+  // exactly what happened on the first deploy, so it is pinned.
+  it("gives the router a basename derived from the build base", () => {
+    const app = read("src/App.jsx");
+    expect(app).toMatch(/<Router\s+basename=\{import\.meta\.env\.BASE_URL\}>/);
+  });
+
+  it("does not hardcode a root-only router", () => {
+    const app = read("src/App.jsx");
+    expect(app).not.toMatch(/<Router>/);
+  });
+
+  it("still builds and serves a root-based bundle when BASE_PATH is unset", () => {
+    // The basename must follow the same base as the build, not a second
+    // independent constant that could drift from it.
+    const cfg = read("vite.config.js");
+    expect(cfg).toContain("const base = process.env.BASE_PATH || '/';");
+    expect(cfg).toMatch(/^\s*base,$/m);
+  });
+});
