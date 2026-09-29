@@ -1,6 +1,62 @@
 # UNI·MATE — HOSTED SECURITY MATRIX
 
-Status: **FIRST REAL HOSTED RUN EXECUTED 2026-09-24 — 0 PASS / 2 FAIL / 27 NOT EXECUTED (of 29)**
+Status: **CURRENT 2026-09-29 — 41 PASS / 0 FAIL / 2 NOT EXECUTED (of 43) on `qa/hosted/verify-security.mjs`.**
+Companion runs: `qa/hosted/verify-entitlement.mjs` **17 PASS / 0 FAIL / 0 NOT EXECUTED (of 17)**;
+`qa/hosted/verify-browser.mjs` **19 PASS / 0 FAIL / 0 NOT EXECUTED (of 19)** in real Chrome against
+`vite preview` of the real build. The 2026-09-24 run below is kept as history; its two root causes
+(schema absent, accounts absent) are both resolved.
+
+## Current run — three harnesses, 2026-09-29 (supersedes everything below)
+
+Target: **`tqmhmpmfqmrtpizgluox` (UNI·MATE, eu-west-1)** — the live project. Established by evidence,
+not convention: it holds the application schema (38 public tables / 168 policies / 14 functions / both
+real accounts), and a build from this repo embeds exactly that URL and no other. `zzautginfitjyyzywilp`
+(`unimate-v2-prod`) holds only a partial 19-table schema; the Vercel-provisioned
+`dfjgpylyshezsdfbxrvr` is INACTIVE. Neither was touched.
+
+| Harness | Result | What it proves |
+|---|---|---|
+| `verify-security.mjs` | 41 / 0 / 2 | Live auth, RLS and RPC verdicts per role (founder / student / anon) across every gated surface. |
+| `verify-entitlement.mjs` | 17 / 0 / 0 | The full entitlement truth table + paid-table read/write denial, in one transaction that always ROLLBACKs. |
+| `verify-browser.mjs` | 19 / 0 / 0 | A real browser makes the right calls: FREE is paywalled and issues **zero** paid requests; entitled calls the RPC (HTTP 200) and renders its payload. |
+
+Highlights now PASS: `founder.advanced-analytics-rpc`; `student.advanced-analytics-rpc` denied
+(`42501`); `student.paid-read-*` all denied rows=0; `student.flashcards-insert` denied;
+`student.free-tables-readable`; `anon.advanced-analytics-rpc` denied at the GRANT layer;
+`anon.flashcards-read` denied; `founder.logout-revokes-refresh` (HTTP 400) with a live-session
+control at HTTP 200.
+
+### The two NOT EXECUTED rows, and why that is the honest answer
+
+1. `boot.service-repeats-idempotent` — needs `SUPABASE_SERVICE_ROLE_KEY` + `HOSTED_BOOTSTRAP_RUN=1`.
+   Running it as written was **not** necessary: the CLI token already carries schema-owner rights,
+   which are strictly stronger than the service role for this table. The same invariant is proved
+   transactionally in `verify-entitlement.mjs` (`3 repeats → exactly 1 founder row, still enabled`).
+   That is added coverage, not a weakened requirement — the row stays `NOT EXECUTED`.
+2. `founder.logout-stale-token` — a stateless-JWT property: an issued access token stays verifiable
+   until `exp` (~1h) no matter what `signOut` does. It cannot be changed and is not a defect, so it
+   stays `NOT EXECUTED`. The claim that actually matters — logout revokes the refresh token — is now
+   proven (`founder.logout-revokes-refresh`, HTTP 400).
+
+### Production touched, then left clean
+
+All DB probes run inside a transaction ending in `ROLLBACK`. The one committed fixture (a temporary
+`pro` subscription for the founder, required because a browser session cannot see uncommitted rows)
+was deleted immediately and verified gone: `subscriptions=0, flashcards=0, study_plans=0, courses=0,
+auth.users=2`.
+
+### Known inconsistency found (fails closed — no security impact)
+
+`has_paid_entitlement()` ORs in `is_admin()`, so the database treats staff as entitled; the client's
+plan comes from the `lemon-squeezy` `status` action, which reports `free` when there is no
+`subscriptions` row. A founder with no subscription row therefore sees the Pro paywall even though
+the RPC would serve them. This **under-grants**, so it is not a bypass. Aligning the two is a product
+decision (seed a subscription for staff, or have `status` return an entitlement flag derived from the
+same rule as the database) and is deliberately not made here. See `README.md`.
+
+---
+
+# Historical run — 2026-09-24 (kept as a permanent record; both root causes now resolved)
 
 Per project rule, results are exactly one of `PASS`, `FAIL`, or `NOT EXECUTED`. An unexecuted hosted
 test is **never** marked PASS regardless of local-mode evidence. The harness (`qa/hosted/verify-security.mjs`)
