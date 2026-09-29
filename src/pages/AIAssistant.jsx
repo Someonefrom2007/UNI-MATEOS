@@ -3,7 +3,7 @@ import { useUserData } from "@/lib/useUserData";
 import PageHeader from "@/components/PageHeader";
 import PlanLocked from "@/components/PlanLocked";
 import { Button } from "@/components/ui/button";
-import { BrainCircuit, Send, Sparkles, Loader2 } from "lucide-react";
+import { BrainCircuit, Send, Sparkles, Loader2, WifiOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { isLocalWorkspace } from "@/lib/repo/select";
 import { todayISO } from "@/lib/format";
@@ -11,14 +11,15 @@ import { useI18n } from "@/lib/i18n";
 import { usePlan } from "@/lib/usePlan";
 import { useFeatureFlags } from "@/lib/useFeatureFlags";
 import ErrorState from "@/components/ErrorState";
+import { AI_STATUS, classifyInvokeResult, isHeuristic, offlineResponse } from "@/lib/aiAssistant";
 
 const SUGGESTIONS = [
   "What should I do today?",
+  "Build me a study plan",
+  "Summarise my notes",
+  "Make flashcards",
   "What's coming up this week?",
-  "How am I doing this semester?",
-  "Which course needs attention?",
   "How much work do I have?",
-  "What grade do I need on my next exam?",
 ];
 
 export default function AIAssistant() {
@@ -29,11 +30,30 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  // null until we know: OFFLINE_HEURISTIC from the start in local workspace,
+  // ONLINE once a real reply lands, DEGRADED/UNAVAILABLE when it does not.
+  // Annotated because useState would otherwise pin the literal type of the
+  // initializer and reject every other status we assign below.
+  const [status, setStatus] = useState(
+    /** @type {string | null} */ (isLocalWorkspace() ? AI_STATUS.OFFLINE_HEURISTIC : null),
+  );
   const endRef = useRef(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
   if (error) return <ErrorState onRetry={refresh} />;
+
+  /** Everything the heuristic generators may read, from the local workspace. */
+  const localContext = () => ({
+    tasks: data?.Task || [],
+    courses: data?.Course || [],
+    exams: data?.Exam || [],
+    notes: data?.Note || [],
+    stickies: data?.StickyNote || [],
+    focusSessions: data?.FocusSession || [],
+    todayStr: todayISO(),
+    hasData: Boolean(data && data.Course && data.Course.length),
+  });
 
   // Server-side copilot is a Pro feature; the edge function enforces the same
   // rule, this screen just keeps the lock honest before a request is sent.
@@ -78,14 +98,16 @@ export default function AIAssistant() {
     if (!prompt.trim() || loading) return;
     setMessages((m) => [...m, { role: "user", text: prompt }]);
     setInput("");
-    // The copilot runs server-side; local workspace has no connected account.
+
+    // Local workspace has no server at all, so the heuristic path is the only
+    // path — answer from local data instead of refusing outright.
     if (isLocalWorkspace()) {
-      setMessages((m) => [...m, {
-        role: "assistant",
-        text: "The AI assistant runs on UNI·MATE's servers, so it's only available when you're connected to an account. In local workspace mode everything stays on this device — your Dashboard, Workload and Insights still work from your real data.",
-      }]);
+      const res = offlineResponse(prompt, localContext());
+      setStatus(res.status);
+      setMessages((m) => [...m, { role: "assistant", text: res.text, heuristic: res.heuristic }]);
       return;
     }
+
     setLoading(true);
     try {
       // The copilot runs server-side, grounded in your real UNI·MATE data.
@@ -93,10 +115,23 @@ export default function AIAssistant() {
       const res = await supabase.functions.invoke("ai-assistant", {
         body: { question: prompt, today: todayISO() },
       });
-      const reply = res.data?.reply;
-      setMessages((m) => [...m, { role: "assistant", text: reply || "I couldn't answer that — try rephrasing or adding more data to UNI·MATE." }]);
+      // invoke() resolves with {data, error} on a non-2xx; it only throws on a
+      // transport failure. Classify both so a server 500 degrades to a local
+      // answer instead of "try rephrasing".
+      const outcome = classifyInvokeResult(res);
+      if (outcome.status === AI_STATUS.ONLINE) {
+        setStatus(AI_STATUS.ONLINE);
+        setMessages((m) => [...m, { role: "assistant", text: outcome.reply }]);
+      } else {
+        const fallback = offlineResponse(prompt, { ...localContext(), status: outcome.status });
+        setStatus(fallback.status);
+        setMessages((m) => [...m, { role: "assistant", text: fallback.text, heuristic: true }]);
+      }
     } catch {
-      setMessages((m) => [...m, { role: "assistant", text: "I couldn't reach the assistant right now. Please try again." }]);
+      // Only a transport failure lands here.
+      const fallback = offlineResponse(prompt, { ...localContext(), status: AI_STATUS.UNAVAILABLE });
+      setStatus(fallback.status);
+      setMessages((m) => [...m, { role: "assistant", text: fallback.text, heuristic: true }]);
     } finally {
       setLoading(false);
     }
@@ -108,6 +143,18 @@ export default function AIAssistant() {
     <>
       <PageHeader title={t("title.ai")} subtitle={t("title.ai.subtitle")} />
       <div className="max-w-3xl mx-auto">
+        {status && isHeuristic(status) && (
+          <div
+            role="status"
+            className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl border border-hud-amber/30 bg-hud-amber/5 text-xs text-hud-amber"
+          >
+            <WifiOff className="w-3.5 h-3.5 shrink-0" />
+            <span className="font-semibold tracking-wide">{status}</span>
+            <span className="text-muted-foreground">
+              — answers below are computed on this device from your own data, not by a model.
+            </span>
+          </div>
+        )}
         {messages.length === 0 && (
           <div className="text-center py-8">
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
@@ -119,6 +166,11 @@ export default function AIAssistant() {
                 ? "Ask about your schedule, workload, grades, or what to focus on next."
                 : "Add a course or two first — the copilot only answers from your real data, never guesses."}
             </p>
+            {status && isHeuristic(status) && (
+              <p className="text-xs text-hud-amber mt-2">
+                Still useful without a server: ask for a priority order, a study plan, or flashcards.
+              </p>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-6">
               {SUGGESTIONS.map((s) => (
                 <button key={s} onClick={() => ask(s)} className="text-left px-4 py-3 rounded-xl border border-border bg-card glow-hover hover:bg-accent/5 text-sm flex items-center gap-2">
@@ -134,6 +186,11 @@ export default function AIAssistant() {
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border"}`}>
+                  {m.heuristic && (
+                    <div className="text-[10px] uppercase tracking-wide text-hud-amber mb-1.5 font-semibold">
+                      Heuristic · on-device
+                    </div>
+                  )}
                   <div className="whitespace-pre-wrap">{m.text}</div>
                 </div>
               </div>
