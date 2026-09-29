@@ -76,11 +76,19 @@ Deno.serve(async (req) => {
     // is client-writable via `supabase.auth.updateUser({ data: { plan } })` —
     // so the gate could be satisfied by the very client it was meant to stop.
     //
-    // `subscriptions.tier` is the authoritative record: it has RLS with
-    // SELECT-own and no client INSERT/UPDATE policy, and is written only by the
-    // `lemon-squeezy` webhook using the service role. We query it with the
-    // service role and pin it to the verified JWT's own user id, so a caller
-    // cannot read (or be denied) someone else's entitlement.
+    // `subscriptions.tier` is the authoritative record: RLS grants SELECT-own
+    // and no client INSERT/UPDATE, and it is written only by the
+    // `lemon-squeezy` webhook using the service role.
+    //
+    // NOTE ON TRUST: this client carries the user's JWT in global.headers, so
+    // every PostgREST call in this handler — including the one below and the
+    // user's own courses/tasks/exams at line 24 — executes AS the user, under
+    // RLS, not with the service role. That is the stronger arrangement, and it
+    // is safe here: RLS pins reads to auth.uid() = user_id, and `user` is the
+    // identity verified from that same JWT two lines up, so a caller can
+    // neither read nor be denied another account's entitlement. The service
+    // key is present on the client but no query in this function relies on it
+    // to bypass RLS.
     const { data: sub } = await supabase
       .from("subscriptions")
       .select("tier")
