@@ -71,17 +71,22 @@ Deno.serve(async (req) => {
     // Pro entitlement: the copilot is a paid feature, enforced server-side so a
     // modified client still can't call it on a free account.
     //
-    // SECURITY: this must read a source the caller cannot write. It used to
-    // read `user_metadata.plan`, which is part of the caller's own profile and
-    // is client-writable via `supabase.auth.updateUser({ data: { plan } })` —
-    // so the gate could be satisfied by the very client it was meant to stop.
+    // SECURITY: the decision is delegated to public.has_paid_entitlement() — the
+    // same SECURITY DEFINER function the RLS policies call — so this gate and the
+    // database cannot drift apart.
     //
-    // `subscriptions` is the authoritative record: RLS grants SELECT-own
-    // and no client INSERT/UPDATE, and it is written only by the
-    // `lemon-squeezy` webhook using the service role.
+    // It used to read `user_metadata.plan`, which is part of the caller's own
+    // profile and is client-writable via `supabase.auth.updateUser({ data:
+    // { plan } })`, so the gate could be satisfied by the very client it was
+    // meant to stop. It then carried its own copy of the subscription rule, and
+    // that copy silently omitted the `is_admin()` term: a staff account with an
+    // enabled admin_accounts row satisfies has_paid_entitlement() and passes
+    // every RLS policy, yet was still refused here with a 402. Delegating fixes
+    // that class of drift permanently instead of adding a third copy to keep in
+    // sync.
     //
     // NOTE ON TRUST: this client carries the user's JWT in global.headers, so
-    // every PostgREST call in this handler — including the one below and the
+    // every PostgREST call in this handler — including the RPC below and the
     // user's own courses/tasks/exams at line 24 — executes AS the user, under
     // RLS, not with the service role. That is the stronger arrangement, and it
     // is safe here: RLS pins reads to auth.uid() = user_id, and `user` is the
@@ -89,34 +94,44 @@ Deno.serve(async (req) => {
     // neither read nor be denied another account's entitlement. The service
     // key is present on the client but no query in this function relies on it
     // to bypass RLS.
-    const { data: sub } = await supabase
-      .from("subscriptions")
-      .select("tier, status, renews_at")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { data: hasPaid, error: entitlementError } = await supabase.rpc("has_paid_entitlement");
 
-    // Mirror of effectiveTier() in the lemon-squeezy function. Both copies are
-    // deliberate for now: these are two independently deployed functions with
-    // no shared module, and the rule is short. It must stay byte-equivalent in
-    // behaviour — see src/__tests__/entitlement.test.js, which asserts both.
-    const entitledTier = (() => {
-      if (!sub) return "free";
-      const tier = String(sub.tier || "free").toLowerCase();
-      if (tier === "free") return "free";
-      const status = String(sub.status || "");
-      if (!["on_trial", "active", "paused", "cancelled", "unpaid"].includes(status)) return "free";
-      // A `cancelled` row is entitled only until the period it was paid for
-      // ends. Without this the row stays at tier='pro' forever if no further
-      // webhook arrives, which is exactly the case after a lapse.
-      if (status === "cancelled" && sub.renews_at) {
-        const endsAt = new Date(sub.renews_at).getTime();
-        if (Number.isFinite(endsAt) && endsAt <= Date.now()) return "free";
-      }
-      return tier;
-    })();
+    // Fail closed. An unreachable or errored gate must never read as entitled.
+    const entitled = !entitlementError && hasPaid === true;
 
-    const plan = entitledTier;
-    if (!["pro", "ultra", "ultimate"].includes(plan)) {
+    let plan = "free";
+    if (!entitled) {
+      // Looked up only on the refusal path, and only to report an honest plan in
+      // the error body. Display-only: this never gates anything. `subscriptions`
+      // is the authoritative record — RLS grants SELECT-own and no client
+      // INSERT/UPDATE, and it is written only by the `lemon-squeezy` webhook
+      // using the service role.
+      const { data: sub } = await supabase
+        .from("subscriptions")
+        .select("tier, status, renews_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      // Mirror of effectiveTier() in the lemon-squeezy function, kept only so the
+      // refusal can name the plan the caller actually holds.
+      plan = (() => {
+        if (!sub) return "free";
+        const tier = String(sub.tier || "free").toLowerCase();
+        if (tier === "free") return "free";
+        const status = String(sub.status || "");
+        if (!["on_trial", "active", "paused", "cancelled", "unpaid"].includes(status)) return "free";
+        // A `cancelled` row is entitled only until the period it was paid for
+        // ends. Without this the row stays at tier='pro' forever if no further
+        // webhook arrives, which is exactly the case after a lapse.
+        if (status === "cancelled" && sub.renews_at) {
+          const endsAt = new Date(sub.renews_at).getTime();
+          if (Number.isFinite(endsAt) && endsAt <= Date.now()) return "free";
+        }
+        return tier;
+      })();
+    }
+
+    if (!entitled) {
       return json({ locked: true, plan, error: "AI Assistant is a Pro feature" }, 402);
     }
 

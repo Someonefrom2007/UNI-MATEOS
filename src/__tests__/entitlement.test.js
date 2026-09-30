@@ -149,21 +149,37 @@ describe("lemon-squeezy status action sources the plan server-side", () => {
 });
 
 describe("ai-assistant applies the same rule", () => {
-  it("selects the columns the expiry guard needs", () => {
+  it("delegates the lock decision to has_paid_entitlement()", () => {
     const source = readCode(AI);
+    // The regression this pins: ai-assistant used to carry its own copy of the
+    // subscription rule, and that copy omitted the is_admin() term. A staff
+    // account therefore passed every RLS policy and was still refused here with
+    // a 402, so the UI offered a feature the server rejected. Asking the
+    // database for the answer removes the possibility of drift.
+    expect(source).toMatch(/rpc\("has_paid_entitlement"\)/);
+  });
+
+  it("never authorizes on the caller-writable user_metadata plan", () => {
+    const source = readCode(AI);
+    expect(source).not.toMatch(/user\.user_metadata/);
+  });
+
+  it("fails closed when the authoritative function cannot be reached", () => {
+    // An unreachable gate must never read as entitled, or turning the database
+    // into an outage would open a paid feature to everyone.
+    const source = readCode(AI);
+    expect(source).toMatch(/const entitled = !entitlementError && hasPaid === true/);
+  });
+
+  it("reports an honest plan on the refusal path", () => {
+    const source = readCode(AI);
+    // Display-only now: the subscription lookup exists to name the plan in the
+    // 402 body, and must sit behind the `if (!entitled)` gate so an entitled
+    // caller does not pay for the query.
     expect(source).toMatch(/select\("tier,\s*status,\s*renews_at"\)/);
-  });
-
-  it("still authorizes on the caller's own row", () => {
-    const source = readCode(AI);
-    expect(source).toMatch(/from\("subscriptions"\)/);
-    expect(source).toMatch(/\.eq\("user_id",\s*user\.id\)/);
-  });
-
-  it("applies the cancelled-period expiry guard", () => {
-    const source = readCode(AI);
     expect(source).toMatch(/status === "cancelled"/);
-    expect(source).toMatch(/renews_at/);
+    const lookup = source.indexOf('from("subscriptions")');
+    expect(lookup).toBeGreaterThan(source.indexOf("if (!entitled)"));
   });
 });
 
