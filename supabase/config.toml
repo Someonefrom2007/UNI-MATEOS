@@ -1,0 +1,10 @@
+# Supabase CLI config for this repo. The only deviation from defaults is the
+# lemon-squeezy webhook function: it must be reachable WITHOUT a Supabase JWT
+# (Lemon Squeezy signs its webhooks with X-Signature, which the function
+# verifies itself). CI never deploys functions, but a manual
+# `supabase functions deploy lemon-squeezy` would otherwise re-enable JWT
+# verification at the edge and break billing webhooks.
+project_id = "uni-mate"
+
+[functions.lemon-squeezy]
+verify_jwt = false
