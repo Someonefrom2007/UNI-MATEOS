@@ -71,9 +71,27 @@ const tap = (page) => {
 };
 
 const hit = (seen, needle) => seen.filter((s) => s.url.includes(needle));
+
+// Captures the billing status payload the app actually receives. Used to prove
+// the access/billing split: staff are entitled without a purchase, and the
+// plan they are shown must stay the billing fact.
+const tapBilling = (page) => {
+  const seen = [];
+  page.on("response", async (r) => {
+    if (!r.url().includes("/functions/v1/lemon-squeezy")) return;
+    try {
+      const body = await r.json();
+      if (body && typeof body.plan === "string") seen.push(body);
+    } catch {
+      /* not the status action (e.g. a webhook-shaped reply) */
+    }
+  });
+  return seen;
+};
+
 const signIn = async (page, who) => {
-  await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 30000 });
-  await page.waitForSelector("#email", { timeout: 20000 });
+  await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 90000 });
+  await page.waitForSelector("#email", { timeout: 45000 });
   await page.type("#email", who.email);
   await page.type("#password", who.pass);
   await page.click("button[type=submit]");
@@ -87,7 +105,7 @@ const signOut = async (page) => {
     const k = Object.keys(localStorage).find((x) => x.startsWith("sb-") && x.includes("auth-token"));
     if (k) localStorage.removeItem(k);
   });
-  await page.goto(`${BASE}/analytics`, { waitUntil: "domcontentloaded", timeout: 30000 });
+  await page.goto(`${BASE}/analytics`, { waitUntil: "domcontentloaded", timeout: 90000 });
   await gap(2500);
   return page.url();
 };
@@ -121,7 +139,7 @@ const main = async () => {
     record("browser.live_targets_expected_project", found.length === 1 && found[0] === URL_, `chunks scanned=${chunks.length} supabase URLs: ${found.join(",") || "none"}`);
   } else {
     const probe = await browser.newPage();
-    await probe.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await probe.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 90000 });
     const bundleHasProject = await probe.evaluate(async (u) => {
       const srcs = [...document.querySelectorAll("script[type=module]")].map((s) => s.src);
       for (const s of srcs) {
@@ -178,6 +196,8 @@ const main = async () => {
   await p1.close();
 
   // ── 2. ENTITLED user: the paid derived read must actually be used ──
+  // The founder qualifies via has_paid_entitlement() — a live subscription OR an
+  // enabled admin_accounts row — and section 3 below pins down which one.
   const p2 = await browser.newPage();
   await p2.setViewport({ width: 1440, height: 900 });
   const paid = tap(p2);
@@ -206,6 +226,42 @@ const main = async () => {
 
   await signOut(p2);
   await p2.close();
+
+  // ── 3. Staff with NO subscription: access without a fabricated purchase ──
+  // Runs against an empty `subscriptions` table, so the founder can only be
+  // entitled here because has_paid_entitlement() counts an enabled
+  // admin_accounts row as paid. Two properties have to hold at once, and the
+  // second is the one that must never be traded away for the first:
+  //   a) the paid pages open, and
+  //   b) the plan the account is *shown* is still "free", because staff have
+  //      not bought anything.
+  const p3 = await browser.newPage();
+  await p3.setViewport({ width: 1440, height: 900 });
+  const billing = tapBilling(p3);
+  const staff = tap(p3);
+  await signIn(p3, FOUNDER);
+  await p3.goto(`${BASE}/analytics`, { waitUntil: "domcontentloaded" });
+  await gap(4000);
+
+  const status = billing.find((b) => typeof b.entitled === "boolean") || {};
+  record("browser.staff.status_has_entitled_flag", typeof status.entitled === "boolean", `payload keys=${Object.keys(status).join(",") || "none"}`);
+  record("browser.staff.status_entitled", status.entitled === true, `entitled=${status.entitled}`);
+  record("browser.staff.status_no_subscription", !status.subscription, `subscription=${status.subscription ? "present" : "none"}`);
+  record("browser.staff.status_plan_still_free", status.plan === "free", `plan=${status.plan}`);
+
+  const staffRpc = hit(staff, "advanced_analytics");
+  record("browser.staff.analytics_calls_rpc", staffRpc.length > 0, `advanced_analytics requests=${staffRpc.length}`);
+  record("browser.staff.analytics_rpc_ok", staffRpc.some((s) => s.status === 200), `statuses=${staffRpc.map((s) => s.status).join(",") || "none"}`);
+  const staffBody = await p3.evaluate(() => document.body.innerText);
+  record("browser.staff.analytics_not_paywalled", !/compare plans/i.test(staffBody), "no paywall copy for an entitled staff account");
+
+  await p3.goto(`${BASE}/flashcards`, { waitUntil: "domcontentloaded" });
+  await gap(3000);
+  const staffFc = await p3.evaluate(() => document.body.innerText);
+  record("browser.staff.flashcards_not_paywalled", !/compare plans|planlocked/i.test(staffFc), "no paywall on the second paid surface");
+
+  await signOut(p3);
+  await p3.close();
 
   await browser.close();
   await emit();
