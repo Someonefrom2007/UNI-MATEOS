@@ -89,7 +89,7 @@ export default function AdminErrors() {
         actor: principal?.id || null,
         meta: { env: env.name, type: replayTarget.type },
       }, async () => ({ ok: true }));
-      toast({ title: "Replay queued", description: `${replayTarget.type} marked retrying — the worker (or admin-gateway) will re-process it.` });
+      toast({ title: "Replay queued", description: `${replayTarget.type} marked retrying — re-processing awaits a server-side worker (admin-gateway, not yet built).` });
       setReplayTarget(null);
       await load();
     } catch (e) {
@@ -178,7 +178,7 @@ export default function AdminErrors() {
 
       {!mayReplay && <p className="text-[11px] text-amber-500/80 font-mono">Read-only: replay requires billing.manage (webhook events are billing records).</p>}
       <p className="text-[11px] text-slate-600 font-mono">
-        Payload bodies are not shown — full re-processing belongs to the server-side admin-gateway, not the browser.
+        Payload bodies are not shown — full re-processing is deferred to a server-side admin-gateway (not yet built); the browser cannot re-send webhook payloads.
       </p>
     </div>
   );

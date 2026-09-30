@@ -18,9 +18,9 @@ const LOCAL = isLocalWorkspace();
 const repo = getAppRepo();
 
 const FEATURE_KEY_LISTS = {
-  free: Array.from({ length: 7 }, (_, i) => `plans.feat.free.${i}`),
-  pro: Array.from({ length: 7 }, (_, i) => `plans.feat.pro.${i}`),
-  ultimate: Array.from({ length: 6 }, (_, i) => `plans.feat.ultimate.${i}`),
+  free: Array.from({ length: 9 }, (_, i) => `plans.feat.free.${i}`),
+  pro: Array.from({ length: 9 }, (_, i) => `plans.feat.pro.${i}`),
+  ultimate: Array.from({ length: 4 }, (_, i) => `plans.feat.ultimate.${i}`),
 };
 
 export default function Plans() {

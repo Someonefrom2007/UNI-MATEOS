@@ -232,7 +232,7 @@ export default function AdminBilling() {
       {!mayManage && <p className="text-[11px] text-amber-500/80 font-mono">Read-only: your role doesn't grant billing.manage.</p>}
       <p className="text-[11px] text-slate-600 font-mono flex items-start gap-1.5">
         <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-        Manual entitlement override and live-provider reconciliation run server-side (admin-gateway) and are audited there — the browser never writes billing or auth metadata. See ADMIN_SECURITY.md.
+        Manual entitlement override and live-provider reconciliation are deferred — they need a server-side channel (admin-gateway) that isn't built yet. Reads go through SECURITY DEFINER RPCs; the browser never writes billing or auth metadata. See ADMIN_SECURITY.md.
       </p>
       <Link to="/admin/audit" className="inline-block text-xs text-teal-400/80 hover:text-teal-300">Open audit log →</Link>
     </div>
