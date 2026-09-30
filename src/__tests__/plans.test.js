@@ -103,18 +103,19 @@ describe("neededTier / upgrade math", () => {
 // entitlement NEVER fabricates a purchased plan for display.
 describe("gatePlanFor — staff entitlement", () => {
   it("unlocks the paid features for an entitled staff member on no subscription", () => {
-    expect(gatePlanFor("free", true)).toBe("pro");
+    expect(gatePlanFor("free", true)).toBe("ultimate");
     expect(can(gatePlanFor("free", true), "flashcards")).toBe(true);
     expect(can(gatePlanFor("free", true), "advanced_analytics")).toBe(true);
     expect(can(gatePlanFor("free", true), "ai_assistant")).toBe(true);
   });
 
-  it("stops at pro, because has_paid_entitlement() does not separate pro/ultimate", () => {
-    // The database would serve an entitled admin exactly as it serves a pro
-    // subscriber, so the client must not silently hand out ultimate-only
-    // features (study_groups, university_integrations) it cannot back.
-    expect(gatePlanFor("free", true)).not.toBe("ultimate");
-    expect(can(gatePlanFor("free", true), "study_groups")).toBe(false);
+  it("also unlocks the ultimate-only surfaces, because the DB never separated them", () => {
+    // has_paid_entitlement() is boolean and every paid table has the same
+    // own-row policies, so staff can already reach these rows. Flooring at "pro"
+    // would show a lock the API never enforced and would hide /integrations and
+    // study groups from the account that most needs to test them.
+    expect(can(gatePlanFor("free", true), "study_groups")).toBe(true);
+    expect(can(gatePlanFor("free", true), "university_integrations")).toBe(true);
   });
 
   it("still paywalls a non-entitled free user", () => {
@@ -131,8 +132,8 @@ describe("gatePlanFor — staff entitlement", () => {
   });
 
   it("treats a missing or unknown plan as free", () => {
-    expect(gatePlanFor(undefined, true)).toBe("pro");
-    expect(gatePlanFor("nonsense", true)).toBe("pro");
+    expect(gatePlanFor(undefined, true)).toBe("ultimate");
+    expect(gatePlanFor("nonsense", true)).toBe("ultimate");
     expect(gatePlanFor(null, false)).toBe("free");
   });
 });

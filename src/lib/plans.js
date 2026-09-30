@@ -117,10 +117,14 @@ export const downgradeTo = (value) => [...PLAN_TIERS].reverse().find((t) => t.ra
  * plan would therefore paywall someone the database already serves, so the
  * client follows the server's `entitled` answer instead.
  *
- * "pro" is the floor on purpose: has_paid_entitlement() is boolean and does not
- * separate Pro from Ultimate, so this grants the least the database grants. The
- * billing plan is returned untouched — nothing here fabricates a purchase for
- * the Plans/Profile UI to display.
+ * The floor is "ultimate" because the pro/ultimate split is a UI concept the
+ * database does not implement: has_paid_entitlement() is boolean, and every paid
+ * table carries the same own-row policies regardless of tier, so an entitled
+ * staff member can already read and write exactly the rows an Ultimate
+ * subscriber can. Flooring at "pro" would show a lock the API never enforced,
+ * and would hide paid surfaces from the account that most needs to exercise
+ * them. Nothing here fabricates a purchase — the billing plan is returned
+ * untouched for the Plans/Profile UI.
  *
  * Not a security boundary: RLS and has_paid_entitlement() remain authoritative,
  * and `entitled` is server-owned, never client-set.
@@ -131,5 +135,5 @@ export const downgradeTo = (value) => [...PLAN_TIERS].reverse().find((t) => t.ra
  */
 export const gatePlanFor = (profileOrPlan, entitled) => {
   const plan = planOf(profileOrPlan);
-  return entitled && !isPremium(plan) ? "pro" : plan;
+  return entitled && !isPremium(plan) ? "ultimate" : plan;
 };
