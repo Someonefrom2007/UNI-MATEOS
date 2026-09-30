@@ -15,6 +15,10 @@
 -- Entitlement is read exclusively from public.subscriptions, which has RLS with
 -- SELECT-own, no client INSERT/UPDATE policy, and is written only by the
 -- lemon-squeezy webhook using the service role. user_metadata is never consulted.
+-- The "no client UPDATE policy" half is enforced by the follow-up migration
+-- 20260930000000_drop_subscriptions_admin_update.sql: the baseline's one UPDATE
+-- policy (subscriptions_admin_update) would otherwise have let an admin browser
+-- session rewrite billing rows over PostgREST with no audit trail.
 --
 -- Deliberately NOT gated: focus_sessions, tasks, grades, courses. Those are
 -- free-tier data. The free Analytics surface (src/lib/burnout.js, rendered by

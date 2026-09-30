@@ -233,6 +233,62 @@ BEGIN
   END;
   RESET ROLE;
 
+  -- ── Billing truth is not browser-writable (20260930000000) ──
+  -- subscriptions grants paid entitlement, so it must expose SELECT only
+  -- (select_own + admin_read). UPDATE/DELETE/INSERT must be impossible for every
+  -- browser role — including an admin, who is separately entitled via is_admin()
+  -- and must never rewrite billing rows over PostgREST without an audit trail.
+  -- The 'qa-probe' fixture row is real and visible to the right caller, so
+  -- "affected 0 rows" here is a true denial, never an empty-table artefact.
+  UPDATE public.subscriptions SET tier = 'free', status = 'active'
+   WHERE lemon_squeezy_subscription_id = 'qa-probe';
+  SET LOCAL ROLE authenticated;
+  r := r || jsonb_build_object('billing_owner_select_own',
+    (SELECT count(*) FROM public.subscriptions WHERE lemon_squeezy_subscription_id = 'qa-probe') = 1);
+  BEGIN
+    UPDATE public.subscriptions SET tier = 'ultimate'
+     WHERE lemon_squeezy_subscription_id = 'qa-probe';
+    r := r || jsonb_build_object('billing_owner_update_blocked',
+      (SELECT tier FROM public.subscriptions WHERE lemon_squeezy_subscription_id = 'qa-probe') = 'free');
+  EXCEPTION WHEN others THEN
+    r := r || jsonb_build_object('billing_owner_update_blocked', true);
+  END;
+  BEGIN
+    DELETE FROM public.subscriptions WHERE lemon_squeezy_subscription_id = 'qa-probe';
+    r := r || jsonb_build_object('billing_owner_delete_blocked',
+      (SELECT count(*) FROM public.subscriptions WHERE lemon_squeezy_subscription_id = 'qa-probe') = 1);
+  EXCEPTION WHEN others THEN
+    r := r || jsonb_build_object('billing_owner_delete_blocked', true);
+  END;
+  RESET ROLE;
+
+  -- Admin caller: the dropped subscriptions_admin_update removed the only
+  -- UPDATE policy, so even a founder must be unable to write billing, while
+  -- admin_read keeps their visibility. Resolve the founder id as owner first —
+  -- auth.users is not visible to the authenticated role.
+  SELECT u.id INTO v
+    FROM auth.users u
+    JOIN public.admin_accounts a ON a.user_id = u.id
+   WHERE a.role = 'founder' LIMIT 1;
+  IF v IS NOT NULL THEN
+    c := format('{"sub":"%s","role":"authenticated","user_metadata":{"plan":"free"}}', v);
+    PERFORM set_config('request.jwt.claims', c, true);
+    SET LOCAL ROLE authenticated;
+    r := r || jsonb_build_object('billing_admin_read_all',
+      (SELECT count(*) FROM public.subscriptions) >= 1);
+    BEGIN
+      UPDATE public.subscriptions SET tier = 'ultimate';
+      r := r || jsonb_build_object('billing_admin_update_blocked',
+        (SELECT tier FROM public.subscriptions WHERE lemon_squeezy_subscription_id = 'qa-probe') = 'free');
+    EXCEPTION WHEN others THEN
+      r := r || jsonb_build_object('billing_admin_update_blocked', true);
+    END;
+    RESET ROLE;
+  ELSE
+    r := r || jsonb_build_object('billing_admin_read_all', false);
+    r := r || jsonb_build_object('billing_admin_update_blocked', false);
+  END IF;
+
   r := r || jsonb_build_object('probe_user', v::text);
   RETURN r;
 END;
@@ -301,6 +357,11 @@ const main = async () => {
       "entitlement.no_sub_claim_denied",
       "rls.free_reads_no_paid_rows",
       "rls.free_tables_readable",
+      "rls.billing_owner_select_own",
+      "rls.billing_owner_update_blocked",
+      "rls.billing_owner_delete_blocked",
+      "rls.billing_admin_read_all",
+      "rls.billing_admin_update_blocked",
     ]) {
       skip(t, "no Supabase CLI token in keychain; run `supabase login` first");
     }
@@ -343,6 +404,11 @@ const main = async () => {
     rls_free_cannot_write_paid: true,
     rls_paid_reads_own_rows: true,
     free_tables_readable_when_free: true,
+    billing_owner_select_own: true,
+    billing_owner_update_blocked: true,
+    billing_owner_delete_blocked: true,
+    billing_admin_read_all: true,
+    billing_admin_update_blocked: true,
   };
   for (const [k, want] of Object.entries(expect)) {
     record(`entitlement.${k}`, r[k] === want, `observed=${JSON.stringify(r[k])} expected=${want}`);

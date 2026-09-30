@@ -1,0 +1,29 @@
+-- 20260930000000_drop_subscriptions_admin_update.sql
+--
+-- Closes an unaudited browser write path into billing truth.
+--
+-- public.subscriptions is the single source of paid entitlement
+-- (has_paid_entitlement()) and is documented across the app as written ONLY by
+-- the lemon-squeezy webhook using the service role. But the baseline schema
+-- defined "subscriptions_admin_update" (UPDATE USING is_admin()) with no
+-- WITH CHECK, so any admin browser session could mutate billing rows through
+-- PostgREST with no audit trail. That contradicts the Control Center's stated
+-- model — src/pages/admin/Billing.jsx: "the browser never writes billing or
+-- auth metadata" — and the header of the entitlement migration, which claimed
+-- subscriptions has "no client INSERT/UPDATE policy". The claim was false;
+-- this migration makes it true.
+--
+-- The policy is unused by the client: every reference to "Subscription" is
+-- read-only (repo.list, safeCount, safeList, and the admin Analytics table
+-- list). It granted no capability the design wants — admins are already
+-- entitled via is_admin(), and manual overrides/corrections are specified to
+-- run server-side through the future admin-gateway with an audit entry, never
+-- from the browser.
+--
+-- After this migration subscriptions has SELECT policies only
+-- (SELECT-own, admin_read), so PostgREST denies every write for every browser
+-- role. Billing writes remain possible only to the lemon-squeezy webhook via
+-- the service role (RLS bypass, audited by webhook_events).
+--
+-- No service-role credential appears in this file; it runs as the schema owner.
+DROP POLICY IF EXISTS "subscriptions_admin_update" ON public.subscriptions;
