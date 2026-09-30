@@ -137,3 +137,20 @@ describe("gatePlanFor — staff entitlement", () => {
     expect(gatePlanFor(null, false)).toBe("free");
   });
 });
+
+// The Google connectors are reached from /schedule, which every free user
+// already has, and neither edge function ever checked a tier — a free account
+// got HTTP 200 from both. The registry used to say "ultimate", so the gate was
+// cosmetic and the UI implied a restriction the server never enforced.
+describe("PLAN_FEATURES matches what the server actually enforces", () => {
+  it("leaves the Google integrations ungated", () => {
+    expect(PLAN_FEATURES.university_integrations).toBe("free");
+    expect(can("free", "university_integrations")).toBe(true);
+    expect(neededTier("university_integrations")).toBe("free");
+  });
+
+  it("keeps study groups gated, since nothing loosened it", () => {
+    expect(can("pro", "study_groups")).toBe(false);
+    expect(can("ultimate", "study_groups")).toBe(true);
+  });
+});

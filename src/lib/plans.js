@@ -15,14 +15,21 @@ const LEGACY_ALIASES = { ultra: "ultimate" };
 
 // Each PRO/ULTRA feature maps to the minimum tier that unlocks it. Gating is
 // rank-based so a tier inherits every feature of the tiers below it.
+//
+// `university_integrations` is "free" on purpose. It was listed as "ultimate",
+// but neither google-calendar-sync nor google-drive ever enforced a tier, so the
+// gate was cosmetic: a free account got HTTP 200 from both and could complete
+// the whole connection flow. The feature is also reached from /schedule, which
+// every free user already has. Declaring it free makes the registry match what
+// the server actually does instead of implying a restriction that isn't there.
 export const PLAN_FEATURES = Object.freeze({
   ai_assistant: "pro",
   flashcards: "pro",
   smart_planning: "pro",
   exam_intelligence: "pro",
   advanced_analytics: "pro",
+  university_integrations: "free",
   study_groups: "ultimate",
-  university_integrations: "ultimate",
 });
 
 export const FEATURE_LABELS = Object.freeze({
