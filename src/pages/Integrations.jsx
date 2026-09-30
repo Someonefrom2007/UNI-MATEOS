@@ -18,6 +18,10 @@ export default function Integrations() {
   const { t, lang } = useI18n();
   const { can } = usePlan();
   const { toast } = useToast();
+  // Resolved before the effect below, because it decides whether the effect runs
+  // at all. Everything on this page is an ultimate-tier surface, so a free user
+  // gets the paywall and never needs the connector status.
+  const unlocked = can("university_integrations");
   const [feedCount, setFeedCount] = useState(0);
   const [gcal, setGcal] = useState({ state: LOCAL ? t("integrations.status.local") : t("integrations.status.checking"), cls: "bg-muted text-muted-foreground" });
   const [gdrive, setGdrive] = useState({ state: LOCAL ? t("integrations.status.local") : t("integrations.status.checking"), cls: "bg-muted text-muted-foreground", connected: false });
@@ -26,6 +30,11 @@ export default function Integrations() {
   useEffect(() => {
     setFeedCount(loadFeeds().length);
     if (LOCAL) return;
+    // A locked visitor renders PlanLocked and throws this state away, so
+    // checking first would spend two Edge Function invocations per visit on a
+    // result nobody sees — and put the deployment's configured state on the
+    // wire for a user who cannot use the feature.
+    if (!unlocked) return;
     (async () => {
       try {
         const res = await supabase.functions.invoke("google-calendar-sync", {
@@ -58,7 +67,7 @@ export default function Integrations() {
         setGdrive({ state: t("integrations.status.unavailable"), cls: "bg-muted text-muted-foreground", connected: false });
       }
     })();
-  }, [lang]);
+  }, [lang, unlocked]);
 
   const syncDrive = async () => {
     setDriving(true);
@@ -83,7 +92,7 @@ export default function Integrations() {
     }
   };
 
-  if (!can("university_integrations")) {
+  if (!unlocked) {
     return (
       <>
         <PageHeader title={t("title.integrations")} subtitle={t("title.integrations.subtitle")} />
